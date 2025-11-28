@@ -1,0 +1,47 @@
+// productDetail.styles.ts (added info styles)
+
+import { StyleSheet } from 'react-native';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from '../../../constant/dimentions';
+import { Fonts } from '../../../constant';
+
+export default StyleSheet.create({
+  imgContainer: { width: wp(100), height: hp(45) },
+  mainImg: { width: '100%', height: '100%' },
+  backBtn: { position: 'absolute', top: 40, left: 16, backgroundColor: '#fff', borderRadius: 30, padding: 8, elevation: 5 },
+
+  productName: { fontSize: wp(6.5), fontFamily: Fonts.Bold, color: '#000', paddingHorizontal: wp(4), marginTop: hp(2) },
+  weightText: { fontSize: wp(4), color: '#666', paddingHorizontal: wp(4), marginTop: hp(0.5) },
+
+  priceRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: wp(4), marginTop: hp(1.5) },
+  finalPrice: { fontSize: wp(7.5), fontFamily: Fonts.Bold, color: '#000' },
+  strikePrice: { fontSize: wp(5), color: '#999', textDecorationLine: 'line-through', marginLeft: wp(3) },
+  saveText: { fontSize: wp(4.2), color: '#4CAF50', marginLeft: wp(4), fontFamily: Fonts.Medium },
+
+  qtyBtn: { borderWidth: 1, borderColor: '#ddd', borderRadius: 30, paddingHorizontal: wp(5), paddingVertical: hp(1.2), marginRight: wp(3) },
+  qtyBtnActive: { backgroundColor: '#4CAF50', borderColor: '#4CAF50' },
+  qtyText: { color: '#000', fontFamily: Fonts.Medium },
+  qtyTextActive: { color: '#fff' },
+
+  infoSection: { marginTop: hp(3), paddingHorizontal: wp(4) },
+  infoTitle: { fontSize: wp(5), fontFamily: Fonts.Bold, color: '#000', marginBottom: hp(2) },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: hp(1), borderBottomWidth: 0.5, borderColor: '#eee' },
+  infoKey: { fontSize: wp(4), color: '#555', width: wp(40) },
+  infoValue: { fontSize: wp(4), color: '#000', flex: 1, textAlign: 'right' },
+
+  bottomCartBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: hp(10),
+    backgroundColor: '#fff',
+    elevation: 15,
+    borderTopWidth: 0.5,
+    borderTopColor: '#ddd',
+  },
+  cartGradient: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: wp(5) },
+  cartLeft: { flexDirection: 'row', alignItems: 'center' },
+  cartPrice: { fontSize: wp(6.5), fontFamily: Fonts.Bold, color: '#000', marginLeft: wp(3) },
+  addToCartBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingVertical: hp(1.8), paddingHorizontal: wp(7), borderRadius: 30, elevation: 3 },
+  addToCartText: { fontSize: wp(4.8), fontFamily: Fonts.Medium, color: '#000', marginRight: wp(2) },
+});
