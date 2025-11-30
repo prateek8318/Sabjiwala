@@ -39,6 +39,7 @@ api.interceptors.request.use(
 
     console.log('\nAPI REQUEST');
     console.log(`Time: ${now()}`);
+    console.log(`TOKEN:::: ${token}`);
     console.log(`URL: ${config.baseURL}${config.url}`);
     console.log(`Method: ${config.method?.toUpperCase()}`);
     console.log(`Headers:`, pretty(config.headers || {}));
@@ -79,7 +80,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       storage.removeToken();
       console.log('Token expired → Logged out');
-      navigation.navigate('Login');   // <-- add if you use react-navigation
+      navigation.navigate('Login');
     }
 
     console.log('─────────────────────────────────');
@@ -171,8 +172,22 @@ export const ApiService = {
 
   getCategory: async () => {
     const response = await api.get('user/category/list');
-    return response; // full axios response (status + data)
+    return response;
   },
+
+  getCart: async () => {
+    const response = await api.get('user/cart');
+    return response;
+  },
+
+  removeCartItem: async (productId: string) => {
+    console.log(":::::::::", productId);
+    const response = await api.delete('user/cart', {
+      data: { productId }
+    });
+    return response;
+  },
+
 
   addToCart: async (productId: string, varientId: string, quantity: string) => {
     const response = await api.post('user/cart', {
@@ -180,8 +195,9 @@ export const ApiService = {
       "variantId": varientId,
       "quantity": quantity
     });
-    return response; // full axios response (status + data)
+    return response;
   },
+
   // ---- Logout ----
   logout: () => storage.removeToken(),
 };

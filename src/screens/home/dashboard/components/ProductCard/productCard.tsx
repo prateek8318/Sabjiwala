@@ -37,7 +37,7 @@ const ProductCard: FC<ProductCardProps> = ({
     return (
       <Pressable
         style={styles.cardProduct}
-        onPress={() => navigation.navigate('ProductDetail')}
+        onPress={() => navigation.navigate('ProductDetail', { productId: item.id })}
       >
         <View style={{ position: 'relative' }}>
           <View>

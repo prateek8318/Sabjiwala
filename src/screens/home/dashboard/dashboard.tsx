@@ -616,6 +616,7 @@
 //     options: `${product.variants.length} Option${product.variants.length > 1 ? 's' : ''}`,
 //   };
 // };
+
 import React, { FC, useState, useEffect, useCallback } from 'react';
 import {
   SafeAreaView,
@@ -644,7 +645,7 @@ import { Colors, Icon, Images } from '../../../constant';
 import InputText from '../../../components/InputText/TextInput';
 import ProductCard from './components/ProductCard/productCard';
 import ApiService, { IMAGE_BASE_URL } from '../../../service/apiService';
-import { Product, ProductCardItem, SubCategory } from '../../../types';
+import { Product, ProductCardItem, SubCategory } from '../../../@types';
 
 type DashboardScreenNavigationType = NativeStackNavigationProp<any, 'Dashboard'>;
 
@@ -656,21 +657,21 @@ const Dashboard: FC = () => {
   const [selectedCat, setSelectedCat] = useState<string>('all');
   const [products, setProducts] = useState<ProductCardItem[]>([]);
   const [banners, setBanners] = useState<any[]>([]);
-    const [exploreSections, setExploreSections] = useState<any[]>([]);
-    const [dealBanner, setDealBanner] = useState<string>('');
+  const [exploreSections, setExploreSections] = useState<any[]>([]);
+  const [dealBanner, setDealBanner] = useState<string>('');
 
 
-    const [dealOfTheDay, setDealOfTheDay] = useState<ProductCardItem[]>([]);
-    const [recommended, setRecommended] = useState<ProductCardItem[]>([]);
-    const [favorite, setFavorite] = useState<ProductCardItem[]>([]);
-    const [freshFood, setFreshFood] = useState<ProductCardItem[]>([]);
+  const [dealOfTheDay, setDealOfTheDay] = useState<ProductCardItem[]>([]);
+  const [recommended, setRecommended] = useState<ProductCardItem[]>([]);
+  const [favorite, setFavorite] = useState<ProductCardItem[]>([]);
+  const [freshFood, setFreshFood] = useState<ProductCardItem[]>([]);
 
   const [loading, setLoading] = useState<boolean>(false);
   const [productLoading, setProductLoading] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
-const [groceryCards, setGroceryCards] = useState<
-  { id: string; name: string; image?: string }[]
->([]);
+  const [groceryCards, setGroceryCards] = useState<
+    { id: string; name: string; image?: string }[]
+  >([]);
 
 
   // 🧠 Fetch Categories
@@ -690,7 +691,7 @@ const [groceryCards, setGroceryCards] = useState<
     }
   };
 
-// Fetch Static Home Content (Banners + Categories + Explore)
+  // Fetch Static Home Content (Banners + Categories + Explore)
   const fetchStaticContent = async (isRefresh = false) => {
     try {
       if (!isRefresh) setLoading(true);
@@ -704,7 +705,7 @@ const [groceryCards, setGroceryCards] = useState<
       // Categories (SubCategories)
       const apiCats: SubCategory[] = data.categories || [];
       const allCat: SubCategory = { _id: 'all', name: 'All' };
-//       setCategories([allCat, ...apiCats]);
+      //       setCategories([allCat, ...apiCats]);
 
       const mappedGroceryCards = apiCats.map((item: SubCategory) => ({
         id: item._id,
@@ -728,48 +729,48 @@ const [groceryCards, setGroceryCards] = useState<
     }
   };
 
-const fetchHomeProductContent = async (isRefresh = false) => {
-  try {
-    if (!isRefresh) setLoading(true);
-    const response = await ApiService.getHomeContent(); // ← ye wala use karo
+  const fetchHomeProductContent = async (isRefresh = false) => {
+    try {
+      if (!isRefresh) setLoading(true);
+      const response = await ApiService.getHomeContent(); // ← ye wala use karo
 
-    const data = response.data.data;
+      const data = response.data.data;
 
-    // Transform each section using same logic as transformProductToCard
-    const transform = (product: any): ProductCardItem => {
-      const variant = product.ProductVarient?.[0];
-      const imagePath = variant?.images?.[0] || product.primary_image?.[0] || '';
+      // Transform each section using same logic as transformProductToCard
+      const transform = (product: any): ProductCardItem => {
+        const variant = product.ProductVarient?.[0];
+        const imagePath = variant?.images?.[0] || product.primary_image?.[0] || '';
 
-      const cleanPath = imagePath
-        .replace('public\\', '')
-        .replace('public/', 'public/')
-        .replace(/\\/g, '/');
+        const cleanPath = imagePath
+          .replace('public\\', '')
+          .replace('public/', 'public/')
+          .replace(/\\/g, '/');
 
-      return {
-        id: product._id,
-        name: product.productName,
-        image: imagePath ? IMAGE_BASE_URL + cleanPath : '',
-        price: variant?.price || product.price || 0,
-        oldPrice: variant?.originalPrice || product.mrp || 0,
-        discount: variant?.discount ? `₹${variant.discount} OFF` : '',
-        weight: variant ? `${variant.stock || 1} ${variant.unit || ''}` : 'N/A',
-        rating: product.rating || 4.5,
-        options: `${product.ProductVarient?.length || 0} Option${(product.ProductVarient?.length || 0) > 1 ? 's' : ''}`,
+        return {
+          id: product._id,
+          name: product.productName,
+          image: imagePath ? IMAGE_BASE_URL + cleanPath : '',
+          price: variant?.price || product.price || 0,
+          oldPrice: variant?.originalPrice || product.mrp || 0,
+          discount: variant?.discount ? `₹${variant.discount} OFF` : '',
+          weight: variant ? `${variant.stock || 1} ${variant.unit || ''}` : 'N/A',
+          rating: product.rating || 4.5,
+          options: `${product.ProductVarient?.length || 0} Option${(product.ProductVarient?.length || 0) > 1 ? 's' : ''}`,
+        };
       };
-    };
 
-    setDealOfTheDay((data.dealOfTheDay || []).map(transform));
-    setRecommended((data.recommendedProducts || []).map(transform));
-    setFavorite((data.favoriteProducts || []).map(transform));
-    setFreshFood((data.freshFoodProducts || []).map(transform));
+      setDealOfTheDay((data.dealOfTheDay || []).map(transform));
+      setRecommended((data.recommendedProducts || []).map(transform));
+      setFavorite((data.favoriteProducts || []).map(transform));
+      setFreshFood((data.freshFoodProducts || []).map(transform));
 
-  } catch (error) {
-    console.error('Error fetching home product content:', error);
-  } finally {
-    setLoading(false);
-    if (isRefresh) setRefreshing(false);
-  }
-};
+    } catch (error) {
+      console.error('Error fetching home product content:', error);
+    } finally {
+      setLoading(false);
+      if (isRefresh) setRefreshing(false);
+    }
+  };
 
   // 🧠 Fetch Products
   const fetchProducts = async (subCategoryId: string) => {
@@ -924,66 +925,66 @@ const fetchHomeProductContent = async (isRefresh = false) => {
   );
 
   // 🔹 Grocery Section
-const renderGroceryKitchen = () => (
-  <View style={styles.productHeadingMainView}>
-    <View style={styles.productHeadingHeadingView}>
-      <TextView style={styles.txtProductHeading}>Grocery & Kitchen</TextView>
-      <Pressable
-        onPress={() => navigation.navigate('AllCategories')}
-      >
-        <TextView style={styles.txtViewMore}>view more</TextView>
-      </Pressable>
-    </View>
-
-    {/* First row */}
-    <View style={styles.groceryCardView}>
-      {groceryCards.slice(0, 2).map((item) => (
+  const renderGroceryKitchen = () => (
+    <View style={styles.productHeadingMainView}>
+      <View style={styles.productHeadingHeadingView}>
+        <TextView style={styles.txtProductHeading}>Grocery & Kitchen</TextView>
         <Pressable
-          key={item.id}
-          style={{ alignItems: 'center' }}
-          onPress={() =>
-            navigation.navigate('CategoryDetail', { categoryId: item.id })
-          }
+          onPress={() => navigation.navigate('AllCategories')}
         >
-          <View style={styles.groceryCard1}>
-            {item.image && (
-              <Image
-                source={{ uri: item.image }}
-                style={{ width: '100%', height: '100%', borderRadius: 12 }}
-                resizeMode="cover"
-              />
-            )}
-          </View>
-          <TextView style={styles.txtGrocery}>{item.name}</TextView>
+          <TextView style={styles.txtViewMore}>view more</TextView>
         </Pressable>
-      ))}
-    </View>
+      </View>
 
-    {/* Second row */}
-    <View style={styles.groceryCardView}>
-      {groceryCards.slice(2, 5).map((item) => (
-        <Pressable
-          key={item.id}
-          style={{ alignItems: 'center' }}
-          onPress={() =>
-            navigation.navigate('CategoryDetail', { categoryId: item.id })
-          }
-        >
-          <View style={styles.commonGroceryCard}>
-            {item.image && (
-              <Image
-                source={{ uri: item.image }}
-                style={{ width: '100%', height: '100%', borderRadius: 12 }}
-                resizeMode="cover"
-              />
-            )}
-          </View>
-          <TextView style={styles.txtGrocery}>{item.name}</TextView>
-        </Pressable>
-      ))}
+      {/* First row */}
+      <View style={styles.groceryCardView}>
+        {groceryCards.slice(0, 2).map((item) => (
+          <Pressable
+            key={item.id}
+            style={{ alignItems: 'center' }}
+            onPress={() =>
+              navigation.navigate('CategoryDetail', { categoryId: item.id })
+            }
+          >
+            <View style={styles.groceryCard1}>
+              {item.image && (
+                <Image
+                  source={{ uri: item.image }}
+                  style={{ width: '100%', height: '100%', borderRadius: 12 }}
+                  resizeMode="cover"
+                />
+              )}
+            </View>
+            <TextView style={styles.txtGrocery}>{item.name}</TextView>
+          </Pressable>
+        ))}
+      </View>
+
+      {/* Second row */}
+      <View style={styles.groceryCardView}>
+        {groceryCards.slice(2, 5).map((item) => (
+          <Pressable
+            key={item.id}
+            style={{ alignItems: 'center' }}
+            onPress={() =>
+              navigation.navigate('CategoryDetail', { categoryId: item.id })
+            }
+          >
+            <View style={styles.commonGroceryCard}>
+              {item.image && (
+                <Image
+                  source={{ uri: item.image }}
+                  style={{ width: '100%', height: '100%', borderRadius: 12 }}
+                  resizeMode="cover"
+                />
+              )}
+            </View>
+            <TextView style={styles.txtGrocery}>{item.name}</TextView>
+          </Pressable>
+        ))}
+      </View>
     </View>
-  </View>
-);
+  );
 
 
   return (
@@ -1010,24 +1011,8 @@ const renderGroceryKitchen = () => (
                 />
               </Pressable>
               <View>
-                <TextView style={styles.txtDelivery}>Delivery In 10 Mins</TextView>
-                <View style={styles.addressView}>
-                  <Icon
-                    family="EvilIcons"
-                    name="location"
-                    color={Colors.PRIMARY[300]}
-                    size={24}
-                  />
-                  <TextView style={styles.txtAddress}>
-                    H-146, Sector -63, Noida, 201301
-                  </TextView>
-                  <Icon
-                    family="Entypo"
-                    name="chevron-down"
-                    color={Colors.PRIMARY[300]}
-                    size={24}
-                  />
-                </View>
+                <TextView style={styles.txtDelivery}></TextView>
+
               </View>
               <View style={styles.actionButtonView}>
                 <Pressable onPress={() => navigation.navigate('Wallet')}>
@@ -1087,31 +1072,31 @@ const renderGroceryKitchen = () => (
           </View>
         </View>
 
-                {/* Products */}
-                <View>
-                  <View style={styles.groceryCard}>
-                    <View style={styles.cardMainView}>
-                      <View>
-                        <TextView style={styles.txtOffer}>
-                          50% OFF on Fresh {'\n'}grocery
-                        </TextView>
-                        <Image source={Images.ic_code} style={styles.imgCode} />
-                      </View>
-                      <View>
-                        <Image
-                          source={Images.ic_vegatable}
-                          style={styles.imgVegatable}
-                        />
-                      </View>
-                    </View>
-                    </View>
-                    </View>
+        {/* Products */}
+        <View>
+          <View style={styles.groceryCard}>
+            <View style={styles.cardMainView}>
+              <View>
+                <TextView style={styles.txtOffer}>
+                  50% OFF on Fresh {'\n'}grocery
+                </TextView>
+                <Image source={Images.ic_code} style={styles.imgCode} />
+              </View>
+              <View>
+                <Image
+                  source={Images.ic_vegatable}
+                  style={styles.imgVegatable}
+                />
+              </View>
+            </View>
+          </View>
+        </View>
 
 
 
         {/* 🔹 Product List */}
         <View style={styles.groceryCard}>
-    <ProductCard cardArray={products} type="OFFER" horizontal />
+          <ProductCard cardArray={products} type="OFFER" horizontal />
         </View>
 
         {/* 🔹 Explore Button */}
@@ -1122,7 +1107,7 @@ const renderGroceryKitchen = () => (
             iconFamily={'MaterialIcons'}
             icon="navigate-next"
             titleStyle={[styles.buttonTitle, { color: Colors.PRIMARY[300] }]}
-            onPress={() => {}}
+            onPress={() => { }}
           />
         </View>
 
@@ -1142,18 +1127,18 @@ const renderGroceryKitchen = () => (
 
 
         {/* 🔹 Deal Of The Day */}
-    <View>
-      <Image source={Images.img_deal} style={styles.imgDeal} />
-      <FlatList
-        data={dealOfTheDay}                    // ← Real API data
-        renderItem={renderDealProduct}
-        contentContainerStyle={{ alignSelf: 'center', marginTop: hp(2) }}
-        numColumns={3}
-        keyExtractor={(item) => item.id}
-      />
-    </View>
+        <View>
+          <Image source={Images.img_deal} style={styles.imgDeal} />
+          <FlatList
+            data={dealOfTheDay}                    // ← Real API data
+            renderItem={renderDealProduct}
+            contentContainerStyle={{ alignSelf: 'center', marginTop: hp(2) }}
+            numColumns={3}
+            keyExtractor={(item) => item.id}
+          />
+        </View>
 
-{/* Deal Banner */}
+        {/* Deal Banner */}
         {dealBanner ? (
           <Image source={{ uri: dealBanner }} style={{ width: '100%', height: 150, marginVertical: 10 }} />
         ) : null}
@@ -1171,26 +1156,26 @@ const renderGroceryKitchen = () => (
           <ProductCard cardArray={popularProduct} horizontal type="BOUGHT" />
         </View>
 
-{/* Fresh Fruits Section */}
-<View style={{ marginTop: hp(2) }}>
-  <View style={styles.productHeadingMainView}>
-    <View style={styles.productHeadingHeadingView}>
-      <TextView style={styles.txtProductHeading}>Fresh Fruits</TextView>
-      <Pressable onPress={() => navigation.navigate('SomeScreen', { type: 'fresh-fruits' })}>
-        <TextView style={styles.txtViewMore}>view more</TextView>
-      </Pressable>
-    </View>
-  </View>
+        {/* Fresh Fruits Section */}
+        <View style={{ marginTop: hp(2) }}>
+          <View style={styles.productHeadingMainView}>
+            <View style={styles.productHeadingHeadingView}>
+              <TextView style={styles.txtProductHeading}>Fresh Fruits</TextView>
+              <Pressable onPress={() => navigation.navigate('SomeScreen', { type: 'fresh-fruits' })}>
+                <TextView style={styles.txtViewMore}>view more</TextView>
+              </Pressable>
+            </View>
+          </View>
 
-  {/* Dynamic Data from API */}
-  <ProductCard
-    cardArray={freshFood}           // ← Ye dynamic data hai
-    horizontal
-    type="FRUITS"
-  />
-</View>
+          {/* Dynamic Data from API */}
+          <ProductCard
+            cardArray={freshFood}           // ← Ye dynamic data hai
+            horizontal
+            type="FRUITS"
+          />
+        </View>
 
-      {/* Bottom Banner with Explore */}
+        {/* Bottom Banner with Explore */}
         <View>
           <Image source={Images.img_banner_off} style={styles.imgBanner} />
           <View style={[styles.buttonView, { marginTop: hp(-6) }]}>
@@ -1200,7 +1185,7 @@ const renderGroceryKitchen = () => (
               iconFamily="MaterialIcons"
               icon="navigate-next"
               titleStyle={[styles.buttonTitle, { color: Colors.PRIMARY[300] }]}
-              onPress={() => {}}
+              onPress={() => { }}
             />
           </View>
         </View>

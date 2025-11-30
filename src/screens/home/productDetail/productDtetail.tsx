@@ -15,6 +15,7 @@ import { widthPercentageToDP as wp, heightPercentageToDP as hp } from '../../../
 import { Colors, Fonts, Icon, Images } from '../../../constant';
 import ApiService from '../../../service/apiService';
 import styles from './productDetail.styles';
+import { useRoute } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { HomeStackProps } from '../../../@types';
@@ -28,8 +29,10 @@ const qtyOptions = [
 ];
 
 const ProductDetail = () => {
+  const route = useRoute();
+  const { productId } = route.params as { productId: string };
+
   const navigation = useNavigation<NavProp>();
-  const productId = '6927f72a80b9389c69c445b8';
 
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -55,7 +58,6 @@ const ProductDetail = () => {
   const mrp = product.mrp || 0;
   const weight = product.variants?.[selectedQty]?.weight || '1 Kg';
   const info = product.info || {};
-
   const handleAddToCart = async () => {
     try {
       const res = await ApiService.addToCart(
@@ -63,7 +65,7 @@ const ProductDetail = () => {
         product.variants[selectedQty]?._id,
         "1"   // default quantity
       );
-  
+
       if (res?.status === 200 && res.data.success) {
         alert("Added to cart successfully!");
         navigation.navigate('Cart');
@@ -75,7 +77,8 @@ const ProductDetail = () => {
       alert("Something went wrong!");
     }
   };
-  
+
+
   const renderQty = ({ item }: any) => (
     <Pressable
       onPress={() => setSelectedQty(item.id)}
@@ -89,7 +92,7 @@ const ProductDetail = () => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp(12) }}>
-        
+
         <View style={styles.imgContainer}>
           <Image source={{ uri: img }} style={styles.mainImg} resizeMode="cover" />
           <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -107,7 +110,7 @@ const ProductDetail = () => {
           {mrp > price && <Text style={styles.strikePrice}>₹{mrp}</Text>}
           <Text style={styles.saveText}>You Save ₹{mrp - price}</Text>
         </View>
-        
+
 
         {/* Quantity */}
         <FlatList
@@ -118,7 +121,7 @@ const ProductDetail = () => {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: wp(4), marginTop: hp(2) }}
         />
-       
+
 
         {/* Additional Info (full details) */}
         <View style={styles.infoSection}>
@@ -166,6 +169,7 @@ const ProductDetail = () => {
             <Text style={styles.cartPrice}>₹{price}</Text>
           </View>
           <Pressable onPress={handleAddToCart} style={styles.addToCartBtn}>
+
             <Text style={styles.addToCartText}>Add to Cart</Text>
             <Icon name="chevron-right" family="Entypo" size={26} color="#000" />
           </Pressable>

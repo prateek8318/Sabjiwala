@@ -5,9 +5,7 @@ import { Dashboard, Catogaries, Favorites, MyOrder, Cart } from '../screens';
 import { Colors, Fonts, Images } from '../constant';
 import LinearGradient from 'react-native-linear-gradient';
 import { Image, View, Text } from 'react-native';
-
-// Yeh line add karo (sabse upar imports ke baad)
-import { useCart } from '../context/CartContext';   // <-- YEH ADD KARO
+import { useCart } from '../context/CartContext';
 
 const Stack = createNativeStackNavigator();
 
@@ -39,18 +37,26 @@ const CartPageStack = () => (
 
 const BottomStackNavigator = () => {
   const Tab = createBottomTabNavigator();
-  
-  // Yeh line add karo
-  const { totalItems } = useCart();   // <-- Cart badge ke liye
+  const { totalItems } = useCart();
 
   return (
     <Tab.Navigator
       screenOptions={{
+        headerShown: false,   // <-- ⭐⭐ THE MAIN FIX ⭐⭐
         tabBarBackground: () => (
           <>
-            <LinearGradient colors={[Colors.PRIMARY[200], Colors.SECONDARY[300]]} style={{ flex: 1 }} />
-            <LinearGradient colors={['rgba(0,0,0,0.2)', 'transparent']} style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 6 }} />
-            <LinearGradient colors={['transparent', 'rgba(0,0,0,0.2)']} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 6 }} />
+            <LinearGradient
+              colors={[Colors.PRIMARY[200], Colors.SECONDARY[300]]}
+              style={{ flex: 1 }}
+            />
+            <LinearGradient
+              colors={['rgba(0,0,0,0.2)', 'transparent']}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 6 }}
+            />
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.2)']}
+              style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 6 }}
+            />
           </>
         ),
         tabBarActiveTintColor: Colors.PRIMARY[300],
@@ -62,33 +68,63 @@ const BottomStackNavigator = () => {
       <Tab.Screen name="Home" component={HomePageStack}
         options={{
           tabBarIcon: ({ focused }) => (
-            <Image source={Images.ic_home} style={{ width: 30, height: 30, tintColor: focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100] }} />
-          ),
-        }}
-      />
-      <Tab.Screen name="Catogaries" component={CatogariesPageStack}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <Image source={Images.ic_catogary} style={{ width: 30, height: 30, tintColor: focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100] }} />
-          ),
-        }}
-      />
-      <Tab.Screen name="Favorites" component={FavoritesPageStack}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <Image source={Images.ic_heart} style={{ width: 30, height: 30, tintColor: focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100] }} />
-          ),
-        }}
-      />
-      <Tab.Screen name="MyOrder" component={MyOrderPageStack}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <Image source={Images.ic_order} style={{ width: 30, height: 30, tintColor: focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100] }} />
+            <Image
+              source={Images.ic_home}
+              style={{
+                width: 30,
+                height: 30,
+                tintColor: focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100],
+              }}
+            />
           ),
         }}
       />
 
-      {/* SIRF YEH CART WALA TAB CHANGE KIYA HAI */}
+      <Tab.Screen name="Catogaries" component={CatogariesPageStack}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <Image
+              source={Images.ic_catogary}
+              style={{
+                width: 30,
+                height: 30,
+                tintColor: focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100],
+              }}
+            />
+          ),
+        }}
+      />
+
+      <Tab.Screen name="Favorites" component={FavoritesPageStack}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <Image
+              source={Images.ic_heart}
+              style={{
+                width: 30,
+                height: 30,
+                tintColor: focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100],
+              }}
+            />
+          ),
+        }}
+      />
+
+      <Tab.Screen name="MyOrder" component={MyOrderPageStack}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <Image
+              source={Images.ic_order}
+              style={{
+                width: 30,
+                height: 30,
+                tintColor: focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100],
+              }}
+            />
+          ),
+        }}
+      />
+
       <Tab.Screen
         name="Cart"
         component={CartPageStack}
@@ -104,7 +140,7 @@ const BottomStackNavigator = () => {
                   tintColor: focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100],
                 }}
               />
-              {/* Badge - Item count */}
+
               {totalItems > 0 && (
                 <View
                   style={{
