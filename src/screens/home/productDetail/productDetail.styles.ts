@@ -39,6 +39,41 @@ export default StyleSheet.create({
     borderTopWidth: 0.5,
     borderTopColor: '#ddd',
   },
+  qtyAdjustBtn: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#ccc'
+  },
+  qtyAdjustText: {
+    fontSize: 18,
+    fontWeight: 'bold'
+  },
+  
+  qtyBtn: {
+    backgroundColor: '#E0E0E0', // light gray
+    marginRight: 10,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  
+  qtyBtnActive: {
+    backgroundColor: '#4CAF50', // green
+  },
+  
+  qtyText: {
+    fontSize: 14,
+    color: '#000',
+  },
+  
+  qtyTextActive: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  
   cartGradient: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: wp(5) },
   cartLeft: { flexDirection: 'row', alignItems: 'center' },
   cartPrice: { fontSize: wp(6.5), fontFamily: Fonts.Bold, color: '#000', marginLeft: wp(3) },

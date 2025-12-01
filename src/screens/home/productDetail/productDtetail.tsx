@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -22,69 +21,97 @@ import { HomeStackProps } from '../../../@types';
 
 type NavProp = NativeStackNavigationProp<HomeStackProps, 'ProductDetail'>;
 
-const qtyOptions = [
-  { id: 0, label: '500 gm' },
-  { id: 1, label: '1 Kg' },
-  { id: 2, label: '1 Kg X 2' },
-];
-
 const ProductDetail = () => {
   const route = useRoute();
   const { productId } = route.params as { productId: string };
-
   const navigation = useNavigation<NavProp>();
 
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedQty, setSelectedQty] = useState(0);
+  const [qtyOptions, setQtyOptions] = useState<any[]>([]);
+  const [cartQty, setCartQty] = useState(0); // New state
 
   useEffect(() => {
     (async () => {
       try {
         const res = await ApiService.getProductDetail(productId);
         if (res?.status === 200 && res.data?.success) {
-          setProduct(res.data.productData);
+          const productData = res.data.productData;
+          setProduct(productData);
+
+          const options = productData.variants?.map((v: any, index: number) => ({
+            id: index,
+            label: v.weight,
+            price: v.price,
+            mrp: v.mrp,
+            variantId: v._id,
+          })) || [];
+
+          setQtyOptions(options);
         }
-      } catch (e) { console.log(e); }
-      finally { setLoading(false); }
+      } catch (e) {
+        console.log(e);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
   if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" color="#4CAF50" />;
   if (!product) return <Text style={{ flex: 1, textAlign: 'center', marginTop: 50 }}>Product not found</Text>;
 
+  const selectedVariant = product.variants?.[selectedQty] || {};
   const img = product.images?.[0] ? `http://167.71.232.245:8539/${product.images[0]}` : '';
-  const price = product.price || 0;
-  const mrp = product.mrp || 0;
-  const weight = product.variants?.[selectedQty]?.weight || '1 Kg';
+  const price = selectedVariant.price || 0;
+  const mrp = selectedVariant.mrp || 0;
+  const weight = selectedVariant.weight || '';
   const info = product.info || {};
-  const handleAddToCart = async () => {
-    try {
-      const res = await ApiService.addToCart(
-        product._id,
-        product.variants[selectedQty]?._id,
-        "1"   // default quantity
-      );
 
-      if (res?.status === 200 && res.data.success) {
-        alert("Added to cart successfully!");
-        navigation.navigate('Cart');
+  const updateCart = async (newQty: number) => {
+    try {
+      if (newQty > 0) {
+        await ApiService.addToCart(product._id, selectedVariant._id, newQty.toString());
       } else {
-        alert("Failed to add item!");
+        await ApiService.removeFromCart(product._id, selectedVariant._id);
       }
+      setCartQty(newQty);
     } catch (error) {
       console.log(error);
-      alert("Something went wrong!");
     }
   };
 
+  const handleAddToCart = () => {
+    updateCart(1); // Initially add 1
+  };
 
   const renderQty = ({ item }: any) => (
     <Pressable
       onPress={() => setSelectedQty(item.id)}
-      style={[styles.qtyBtn, selectedQty === item.id && styles.qtyBtnActive]}>
-      <Text style={[styles.qtyText, selectedQty === item.id && styles.qtyTextActive]}>
-        {item.label}
+      style={[
+        styles.qtyBtn,
+        selectedQty === item.id && styles.qtyBtnActive,
+        {
+          paddingVertical: 10,
+          paddingHorizontal: 20,
+          borderRadius: 8,
+          minWidth: 70,
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginRight: 10
+        }
+      ]}
+    >
+      <Text
+        style={[
+          styles.qtyText,
+          selectedQty === item.id && styles.qtyTextActive,
+          { fontWeight: '500', fontSize: 14, color: selectedQty === item.id ? '#fff' : '#000' }
+        ]}
+        numberOfLines={1}
+        ellipsizeMode="tail"
+      >
+        {item.label} | ₹{item.price}
       </Text>
     </Pressable>
   );
@@ -92,7 +119,7 @@ const ProductDetail = () => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp(12) }}>
-
+        {/* Product Image */}
         <View style={styles.imgContainer}>
           <Image source={{ uri: img }} style={styles.mainImg} resizeMode="cover" />
           <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -100,7 +127,7 @@ const ProductDetail = () => {
           </Pressable>
         </View>
 
-        {/* Name */}
+        {/* Name & Weight */}
         <Text style={styles.productName}>{product.name}</Text>
         <Text style={styles.weightText}>{weight}</Text>
 
@@ -108,75 +135,111 @@ const ProductDetail = () => {
         <View style={styles.priceRow}>
           <Text style={styles.finalPrice}>₹{price}</Text>
           {mrp > price && <Text style={styles.strikePrice}>₹{mrp}</Text>}
-          <Text style={styles.saveText}>You Save ₹{mrp - price}</Text>
+          {mrp > price && <Text style={styles.saveText}>You Save ₹{mrp - price}</Text>}
         </View>
 
-
-        {/* Quantity */}
+        {/* Quantity Options */}
         <FlatList
           data={qtyOptions}
           renderItem={renderQty}
-          keyExtractor={i => i.id.toString()}
+          keyExtractor={(i) => i.id.toString()}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: wp(4), marginTop: hp(2) }}
         />
 
-
-        {/* Additional Info (full details) */}
+        {/* Additional Info */}
         <View style={styles.infoSection}>
           <Text style={styles.infoTitle}>Additional Info</Text>
-
           {Object.keys(info).map((key) => (
             <View key={key} style={styles.infoRow}>
               <Text style={styles.infoKey}>{key}</Text>
               <Text style={styles.infoValue}>{info[key]}</Text>
             </View>
           ))}
-
-          <View style={styles.infoRow}>
-            <Text style={styles.infoKey}>Price</Text>
-            <Text style={styles.infoValue}>₹{price}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoKey}>MRP</Text>
-            <Text style={styles.infoValue}>₹{mrp}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoKey}>Rating</Text>
-            <Text style={styles.infoValue}>{product.rating || 'N/A'}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoKey}>Available</Text>
-            <Text style={styles.infoValue}>{product.isAvailable ? 'Yes' : 'No'}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoKey}>Return</Text>
-            <Text style={styles.infoValue}>{product.isReturnAvailable ? 'Yes' : 'No'}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoKey}>Tags</Text>
-            <Text style={styles.infoValue}>{product.tags?.join(', ') || '—'}</Text>
-          </View>
         </View>
       </ScrollView>
 
-      {/* Fixed Bottom Add to Cart Bar (exactly like screenshot) */}
+      {/* Bottom Add to Cart Bar */}
       <View style={styles.bottomCartBar}>
         <LinearGradient colors={['#E8F5E8', '#C8E6C9']} style={styles.cartGradient}>
-          <View style={styles.cartLeft}>
-            <Icon name="shopping-cart" family="Feather" size={26} color="#000" />
-            <Text style={styles.cartPrice}>₹{price}</Text>
-          </View>
-          <Pressable onPress={handleAddToCart} style={styles.addToCartBtn}>
+          {cartQty === 0 ? (
+            // Full width Add to Cart button
+            <Pressable onPress={handleAddToCart} style={[styles.addToCartBtn, { flex: 1 }]}>
+              <Text style={styles.addToCartText}>Add to Cart</Text>
+              <Icon name="chevron-right" family="Entypo" size={26} color="#000" />
+            </Pressable>
+          ) : (
+            // Cart icon + quantity selector
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1, padding: 10 }}>
 
-            <Text style={styles.addToCartText}>Add to Cart</Text>
-            <Icon name="chevron-right" family="Entypo" size={26} color="#000" />
-          </Pressable>
+              {/* Cart Icon with "View Cart" */}
+              <Pressable
+                onPress={() => navigation.navigate('BottomStackNavigator', { screen: 'Cart' })}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: '#fff',
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: '#ccc',
+                }}
+              >
+                <Icon name="shopping-cart" family="Feather" size={26} color="#000" />
+                <Text style={{ marginLeft: 8, fontSize: 16, fontWeight: '600', color: '#000' }}>
+                  View Cart
+                </Text>
+              </Pressable>
+
+              {/* Quantity Selector */}
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Pressable
+                  onPress={() => updateCart(cartQty - 1)}
+                  style={{
+                    backgroundColor: '#fff',
+                    borderRadius: 4,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    
+                    borderWidth: 1,
+                    borderColor: '#ccc',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ fontSize: 16, color: '#000', fontWeight: '600' }}>-</Text>
+                </Pressable>
+
+                <Text style={{ marginHorizontal: 12, fontSize: 16, fontWeight: '600', color: '#000' }}>
+                  {cartQty}
+                </Text>
+
+                <Pressable
+                  onPress={() => updateCart(cartQty + 1)}
+                  style={{
+                    backgroundColor: '#fff',
+                    borderRadius: 4,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderWidth: 1,
+                    borderColor: '#ccc',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ fontSize: 16, color: '#000', fontWeight: '600' }}>+</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
         </LinearGradient>
       </View>
+
     </SafeAreaView>
   );
 };
+
 
 export default ProductDetail;

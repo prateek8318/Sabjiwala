@@ -143,23 +143,22 @@ const styles = StyleSheet.create({
   buttonView: {
     marginTop: hp(-3),
     width: wp(30),
-    height: hp(5),       // button height
+    paddingVertical: hp(1.2), // control vertical space instead of fixed height
     borderRadius: 50,
     alignSelf: 'center',
-    justifyContent: 'center',   // center vertically
-    alignItems: 'center',       // center horizontally
   },
+  
   buttonTitle: {
-    fontFamily: Fonts.Medium,   // apna font
-    fontSize: wp(3.5),          // adjust text size to fit
-    lineHeight: hp(5),           // same as button height
-    color: Colors.PRIMARY[300],  // color same
+    color: Colors.PRIMARY[300],
+    fontFamily: Fonts.Medium,
+    fontSize: wp(4.5),
+    lineHeight: wp(4.5),      // prevents extra spacing below text
     textAlign: 'center',
-    textAlignVertical: 'center',
     includeFontPadding: false,
     margin: 0,
     padding: 0,
-  },  
+  },
+  
   
   productHeadingMainView: {
     width: wp(100),

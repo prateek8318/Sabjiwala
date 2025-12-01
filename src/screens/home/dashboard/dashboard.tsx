@@ -914,8 +914,10 @@ const Dashboard: FC = () => {
   ];
 
   const renderDealProduct = ({ item }: any) => (
+  
     <View style={styles.cardDealMainView}>
       <View style={styles.cardDealView}>
+        
         <View style={styles.cardDealOfferView}>
           <TextView style={styles.cardDealTxtOffer}>{item.offer}</TextView>
         </View>

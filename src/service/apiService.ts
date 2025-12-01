@@ -10,7 +10,9 @@ import { storage } from './storage';
 // -------------------------------------------------
 // 1. Base URL (your live dev server)
 const BASE_URL = 'http://167.71.232.245:8539/api/';
+// const BASE_URL = 'http://192.168.1.6:5002/api/';
 export const IMAGE_BASE_URL = 'http://167.71.232.245:8539/';
+// export const IMAGE_BASE_URL = 'http://192.168.1.6:5002/';
 
 // 1. Base URL (your local dev server)
 // const BASE_URL = 'http://192.168.1.21:5002/api/';
@@ -92,6 +94,8 @@ api.interceptors.response.use(
 // 6. API SERVICE (all CRUD + helpers)
 export const ApiService = {
   // ---- CRUD ----
+
+  getImage: (image: string) => `${IMAGE_BASE_URL}${image}`,
   get: (endpoint: string, params?: any) => api.get(endpoint, { params }),
   post: (endpoint: string, data: any) => api.post(endpoint, data),
   put: (endpoint: string, data: any) => api.put(endpoint, data),

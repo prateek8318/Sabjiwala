@@ -15,7 +15,7 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: wp(4),
+    padding: wp(7.5),
     backgroundColor: '#fff',
   },
 
@@ -57,9 +57,9 @@ const styles = StyleSheet.create({
   },
 
   itemImage: {
-    width: wp(18),
-    height: wp(18),
-    borderRadius: 8,
+    width: wp(14),
+    height: wp(14),
+    borderRadius: 10,
   },
 
   itemInfo: {
@@ -191,6 +191,7 @@ const styles = StyleSheet.create({
   tipTitle: {
     fontSize: hp(2),
     fontWeight: '700',
+    color: '#000',
     marginBottom: hp(1),
   },
 
