@@ -68,8 +68,8 @@ const Catogaries = () => {
     // Construct image URL safely
     const imagePath = item.image
       ? `${IMAGE_BASE_URL}${item.image
-          .replace('public\\', '')
-          .replace(/\\/g, '/')}`
+        .replace('public\\', '')
+        .replace(/\\/g, '/')}`
       : null;
 
 
@@ -94,7 +94,13 @@ const Catogaries = () => {
           />
 
           {/* Category Name */}
-          <TextView style={styles.itemCatTxt}>{item.name}</TextView>
+          <TextView
+            style={styles.itemCatTxt}
+            numberOfLines={2}
+            ellipsizeMode="tail"
+          >
+            {item.name}
+          </TextView>
         </View>
       </Pressable>
     );

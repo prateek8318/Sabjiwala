@@ -1130,18 +1130,48 @@ const Dashboard: FC = () => {
           <ProductCard cardArray={products} type="OFFER" horizontal />
         </View>
 
-        {/* 🔹 Explore Button
+        {/*  EXPLORE BUTTON */}
         <View style={styles.buttonView}>
-          <LinearButton
-            title="Explore"
-            showIcon={true}
-            iconFamily={'MaterialIcons'}
-            icon="navigate-next"
-            titleStyle={[styles.buttonTitle, { color: Colors.PRIMARY[300] }]}
-            onPress={() => { }}
-          />
-        </View> */}
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('BottomStackNavigator', { screen: 'Catogaries' })}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#1B5E20',
+              borderWidth: 3,
+              borderColor: '#1B5E20',
+              borderRadius: 30,
+              height: 54,
+              paddingHorizontal: 36,
+              elevation: 12,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.2,
+              shadowRadius: 10,
+            }}
+          >
+            <TextView
+              style={{
+                color: '#FFFFFF',
+                fontSize: 17,
+                fontWeight: '400',
+                marginRight: 0,
+                top: -1,
+              }}
+            >
+              Explore
+            </TextView>
 
+            <Icon
+              name="chevron-right"
+              size={28}
+              color="#ffffff"
+              family="MaterialCommunityIcons"
+            />
+          </TouchableOpacity>
+        </View>
         {/* 🔹 Grocery Section */}
         <View>{renderGroceryKitchen()}</View>
 
@@ -1206,20 +1236,53 @@ const Dashboard: FC = () => {
           />
         </View>
 
-        {/* Bottom Banner with Explore
+        {/* Bottom Banner with Explore */}
         <View>
           <Image source={Images.img_banner_off} style={styles.imgBanner} />
-          <View style={[styles.buttonView, { marginTop: hp(-6) }]}>
-            <LinearButton
-              title="Explore"
-              showIcon={true}
-              iconFamily="MaterialIcons"
-              icon="navigate-next"
-              titleStyle={[styles.buttonTitle, { color: Colors.PRIMARY[300] }]}
-              onPress={() => { }}
+            {/*  EXPLORE BUTTON */}
+        <View style={styles.buttonView}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => { }}
+            style={{
+              marginTop: hp(-3),
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#1B5E20',
+              borderWidth: 3,
+              borderColor: '#1B5E20',
+              borderRadius: 30,
+              height: 54,
+              paddingHorizontal: 36,
+              elevation: 12,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.2,
+              shadowRadius: 10,
+            }}
+          >
+            <TextView
+              style={{
+                color: '#FFFFFF',
+                fontSize: 16,
+                fontWeight: '500',
+                marginRight: 0,
+                top: -1,
+              }}
+            >
+              Explore
+            </TextView>
+
+            <Icon
+              name="chevron-right"
+              size={28}
+              color="#ffffff"
+              family="MaterialCommunityIcons"
             />
-          </View>
-        </View> */}
+          </TouchableOpacity>
+        </View>
+        </View>
 
         {/* 🔹 Limited Time deals */}
         <View>

@@ -146,8 +146,8 @@ const styles = StyleSheet.create({
     marginBottom: hp(3),
   },
   buttonView: {
-    marginTop: hp(-3),
-    width: wp(30),
+    marginTop: hp(-4),
+    width: wp(35),
     paddingVertical: hp(1.2), // control vertical space instead of fixed height
     borderRadius: 50,
     alignSelf: 'center',
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
   buttonTitle: {
     color: Colors.PRIMARY[300],
     fontFamily: Fonts.Medium,
-    fontSize: wp(4.5),
+    fontSize: wp(5.5),
     lineHeight: wp(4.5),      // prevents extra spacing below text
     textAlign: 'center',
     includeFontPadding: false,
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
   },
   
   imgBanner: {
-    width: wp(90),
+    width: wp(95),
     height: hp(25),
     resizeMode: 'contain',
     alignSelf: 'center',

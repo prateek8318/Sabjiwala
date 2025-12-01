@@ -76,12 +76,14 @@ import { StyleSheet, Dimensions } from 'react-native';
      backgroundColor: '#f0f0f0',
    },
    itemCatTxt: {
-     marginTop: 8,
-     fontSize: 15,
-     fontWeight: '600',
-     color: Colors.TEXT_DARK,
-     textAlign: 'center',
-   },
+    marginTop: 8,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#000',
+    textAlign: 'center',
+    paddingHorizontal: 4,        // ← Add this
+    lineHeight: 20,              // ← Add this for better readability
+  },
    loaderContainer: {
      flex: 1,
      justifyContent: 'center',
