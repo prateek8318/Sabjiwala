@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
   itemImage: {
     width: wp(18),
     height: wp(18),
-    borderRadius: 10,
+    borderRadius: 8,
   },
 
   itemInfo: {
@@ -149,7 +149,8 @@ const styles = StyleSheet.create({
 
   paymentLabel: {
     fontSize: hp(2),
-    fontWeight: '700',
+    fontWeight: '800',
+    color: '#000',
     marginBottom: hp(1.2),
   },
 
