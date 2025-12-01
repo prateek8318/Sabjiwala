@@ -642,6 +642,21 @@ import {
   heightPercentageToDP as hp,
 } from '../../../constant/dimentions';
 import { Colors, Icon, Images } from '../../../constant';
+// 🔹 Local Category Icons Mapping
+export const CategoryIcons = {
+  all: require('../../../assets/images/catogaries/all.png'),
+  bread1: require('../../../assets/images/catogaries/bread.png'),
+  vegetables: require('../../../assets/images/catogaries/vegetables.png'),
+  milk: require('../../../assets/images/catogaries/milk.png'),
+  egg: require('../../../assets/images/catogaries/egg.png'),
+};
+
+// 🔹 Match API category name to local icon
+const getCategoryIcon = (name: string) => {
+  const key = name.toLowerCase().replace(/ /g, '');
+  return CategoryIcons[key] || CategoryIcons['all'];
+};
+
 import InputText from '../../../components/InputText/TextInput';
 import ProductCard from './components/ProductCard/productCard';
 import ApiService, { IMAGE_BASE_URL } from '../../../service/apiService';
@@ -695,7 +710,7 @@ const Dashboard: FC = () => {
   const fetchStaticContent = async (isRefresh = false) => {
     try {
       if (!isRefresh) setLoading(true);
-      const response = await ApiService.getHomeStaticData(); // ← ye wala API jo tune diya
+      const response = await ApiService.getHomeStaticData();
 
       const data = response.data.data;
 
@@ -823,6 +838,7 @@ const Dashboard: FC = () => {
   // 🔹 Render Category
   const renderCategoryItem = ({ item }: { item: SubCategory }) => {
     const isSelected = selectedCat === item._id;
+
     return (
       <TouchableOpacity
         style={[
@@ -830,14 +846,27 @@ const Dashboard: FC = () => {
           {
             borderBottomWidth: isSelected ? 4 : 0,
             borderBottomColor: isSelected ? Colors.PRIMARY[300] : 'transparent',
+            alignItems: 'center',
+            justifyContent: 'center',
           },
         ]}
         onPress={() => setSelectedCat(item._id)}
       >
-        <TextView style={styles.itemCat}>{item.name}</TextView>
+        {/* Icon Upar */}
+        <Image
+          source={getCategoryIcon(item.name)}
+          style={{ width: 35, height: 35, marginBottom: 4 }}
+          resizeMode="contain"
+        />
+
+        {/* Name Niche */}
+        <TextView style={[styles.itemCat, { textAlign: 'center' }]}>
+          {item.name}
+        </TextView>
       </TouchableOpacity>
     );
   };
+
 
   const Product2 = [
     {
@@ -914,10 +943,10 @@ const Dashboard: FC = () => {
   ];
 
   const renderDealProduct = ({ item }: any) => (
-  
+
     <View style={styles.cardDealMainView}>
       <View style={styles.cardDealView}>
-        
+
         <View style={styles.cardDealOfferView}>
           <TextView style={styles.cardDealTxtOffer}>{item.offer}</TextView>
         </View>
@@ -1101,7 +1130,7 @@ const Dashboard: FC = () => {
           <ProductCard cardArray={products} type="OFFER" horizontal />
         </View>
 
-        {/* 🔹 Explore Button */}
+        {/* 🔹 Explore Button
         <View style={styles.buttonView}>
           <LinearButton
             title="Explore"
@@ -1111,7 +1140,7 @@ const Dashboard: FC = () => {
             titleStyle={[styles.buttonTitle, { color: Colors.PRIMARY[300] }]}
             onPress={() => { }}
           />
-        </View>
+        </View> */}
 
         {/* 🔹 Grocery Section */}
         <View>{renderGroceryKitchen()}</View>
@@ -1177,7 +1206,7 @@ const Dashboard: FC = () => {
           />
         </View>
 
-        {/* Bottom Banner with Explore */}
+        {/* Bottom Banner with Explore
         <View>
           <Image source={Images.img_banner_off} style={styles.imgBanner} />
           <View style={[styles.buttonView, { marginTop: hp(-6) }]}>
@@ -1190,7 +1219,7 @@ const Dashboard: FC = () => {
               onPress={() => { }}
             />
           </View>
-        </View>
+        </View> */}
 
         {/* 🔹 Limited Time deals */}
         <View>

@@ -101,6 +101,7 @@ const styles = StyleSheet.create({
   itemCatView: {
     paddingHorizontal: hp(3),
     paddingBottom: hp(1),
+    fontWeight: '700',
   },
   itemCat: {
     color: Colors.PRIMARY[300],
@@ -110,14 +111,18 @@ const styles = StyleSheet.create({
     width: wp(100),
     backgroundColor: Colors.SECONDARY[200],
     paddingBottom: hp(2),
+    fontWeight: '700',
   },
   cardMainView: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: hp(1),
+    
   },
   txtOffer: {
+    
+    fontWeight: '700',
     color: Colors.PRIMARY[400],
     maxWidth: wp(50),
     marginLeft: hp(2),
@@ -247,6 +252,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.Medium,
     fontSize: wp(3),
   },
+  
   imgBanner: {
     width: wp(90),
     height: hp(25),
@@ -254,10 +260,8 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     margin: hp(1),
   },
-  buttonTitle: {
-    ...Typography.H5Medium16,
-    color: Colors.PRIMARY[200]
-  }
+  
+ 
   
 });
 
