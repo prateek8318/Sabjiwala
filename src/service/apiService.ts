@@ -202,6 +202,26 @@ export const ApiService = {
     return response;
   },
 
+  addToWishlist: async (productId: string) => {
+    const response = await api.post('user/wishlist', {
+      "productId": productId,
+      
+    });
+    return response;
+  },
+  getWishlist: async () => {
+    const response = await api.get('user/wishlist');
+    return response;
+  },
+
+  deleteWishlist: async (productId: string) => {
+    console.log(":::::::::", productId);
+    const response = await api.delete('user/wishlist', {
+      data: { productId }
+    });
+    return response;
+  },
+
   // ---- Logout ----
   logout: () => storage.removeToken(),
 };

@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
   },
   titleText: {
     color: Colors.PRIMARY[300],
-    marginTop: hp(6),
+    marginTop: hp(20),
     alignSelf: 'center',
     textAlign:'center',
     ...Typography.BodyRegular14,
@@ -59,8 +59,8 @@ const styles = StyleSheet.create({
     ...Typography.BodyBold14,
   },
   actionButton: {
-    width: wp(90),
-    marginTop: hp(8),
+    width: wp(80),
+    marginTop: hp(4),
     alignSelf: 'center',
   },
   dontReceiveTxt: {
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     ...Typography.BodyRegular14,
   },
   bottomView: {
-    top: hp(4),
+    top: hp(3),
     alignSelf: 'center',
   },
   timerText: {

@@ -12,15 +12,17 @@ const styles = StyleSheet.create({
   },
   txtLoginView: {
     padding: hp(4),
-    marginTop: hp(6),
+    marginTop: hp(12),
   },
   txtLogin: {
     fontFamily: Fonts.Bold,
-    fontSize: wp(10),
+    fontSize: wp(22),
+    left: 10,
+    marginBottom: hp(-10),
     color: Colors.PRIMARY[300],
   },
   inputView: {
-    width: wp(90),
+    width: wp(80),
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.FLOATINGINPUT[100],
@@ -33,10 +35,12 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   actionButton: {
-    width: wp(100),
+    
+    width: wp(80),
+    
     alignSelf: 'center',
     marginBottom: hp(2),
-    marginTop: hp(7),
+    marginTop: hp(5),
   },
   actionButtonTitle: {
     color: Colors.PRIMARY[100],

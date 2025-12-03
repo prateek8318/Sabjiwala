@@ -9,7 +9,7 @@ const styles = StyleSheet.create({
   groceryCard: {
     width: wp(100),
     backgroundColor: Colors.SECONDARY[200],
-    paddingBottom: hp(2),
+    paddingBottom: hp(1),
   },
   cardMainView: {
     flexDirection: 'row',
@@ -37,20 +37,29 @@ const styles = StyleSheet.create({
     marginTop: hp(1),
   },
   listProduct: {
-    flex: 1,
-    marginBottom: hp(3),
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingHorizontal: wp(2),
+    marginBottom: hp(-2),
+    marginTop: hp(-2),
   },
+  
   cardProduct: {
-    width: wp(50),
+    width: wp(42),          // FIXED CARD WIDTH (2 per row)
+    height: hp(32),         // FIXED CARD HEIGHT
     borderRadius: 12,
-    marginLeft: hp(1),
-    marginRight: hp(1),
-    alignSelf: 'center',
+    marginBottom: hp(3),
+    marginRight: wp(2),
     backgroundColor: Colors.PRIMARY[300],
+    borderWidth: 0.5,        // BORDER ADDED
+    borderColor: Colors.PRIMARY[400],
+    overflow: 'hidden',
   },
+  
   cardProductImage: {
-    width: wp(50),
-    height: 180,
+    width: '100%',
+    height: 160,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.PRIMARY[100],
@@ -126,19 +135,25 @@ const styles = StyleSheet.create({
   txtRating: {
     ...Typography.BodyRegular13,
     marginLeft: hp(1),
+    
+    color: '#000000',      
+    fontWeight: '600',       
+   
   },
   addButtonView: {
-    width: 110,
-    height: 25,
-    marginRight: hp(1),
+    width: 80,
+    height: 20,
+    marginRight: hp(2),
     borderTopLeftRadius: 50,
     borderTopRightRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
   },
   addProductButon: {
-    height: 50,
-    width: 120,
+    height: 40,
+    width: 82,
+    marginRight: hp(1),
+    marginTop:5,
     borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
@@ -146,10 +161,11 @@ const styles = StyleSheet.create({
   txtAdd: {
     color: Colors.PRIMARY[300],
     ...Typography.H5Medium16,
+    fontSize: 12,
   },
   optionView: {
-    width: 110,
-    height: 25,
+    width: 80,
+    height: 20,
     backgroundColor: Colors.PRIMARY[600],
     borderBottomLeftRadius: 50,
     borderBottomRightRadius: 50,
@@ -159,7 +175,12 @@ const styles = StyleSheet.create({
   txtOption: {
     color: Colors.PRIMARY[400],
     ...Typography.BodyRegular13,
+    fontSize: 12,
   },
+  addButton:{
+    width:80,
+    height:120,
+  }
 });
 
 export default styles;

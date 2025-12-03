@@ -5,6 +5,7 @@ import {
   Platform,
   View,
   Image,
+  TouchableOpacity,
 } from 'react-native';
 import styles from './locationPermission.styles';
 import { AuthStackProps } from '../../../@types';
@@ -134,15 +135,42 @@ const LocationPermission: FC = () => {
 
         <View>
           <View style={styles.buttonView}>
-            <LinearButton
-              title="Allow Location Access"
-              titleStyle={{ color: Colors.PRIMARY[300] }}
+            <TouchableOpacity
+              activeOpacity={0.8}
               onPress={() => {
                 console.log('[LocationPermission] Allow Location Access button pressed');
                 requestLocationPermission();
               }}
-            />
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#1B5E20',
+                borderWidth: 3,
+                borderColor: '#1B5E20',
+                borderRadius: 30,
+                height: 54,
+                paddingHorizontal: 36,
+                elevation: 12,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.2,
+                shadowRadius: 10,
+              }}
+            >
+              <TextView
+                style={{
+                  color: '#FFFFFF',
+                  fontSize: 17,
+                  fontWeight: '400',
+                  top: -1,
+                }}
+              >
+                Allow Location Access
+              </TextView>
+            </TouchableOpacity>
           </View>
+
           <View style={styles.buttonView}>
             <BorderButton
               title="Search Your Location"
@@ -151,10 +179,11 @@ const LocationPermission: FC = () => {
                 navigation.navigate('SearchLocation');
               }}
               iconFamily={'EvilIcons'}
-              buttonWidth={wp(90)}
+              buttonWidth={wp(80)}
               icon="search"
               showIcon={true}
               titleStyle={styles.buttonTitle}
+              
             />
           </View>
         </View>

@@ -1,79 +1,45 @@
 import React, { FC, useContext, useEffect, useState } from "react";
 import {
-  Alert,
-  BackHandler,
-  Image,
-  ImageBackground,
   Keyboard,
   KeyboardAvoidingView,
-  Pressable,
   SafeAreaView,
   ScrollView,
   TouchableWithoutFeedback,
   View,
+  Image,
 } from "react-native";
 import styles from "./verifyOTP.style";
+import { Colors } from "../../../constant";
+import { Button, OtpInput, TextView } from "../../../components";
+import Toast from "react-native-toast-message";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { AuthStackProps } from "../../../@types";
-import { useNavigation, useRoute } from "@react-navigation/native";
-import { Colors, Images } from "../../../constant";
-import { Button, CommonLoader, OtpInput, TextView } from "../../../components";
-import Toast from "react-native-toast-message";
-import { LocalStorage } from "../../../helpers/localstorage";
-import { UserData, UserDataContext } from "../../../context/userDataContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { UserService } from "../../../service";
 import { heightPercentageToDP as hp } from "../../../constant/dimentions";
-
-import ApiService from '../../../service/apiService';
-import { storage } from '../../../service/storage';
-
-
-
-type VerifyOTPScreenNavigationType = NativeStackNavigationProp<
-  AuthStackProps,
-  "VerifyOTP"
->;
+import ApiService from "../../../service/apiService";
+import { LocalStorage } from "../../../helpers/localstorage";
+import { storage } from "../../../service/storage";
+import { UserData, UserDataContext } from "../../../context/userDataContext";
 
 const VerifyOTP: FC = () => {
-  const navigation = useNavigation<VerifyOTPScreenNavigationType>();
+  const navigation = useNavigation<NativeStackNavigationProp<AuthStackProps>>();
   const [globalTimer, setGlobalTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
-  const [code, setCode] = useState<any>("");
+  const [code, setCode] = useState("");
   const route = useRoute<any>();
-  const { userData, setUserData, setIsLoggedIn } =
-    useContext<UserData>(UserDataContext);
-  const { showLoader, hideLoader } = CommonLoader();
+  const { setUserData, setIsLoggedIn } = useContext<UserData>(UserDataContext);
   const insets = useSafeAreaInsets();
 
-  useEffect(() => {
-    const backAction = () => {
-      navigation.goBack();
-      return true;
-    };
-
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      backAction
-    );
-
-    return () => backHandler.remove();
-  }, []);
-
-  // Timer logic
+  // Timer
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (globalTimer > 0) {
-      timer = setTimeout(() => {
-        setGlobalTimer(globalTimer - 1);
-      }, 1000);
+      timer = setTimeout(() => setGlobalTimer(globalTimer - 1), 1000);
     } else {
       setCanResend(true);
     }
-
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
+    return () => timer && clearTimeout(timer);
   }, [globalTimer]);
 
   const handleResendOTP = () => {
@@ -83,154 +49,100 @@ const VerifyOTP: FC = () => {
   };
 
   const attempVerify = async () => {
-    try {
-      if (!code) {
-        Toast.show({
-          type: "error",
-          text1: "Please enter OTP",
-        });
-        return;
-      }
-      showLoader();
-      await verifyOtp(route?.params?.number, code);
-    } catch (error) {
-      hideLoader();
-      console.log("Error in verifying OTP:", error);
-      Toast.show({
-        type: "error",
-        text1: "Something went wrong! Please try again.",
-      });
+    if (!code) {
+      Toast.show({ type: "error", text1: "Please enter OTP" });
+      return;
     }
+    verifyOtp(route?.params?.number, code);
   };
 
   const verifyOtp = async (mobileNo: string, otp: string) => {
     try {
-      const response = await ApiService.verifyOtp(mobileNo, otp); // call your API
-      hideLoader();
+      const res = await ApiService.verifyOtp(mobileNo, otp);
       setCode("");
 
-      if (response.status === 200 && response.data?.status === true) {
-        Toast.show({
-          type: "success",
-          text1: "OTP verified successfully!",
-        });
-        const token = response.data.token;
+      if (res.status === 200 && res.data?.status === true) {
+        Toast.show({ type: "success", text1: "OTP verified successfully!" });
 
-        // Save user data if returned
-        if (response.data?.user) {
-          setUserData(response.data.user);
+        const token = res.data.token;
+        if (res.data?.user) {
+          setUserData(res.data.user);
           setIsLoggedIn(true);
 
-          LocalStorage.setItem("token", response.data.token);
-          LocalStorage.setItem("userData", JSON.stringify(response.data.user));
-
+          LocalStorage.setItem("token", token);
+          LocalStorage.setItem("userData", JSON.stringify(res.data.user));
         }
+
         await storage.saveToken(token);
-        // Navigate to next screen
         navigation.navigate("LocationPermission");
       } else {
-        Toast.show({
-          type: "error",
-          text1: response.data?.message || "Invalid OTP",
-        });
+        Toast.show({ type: "error", text1: res.data?.message || "Invalid OTP" });
       }
-    } catch (error: any) {
-      hideLoader();
-      console.log("Verify OTP API error:", error);
-      const msg =
-        error.response?.data?.message || "Network error. Please try again.";
+    } catch (err: any) {
       Toast.show({
         type: "error",
-        text1: msg,
+        text1: err.response?.data?.message || "Network error. Try again.",
       });
     }
   };
-
-
-  //   const attempVerify = async () => {
-  //     try {
-  //       if (!code) {
-  //         Toast.show({
-  //           type: "error",
-  //           text1: "Please enter otp",
-  //         });
-  //         return;
-  //       }
-  //       verifyOtp();
-  //     } catch (error) {
-  //       console.log("Error in sign in", error);
-  //     }
-  //   };
-  //
-  //   const verifyOtp = async () => {
-  //     try {
-  //       navigation.navigate('LocationPermission')
-  //     } catch (error) {
-  //       hideLoader();
-  //       Toast.show({
-  //         type: "error",
-  //         text1: "Something went wrong! Please try again.",
-  //       });
-  //     }
-  //   };
 
   const sendOTPAgain = async () => {
     try {
-      showLoader();
-      setCode("");
-      const number = route?.params?.number;
-
-
-      if (!number) {
-        hideLoader();
-        Toast.show({
-          type: "error",
-          text1: "Phone number not found!",
-        });
-        return;
-      }
-
-      const response = await ApiService.sendOtp(number);// or ApiService.sendOtp(number)
-      hideLoader();
-      setCode("");
-      if (response.status === 200 && response.data?.success === true) {
-        Toast.show({
-          type: "success",
-          text1: "OTP resent successfully!",
-        });
+      const res = await ApiService.sendOtp(route?.params?.number);
+      if (res.status === 200 && res.data?.success === true) {
+        Toast.show({ type: "success", text1: "OTP resent successfully!" });
       } else {
-        Toast.show({
-          type: "error",
-          text1: response.data?.message || "Failed to resend OTP",
-        });
+        Toast.show({ type: "error", text1: res.data?.message || "Failed to resend OTP" });
       }
-    } catch (error: any) {
-      hideLoader();
-      console.log("Resend OTP Error:", error);
-      const msg =
-        error.response?.data?.message || "Network error. Please try again.";
+    } catch (err: any) {
       Toast.show({
         type: "error",
-        text1: msg,
+        text1: err.response?.data?.message || "Network error. Try again.",
       });
     }
   };
 
-
-  //   const sendOTPAgain = async () => {
-  //     try {
-  //       Alert.alert("Send OTP Again")
-  //     } catch (error) {
-  //       hideLoader();
-  //       Toast.show({
-  //         type: "error",
-  //         text1: "Something went wrong! Please try again.",
-  //       });
-  //     }
-  //   };
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <SafeAreaView style={styles.container}>
+
+        {/* 🔥 Top background image (same as Signin) */}
+        <Image
+          source={require("../../../assets/images/style.png")}
+          style={{
+            width: "100%",
+            position: "absolute",
+            top: 15,
+            resizeMode: "contain",
+          }}
+        />
+
+        {/* 🔥 Top floating lemon & peas (same positions as Signin) */}
+        <Image
+          source={require("../../../assets/images/lemon.png")}
+          style={{
+            position: "absolute",
+            top: 90,
+            left: 20,
+            width: 65,
+            height: 65,
+            resizeMode: "contain",
+          }}
+        />
+
+        <Image
+          source={require("../../../assets/images/peas.png")}
+          style={{
+            position: "absolute",
+            top: 135,
+            right: 20,
+            width: 120,
+            height: 80,
+            resizeMode: "contain",
+          }}
+        />
+
+        {/* 🔥 KeyboardAvoiding only on content – images fixed */}
         <KeyboardAvoidingView
           behavior="padding"
           style={{ flex: 1 }}
@@ -238,18 +150,15 @@ const VerifyOTP: FC = () => {
         >
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ flexGrow: 1 }}
             keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ flexGrow: 1 }}
           >
-
             <View style={{ flex: 1 }}>
               <View style={styles.verifyOTPView}>
-                <View style={styles.containerView}>
-                  <TextView style={styles.titleText}>
-                    A 4 Digit OTP has Sent to your Number
-                    +91 {route?.params?.number}
-                  </TextView>
-                </View>
+                <TextView style={styles.titleText}>
+                  A 4 Digit OTP has been Sent to +91 {route?.params?.number}
+                </TextView>
+
                 <View style={styles.otpView}>
                   <OtpInput
                     numberOfInputs={4}
@@ -257,45 +166,88 @@ const VerifyOTP: FC = () => {
                   />
                 </View>
               </View>
-              <View>
+
+              <View style={{ marginTop: hp(4) }}>
                 {canResend && (
-                  <View>
-                    <Button
-                      title={"Resend"}
-                      //@ts-ignore
-                      style={[styles.actionButton, { marginTop: hp(5) }]}
-                      buttonColor={Colors.PRIMARY[300]}
-                      titleStyle={styles.actionButtonTitle}
-                      onPress={() => handleResendOTP()}
-                    />
-                  </View>
-                )}
-                <View>
                   <Button
-                    title={"Submit"}
-                    //@ts-ignore
-                    style={[styles.actionButton, { marginTop: canResend ? hp(4) : hp(8) }]}
+                    title="Resend"
+                    style={styles.actionButton}
                     buttonColor={Colors.PRIMARY[300]}
                     titleStyle={styles.actionButtonTitle}
-                    onPress={() => attempVerify()}
+                    onPress={handleResendOTP}
                   />
-                </View>
+                )}
 
+                <Button
+                  title="Submit"
+                  style={[
+                    styles.actionButton,
+                    { marginTop: canResend ? hp(4) : hp(8) },
+                  ]}
+                  buttonColor={Colors.PRIMARY[300]}
+                  titleStyle={styles.actionButtonTitle}
+                  onPress={attempVerify}
+                />
               </View>
+
               {!canResend && (
                 <View style={styles.bottomView}>
                   <TextView style={styles.timerText}>
-                    Resend OTP in{" "}
-                    <TextView style={styles.secText}>
-                      {globalTimer}
-                    </TextView>{" "}
-                    sec
+                    Resend OTP in <TextView style={styles.secText}>{globalTimer}</TextView> sec
                   </TextView>
                 </View>
               )}
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
+
+        {/* 🔥 Bottom images same as Signin */}
+        <Image
+          source={require("../../../assets/images/style3.png")}
+          style={{
+            width: 140,
+            height: 90,
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            resizeMode: "contain",
+          }}
+        />
+
+        <Image
+          source={require("../../../assets/images/beetroot.png")}
+          style={{
+            position: "absolute",
+            bottom: 25,
+            left: 30,
+            width: 74,
+            height: 90,
+          }}
+        />
+
+        <Image
+          source={require("../../../assets/images/tomato.png")}
+          style={{
+            position: "absolute",
+            bottom: 150,
+            right: 0,
+            width: 45,
+            height: 75,
+          }}
+        />
+
+        <Image
+          source={require("../../../assets/images/style2.png")}
+          style={{
+            width: 140,
+            height: 80,
+            position: "absolute",
+            bottom: 0,
+            right: 0,
+            resizeMode: "contain",
+          }}
+        />
+
       </SafeAreaView>
     </TouchableWithoutFeedback>
   );

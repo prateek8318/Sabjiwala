@@ -29,8 +29,8 @@ const styles = StyleSheet.create({
   },
 
   buttonView: {
-    width: wp(90),
-    marginTop: hp(3),
+    width: wp(80),
+    marginTop: hp(4),
   },
 
   buttonTitle: {

@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   catListView: {
-    marginTop: hp(8),
+    marginTop: hp(3),
   },
   divider: {
     width: 2,
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     margin: hp(2),
   },
   itemCatView: {
-    paddingHorizontal: hp(3),
+    paddingHorizontal: hp(2),
     paddingBottom: hp(1),
     fontWeight: '700',
   },
@@ -136,14 +136,15 @@ const styles = StyleSheet.create({
     marginLeft: hp(2),
   },
   imgVegatable: {
-    width: 190,
-    height: 180,
+    width: 180,
+    height: 190,
     resizeMode: 'contain',
     marginTop: hp(1),
   },
   listProduct: {
     flex: 1,
-    marginBottom: hp(3),
+    marginBottom: hp(0),
+    marginTop: hp(-5),
   },
   buttonView: {
     marginTop: hp(-4),
@@ -176,18 +177,22 @@ const styles = StyleSheet.create({
   },
   txtProductHeading: {
     color: Colors.PRIMARY[400],
-    fontFamily: Fonts.Medium,
-    fontSize: wp(5),
+    
+    fontSize: wp(4.83),
+    fontWeight: '800',
+    marginBottom: hp(2),
   },
   txtViewMore: {
-    color: Colors.PRIMARY[400],
-    ...Typography.H5Medium16,
+    color: '#000',
+    fontWeight: 700,
+    fontSize: 28,
   },
   groceryCardView: {
-    width: wp(94),
+    width: wp(90),
     marginTop: hp(2),
+    marginLeft: hp(0.4),
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent:'space-evenly',
   },
   txtGrocery: {
     color: Colors.PRIMARY[400],
@@ -198,7 +203,7 @@ const styles = StyleSheet.create({
     width: wp(42),
     height: hp(20),
     elevation:5,
-    marginLeft: hp(1),
+  
     backgroundColor: '#E8FAA8',
     borderRadius: 12,
   },

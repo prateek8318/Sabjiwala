@@ -1,42 +1,8 @@
-// import { StyleSheet } from 'react-native';
-// import { Colors, Fonts, Typography } from '../../../constant';
-// import {
-//   widthPercentageToDP as wp,
-//   heightPercentageToDP as hp,
-// } from '../../../constant/dimentions';
-//
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: Colors.PRIMARY[300],
-//   },
-//   itemCatMainView: {
-//     width: wp(40),
-//     height: hp(15),
-//     margin: hp(2),
-//     borderRadius: 12,
-//   },
-//   itemCatView: {
-//     borderBottomLeftRadius: 12,
-//     borderBottomRightRadius: 12,
-//     alignItems: 'center',
-//     width: wp(40),
-//     position: 'absolute',
-//     bottom: 0,
-//     justifyContent: 'center',
-//     paddingVertical: hp(1),
-//   },
-//   itemCatTxt: {
-//     color: Colors.PRIMARY[300],
-//     ...Typography.BodyMedium14,
-//   },
-// });
-//
-// export default styles;
+
 
 
 import { StyleSheet, Dimensions } from 'react-native';
- import { Colors } from '../../../constant';
+import { Colors } from '../../../constant';
 
  const { width } = Dimensions.get('window');
  const ITEM_WIDTH = (width - 48) / 2;
@@ -44,46 +10,105 @@ import { StyleSheet, Dimensions } from 'react-native';
  export default StyleSheet.create({
    container: {
      flex: 1,
+     
      backgroundColor: '#fff',
    },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    gap: 10,
+
+  },
+  searchBox: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderColor:'#000',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    height: 40,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 4,
+    fontSize: 14,
+    color: '#212121',
+  },
+  iconPill: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginTop: 12,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#F5F5F5',
+  },
+  chipActive: {
+    backgroundColor: Colors.PRIMARY[300],
+  },
+  chipTextActive: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
+  },
    flatListContent: {
      paddingHorizontal: 16,
-     paddingTop: 16,
+    paddingTop: 12,
      paddingBottom: 20,
    },
    columnWrapper: {
      justifyContent: 'space-between',
    },
-   itemCatMainView: {
-     marginBottom: 16,
-     borderRadius: 12,
-     overflow: 'hidden',
-     elevation: 3,
-     shadowColor: '#000',
-     shadowOffset: { width: 0, height: 2 },
-     shadowOpacity: 0.1,
-     shadowRadius: 4,
-     backgroundColor: '#fff',
-   },
-   itemCatView: {
-     alignItems: 'center',
-     padding: 10,
-   },
-   categoryImage: {
-     width: '100%',
-     height: 100,
-     borderRadius: 10,
-     backgroundColor: '#f0f0f0',
-   },
    itemCatTxt: {
-    marginTop: 8,
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#000',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     textAlign: 'center',
-    paddingHorizontal: 4,        // ← Add this
-    lineHeight: 20,              // ← Add this for better readability
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingVertical: 10,
+    borderRadius: 4,
+    overflow: 'hidden',
   },
+  categoryImage: {
+    width: '100%',
+    height: 150,           
+    borderRadius: 12,
+  },
+  itemCatMainView: {
+    width: ITEM_WIDTH,
+    height: 140,
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+  },
+  itemCatView: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+   
    loaderContainer: {
      flex: 1,
      justifyContent: 'center',
@@ -95,9 +120,9 @@ import { StyleSheet, Dimensions } from 'react-native';
      alignItems: 'center',
      paddingHorizontal: 30,
    },
-   emptyText: {
+  emptyText: {
      fontSize: 16,
-     color: Colors.TEXT_LIGHT,
+     color: '#9E9E9E',
      textAlign: 'center',
    },
  });

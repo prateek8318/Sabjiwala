@@ -73,6 +73,15 @@ export default StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
+  qtyBtnActiveText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  priceTag: {
+    fontSize: 13,
+    color: '#4CAF50',
+    fontWeight: 'bold',
+  },
   
   cartGradient: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: wp(5) },
   cartLeft: { flexDirection: 'row', alignItems: 'center' },

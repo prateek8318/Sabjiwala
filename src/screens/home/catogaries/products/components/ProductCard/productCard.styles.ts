@@ -48,8 +48,8 @@ const styles = StyleSheet.create({
     right: 8,
   },
   imgTradeMark: {
-    width: 20,
-    height: 20,
+    width: 10,
+    height: 10,
     resizeMode: 'contain',
   },
   cardProductPriceView: {
@@ -110,8 +110,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addProductButon: {
-    height: 50,
-    width: 120,
+    height: 45,
+    width: 90,
     borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',

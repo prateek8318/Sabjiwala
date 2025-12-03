@@ -30,7 +30,7 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
   const [selectedQty, setSelectedQty] = useState(0);
   const [qtyOptions, setQtyOptions] = useState<any[]>([]);
-  const [cartQty, setCartQty] = useState(0); // New state
+  const [cartQty, setCartQty] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -42,13 +42,14 @@ const ProductDetail = () => {
 
           const options = productData.variants?.map((v: any, index: number) => ({
             id: index,
-            label: v.weight,
-            price: v.price,
-            mrp: v.mrp,
+            label: `${v.weight || v.stock || 1} ${v.unit || 'kg'}`,
+            price: v.price || 0,
+            mrp: v.mrp || v.originalPrice || v.price || 0,
             variantId: v._id,
           })) || [];
 
           setQtyOptions(options);
+          if (options.length > 0) setSelectedQty(0); // Auto select first
         }
       } catch (e) {
         console.log(e);
@@ -56,24 +57,43 @@ const ProductDetail = () => {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [productId]);
 
   if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" color="#4CAF50" />;
   if (!product) return <Text style={{ flex: 1, textAlign: 'center', marginTop: 50 }}>Product not found</Text>;
 
-  const selectedVariant = product.variants?.[selectedQty] || {};
+ 
+const selectedVariant = qtyOptions[selectedQty] || qtyOptions[0] || {};
+
+// Safe price fallback – variant → product fallback → 0
+const price = selectedVariant.price 
+  ? selectedVariant.price 
+  : product.price 
+    ? product.price 
+    : product.variants?.[0]?.price || 0;
+
+const mrp = selectedVariant.mrp 
+  ? selectedVariant.mrp 
+  : product.mrp 
+    ? product.mrp 
+    : selectedVariant.price 
+      ? selectedVariant.price 
+      : product.price || 0;
+
+const weight = selectedVariant.label || 
+  (product.variants?.[0] 
+    ? `${product.variants[0].weight || 1} ${product.variants[0].unit || 'kg'}`
+    : '1 kg');
   const img = product.images?.[0] ? `http://167.71.232.245:8539/${product.images[0]}` : '';
-  const price = selectedVariant.price || 0;
-  const mrp = selectedVariant.mrp || 0;
-  const weight = selectedVariant.weight || '';
+ 
   const info = product.info || {};
 
   const updateCart = async (newQty: number) => {
     try {
       if (newQty > 0) {
-        await ApiService.addToCart(product._id, selectedVariant._id, newQty.toString());
+        await ApiService.addToCart(product._id, selectedVariant.variantId, newQty.toString());
       } else {
-        await ApiService.removeFromCart(product._id, selectedVariant._id);
+        await ApiService.removeFromCart(product._id, selectedVariant.variantId);
       }
       setCartQty(newQty);
     } catch (error) {
@@ -81,37 +101,37 @@ const ProductDetail = () => {
     }
   };
 
-  const handleAddToCart = () => {
-    updateCart(1); // Initially add 1
-  };
+  const handleAddToCart = () => updateCart(1);
 
   const renderQty = ({ item }: any) => (
     <Pressable
       onPress={() => setSelectedQty(item.id)}
-      style={[
-        styles.qtyBtn,
-        selectedQty === item.id && styles.qtyBtnActive,
-        {
-          paddingVertical: 10,
-          paddingHorizontal: 20,
-          borderRadius: 8,
-          minWidth: 70,
-          justifyContent: 'center',
-          alignItems: 'center',
-          marginRight: 10
-        }
-      ]}
+      style={{
+        borderWidth: 1.5,
+        borderColor: selectedQty === item.id ? '#4CAF50' : '#E0E0E0',
+        backgroundColor: selectedQty === item.id ? '#4CAF50' : '#fff',
+        paddingHorizontal: 18,
+        paddingVertical: 12,
+        borderRadius: 30,
+        minWidth: 100,
+        marginRight: 12,
+        alignItems: 'center',
+      }}
     >
-      <Text
-        style={[
-          styles.qtyText,
-          selectedQty === item.id && styles.qtyTextActive,
-          { fontWeight: '500', fontSize: 14, color: selectedQty === item.id ? '#fff' : '#000' }
-        ]}
-        numberOfLines={1}
-        ellipsizeMode="tail"
-      >
-        {item.label} | ₹{item.price}
+      <Text style={{
+        color: selectedQty === item.id ? '#fff' : '#000',
+        fontWeight: selectedQty === item.id ? '600' : '500',
+        fontSize: 14,
+      }}>
+        {item.label}
+      </Text>
+      <Text style={{
+        color: selectedQty === item.id ? '#fff' : '#4CAF50',
+        fontWeight: 'bold',
+        fontSize: 13,
+        marginTop: 4,
+      }}>
+        ₹{item.price}
       </Text>
     </Pressable>
   );
@@ -135,7 +155,7 @@ const ProductDetail = () => {
         <View style={styles.priceRow}>
           <Text style={styles.finalPrice}>₹{price}</Text>
           {mrp > price && <Text style={styles.strikePrice}>₹{mrp}</Text>}
-          {mrp > price && <Text style={styles.saveText}>You Save ₹{mrp - price}</Text>}
+          {mrp > price && <Text style={styles.saveText}>Save ₹{mrp - price}</Text>}
         </View>
 
         {/* Quantity Options */}
@@ -160,20 +180,16 @@ const ProductDetail = () => {
         </View>
       </ScrollView>
 
-      {/* Bottom Add to Cart Bar */}
+      {/* Bottom Add to Cart Bar – Untouched */}
       <View style={styles.bottomCartBar}>
         <LinearGradient colors={['#E8F5E8', '#C8E6C9']} style={styles.cartGradient}>
           {cartQty === 0 ? (
-            // Full width Add to Cart button
             <Pressable onPress={handleAddToCart} style={[styles.addToCartBtn, { flex: 1 }]}>
               <Text style={styles.addToCartText}>Add to Cart</Text>
               <Icon name="chevron-right" family="Entypo" size={26} color="#000" />
             </Pressable>
           ) : (
-            // Cart icon + quantity selector
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1, padding: 10 }}>
-
-              {/* Cart Icon with "View Cart" */}
               <Pressable
                 onPress={() => navigation.navigate('BottomStackNavigator', { screen: 'Cart' })}
                 style={{
@@ -193,7 +209,6 @@ const ProductDetail = () => {
                 </Text>
               </Pressable>
 
-              {/* Quantity Selector */}
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Pressable
                   onPress={() => updateCart(cartQty - 1)}
@@ -202,7 +217,6 @@ const ProductDetail = () => {
                     borderRadius: 4,
                     paddingHorizontal: 12,
                     paddingVertical: 6,
-                    
                     borderWidth: 1,
                     borderColor: '#ccc',
                     justifyContent: 'center',
@@ -236,10 +250,8 @@ const ProductDetail = () => {
           )}
         </LinearGradient>
       </View>
-
     </SafeAreaView>
   );
 };
-
 
 export default ProductDetail;

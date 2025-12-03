@@ -6,6 +6,9 @@ import { Colors, Fonts, Images } from '../constant';
 import LinearGradient from 'react-native-linear-gradient';
 import { Image, View, Text } from 'react-native';
 import { useCart } from '../context/CartContext';
+import SubCategoryList from '../screens/home/catogaries/SubCategoryList';
+import ProductList from '../screens/home/catogaries/ProductList';
+
 
 const Stack = createNativeStackNavigator();
 
@@ -17,8 +20,11 @@ const HomePageStack = () => (
 const CatogariesPageStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Catogaries" component={Catogaries} />
+    <Stack.Screen name="subCategoryList" component={SubCategoryList} />
+    <Stack.Screen name="productList" component={ProductList} />
   </Stack.Navigator>
 );
+
 const FavoritesPageStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Favorites" component={Favorites} />
