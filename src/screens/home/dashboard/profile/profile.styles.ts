@@ -18,7 +18,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.PRIMARY[100],
     borderRadius: 12,
     padding: hp(2),
-    marginTop: hp(2),
+    marginTop: hp(1),
   },
   profilePicView: {
     width: 55,
@@ -27,6 +27,29 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 50,
     marginTop: hp(2),
+  },
+  profilePicContainer: {
+    position: 'relative',
+    marginBottom: hp(1.5),
+  },
+  cameraIconView: {
+    position: 'absolute',
+    right: 4,
+    bottom: 4,
+    backgroundColor: "#000",
+    width: wp(5),
+    height: wp(4),
+    borderRadius: 3,
+    borderColor: '#fff',
+    
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
   profilePic: {
     width: 55,
@@ -42,11 +65,14 @@ const styles = StyleSheet.create({
   txtEditProfile: {
     color: Colors.PRIMARY[300],
     ...Typography.BodyRegular13,
+    marginTop: hp(-2),
+    marginBottom: hp(1),
+
   },
   txtUserDetail: {
     color: Colors.PRIMARY[300],
     ...Typography.H5Medium16,
-    marginTop: hp(0.5),
+    marginTop: hp(-0.5),
   },
   otherCardView: {
     flexDirection: 'row',
@@ -55,7 +81,7 @@ const styles = StyleSheet.create({
   },
   otherCads: {
     width: wp(43),
-    height: hp(13),
+    height: hp(11),
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
@@ -108,6 +134,7 @@ const styles = StyleSheet.create({
   buttonTitle: {
     color: Colors.PRIMARY[100],
     ...Typography.H5Medium16,
+    
   },
 });
 

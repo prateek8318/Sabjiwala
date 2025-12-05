@@ -11,14 +11,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.PRIMARY[300],
   },
   txtHeading: {
-    color: Colors.PRIMARY[400],
-    fontFamily: Fonts.Medium,
-    fontSize: wp(5),
+    color: "#000",
+    fontFamily: Fonts.Bold,
+    fontSize: wp(6),
     marginTop: hp(1),
     padding: hp(1),
   },
   txtContent: {
     ...Typography.BodyRegular14,
+    color: "#000",
     textAlign: 'left',
     letterSpacing: 1,
     marginTop: hp(1),

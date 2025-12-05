@@ -63,7 +63,8 @@ const Dashboard: FC = () => {
   const [recommended, setRecommended] = useState<ProductCardItem[]>([]);
   const [favorite, setFavorite] = useState<ProductCardItem[]>([]);
   const [freshFood, setFreshFood] = useState<ProductCardItem[]>([]);
-
+  const [userAddress, setUserAddress] = useState<string>('Fetching location...');
+  const [deliveryTime, setDeliveryTime] = useState<string>('Delivery In 10 Mins');
   const [loading, setLoading] = useState<boolean>(false);
   const [productLoading, setProductLoading] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -88,7 +89,88 @@ const Dashboard: FC = () => {
       setRefreshing(false);
     }
   };
-
+  const fetchUserLocation = async () => {
+    try {
+      console.log('Fetching user profile...');
+      const res = await ApiService.getUserProfile();
+  
+      console.log('Full Response:', JSON.stringify(res.data, null, 2));
+  
+      const user = res.data.user || res.data;
+  
+      if (!user) {
+        console.log('No user data found');
+        setUserAddress('Tap to set location');
+        return;
+      }
+  
+      const lat = user.lat || user.location?.coordinates?.[1];
+      const lng = user.long || user.location?.coordinates?.[0];
+  
+      console.log('Extracted Lat:', lat);
+      console.log('Extracted Lng:', lng);
+  
+      if (!lat || !lng) {
+        console.log('No coordinates found in user data');
+        setUserAddress('Tap to set location');
+        return;
+      }
+  
+      // Agar backend ne address diya ho
+      if (user.address && user.address.trim()) {
+        console.log('Address from backend:', user.address);
+        setUserAddress(user.address);
+        return;
+      }
+  
+      // Reverse geocoding with proper headers (must for Nominatim)
+      console.log('Fetching address from OpenStreetMap...');
+      const geoRes = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`,
+        {
+          headers: {
+            'User-Agent': 'MyGroceryApp/1.0 (+prateek@example.com)', 
+          },
+        }
+      );
+  
+      if (!geoRes.ok) {
+        console.log('Nominatim failed:', geoRes.status, geoRes.statusText);
+        setUserAddress('Sector 63, Noida');
+        return;
+      }
+  
+      const geoData = await geoRes.json();
+      console.log('Reverse Geo Response:', geoData);
+  
+      if (geoData?.display_name) {
+        let shortAddress = 'Current Location';
+  
+        if (geoData.address) {
+          const parts = [];
+          if (geoData.address.road) parts.push(geoData.address.road);
+          if (geoData.address.suburb || geoData.address.neighbourhood) {
+            parts.push(geoData.address.suburb || geoData.address.neighbourhood);
+          }
+          if (geoData.address.city || geoData.address.town || geoData.address.village) {
+            parts.push(geoData.address.city || geoData.address.town || geoData.address.village);
+          }
+  
+          shortAddress = parts.join(', ') || geoData.display_name.split(',')[0];
+        }
+  
+        console.log('Final Address Set:', shortAddress);
+        setUserAddress(shortAddress);
+      } else {
+        setUserAddress('Sector 63, Noida');
+      }
+  
+    } catch (err: any) {
+      console.error('fetchUserLocation FAILED:', err);
+      console.error('Error message:', err.message);
+      setUserAddress('H-146, Sector-63, Noida');
+    }
+  };
   // Fetch Static Home Content (Banners + Categories + Explore)
   const fetchStaticContent = async (isRefresh = false) => {
     try {
@@ -202,6 +284,7 @@ const Dashboard: FC = () => {
     fetchCategories();
     fetchStaticContent();
     fetchHomeProductContent();
+    fetchUserLocation();
   }, []);
 
   useEffect(() => {
@@ -215,6 +298,7 @@ const Dashboard: FC = () => {
     fetchStaticContent(true);
     fetchHomeProductContent(true);
     fetchProducts(selectedCat);
+    fetchUserLocation();
 
   }, [selectedCat]);
 
@@ -444,8 +528,14 @@ const Dashboard: FC = () => {
                 />
               </Pressable>
               <View>
-                <TextView style={styles.txtDelivery}></TextView>
-
+                <TextView style={styles.txtDelivery}>{deliveryTime}</TextView>
+                <View style={styles.addressView}>
+                  <Icon family="EvilIcons" name="location" color={Colors.PRIMARY[300]} size={24} />
+                  <TextView style={styles.txtAddress} numberOfLines={1}>
+                    {userAddress}
+                  </TextView>
+                  <Icon family="Entypo" name="chevron-down" color={Colors.PRIMARY[300]} size={24} />
+                </View>
               </View>
               <View style={styles.actionButtonView}>
                 <Pressable onPress={() => navigation.navigate('Wallet')}>
@@ -557,14 +647,15 @@ const Dashboard: FC = () => {
             <TextView
               style={{
                 color: '#FFFFFF',
-                fontSize: 17,
+                fontSize: 14,  // screen width के हिसाब से font size
                 fontWeight: '400',
-                marginRight: 5,
-                top: -1,
+                marginRight: wp(1),  // horizontal spacing responsive
+                top: -hp(0.2),       // vertical alignment responsive
               }}
             >
               Explore
             </TextView>
+
 
             <Icon
               name="chevron-right"
@@ -738,7 +829,7 @@ const Dashboard: FC = () => {
                 shadowOffset: { width: 0, height: 6 },
                 shadowOpacity: 0.2,
                 shadowRadius: 10,
-                
+
               }}
             >
               <TextView

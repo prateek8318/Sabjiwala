@@ -1,167 +1,106 @@
 import { StyleSheet } from 'react-native';
-import { Colors, Fonts, Typography } from '../../../.././../constant';
+import { Colors, Typography } from '../../../../../constant';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from '../../../../../constant/dimentions';
 
 const styles = StyleSheet.create({
-  groceryCard: {
-    width: wp(100),
-    backgroundColor: Colors.SECONDARY[200],
-    paddingBottom: hp(1),
-  },
-  cardMainView: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: hp(1),
-  },
-  txtOffer: {
-    color: Colors.PRIMARY[400],
-    maxWidth: wp(50),
-    marginLeft: hp(2),
-    ...Typography.H4Semibold20,
-  },
-  imgCode: {
-    width: 150,
-    height: 60,
-    resizeMode: 'contain',
-    marginTop: hp(2),
-    marginLeft: hp(2),
-  },
-  imgVegatable: {
-    width: 190,
-    height: 180,
-    resizeMode: 'contain',
-    marginTop: hp(1),
-  },
-  listProduct: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: wp(2),
-    marginBottom: hp(-2),
-    marginTop: hp(-2),
-  },
-  
   cardProduct: {
-    width: wp(42),          // FIXED CARD WIDTH (2 per row)
-    height: hp(32),         // FIXED CARD HEIGHT
-    borderRadius: 12,
-    marginBottom: hp(3),
-    marginRight: wp(2),
+    width: wp(42),               // 2 cards per row with safe gap
+    minHeight: hp(30),           // flexible height
+    marginBottom: hp(2),
+    marginHorizontal: wp(2),
     backgroundColor: Colors.PRIMARY[300],
-    borderWidth: 0.5,        // BORDER ADDED
+    borderRadius: 14,
+    borderWidth: 0.5,
     borderColor: Colors.PRIMARY[400],
     overflow: 'hidden',
-  },
-  
-  cardProductImage: {
-    width: '100%',
-    height: 160,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.PRIMARY[100],
-    resizeMode: 'cover',
-  },
-  imgFlashView: {
-    position: 'absolute',
-    top: 2,
-    left: 2,
+    justifyContent: 'space-between',
   },
 
-  imgFlash: {
-    width: 40,
-    height: 40,
-    resizeMode: 'contain',
+  cardProductImage: {
+    width: '100%',
+    height: wp(30) * 1.1,         // image height proportional to card width
+    resizeMode: 'cover',
   },
-  imgHeart: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-  imgTradeMarkView: {
-    position: 'absolute',
-    bottom: 8,
-    right: 8,
-  },
-  imgTradeMark: {
-    width: 30,
-    height: 30,
-    resizeMode: 'contain',
-  },
+
+  imgFlashView: { position: 'absolute', top: 6, left: 6 },
+  imgFlash: { width: 36, height: 36 },
+
+  imgHeart: { position: 'absolute', top: 8, right: 8 },
+
+  imgTradeMarkView: { position: 'absolute', bottom: 8, right: 8 },
+  imgTradeMark: { width: 18, height: 18 },
+
   cardProductPriceView: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: hp(1),
+    paddingHorizontal: wp(3),
+    paddingTop: hp(1),
   },
+
   cardProductPriceText: {
     ...Typography.H5Medium16,
     color: Colors.PRIMARY[400],
   },
+
   cardProductPriceDiscount: {
     ...Typography.BodyRegular14,
     color: Colors.PRIMARY[400],
-    textDecorationLine: 'underline line-through',
+    textDecorationLine: 'line-through',
+    marginLeft: 4,
   },
+
   offerView: {
     backgroundColor: Colors.PRIMARY[600],
     borderRadius: 50,
-    paddingVertical: hp(0.5),
-    paddingHorizontal: hp(1.5),
+    paddingVertical: hp(0.4),
+    paddingHorizontal: wp(3),
   },
+
   offerTxt: {
     color: Colors.PRIMARY[400],
     ...Typography.BodyRegular12,
   },
+
   txtProduct: {
     ...Typography.H5Medium16,
     color: Colors.PRIMARY[400],
-    marginLeft: hp(1),
+    paddingHorizontal: wp(3),
+    marginTop: hp(0.5),
+    numberOfLines: 2,
   },
+
   quantityView: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginLeft: hp(1),
-    marginBottom: hp(1),
+    alignItems: 'flex-end',
+    paddingHorizontal: wp(3),
+    paddingBottom: hp(1.5),
+    marginTop: hp(1),
   },
+
   ratingView: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: hp(0.5),
   },
+
   txtRating: {
     ...Typography.BodyRegular13,
-    marginLeft: hp(1),
-    
-    color: '#000000',      
-    fontWeight: '600',       
-   
+    marginLeft: wp(1),
+    color: '#000',
+    fontWeight: '600',
   },
-  addButtonView: {
-    width: 80,
-    height: 20,
-    marginRight: hp(2),
-    borderTopLeftRadius: 50,
-    borderTopRightRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+
   addProductButon: {
-    height: 40,
-    width: 82,
-    marginRight: hp(1),
-    marginTop:5,
+    height: hp(5),
+    width: wp(22),
     borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  txtAdd: {
-    color: Colors.PRIMARY[300],
-    ...Typography.H5Medium16,
-    fontSize: 12,
   },
   optionView: {
     width: 80,
@@ -180,7 +119,15 @@ const styles = StyleSheet.create({
   addButton:{
     width:80,
     height:120,
-  }
+    
+  },
+  txtAdd: {
+    color: Colors.PRIMARY[300],
+    fontSize: 14,
+    textAlign: 'center',        // horizontally center
+    textAlignVertical: 'center', // vertically center (Android)
+    includeFontPadding: false,   // clean centering
+  },
 });
 
 export default styles;

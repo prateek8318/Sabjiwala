@@ -21,11 +21,14 @@ const styles = StyleSheet.create({
   },
   titleText: {
     color: Colors.PRIMARY[300],
-    marginTop: hp(20),
+    marginTop: hp(4),            // screen height के हिसाब से top margin
     alignSelf: 'center',
-    textAlign:'center',
-    ...Typography.BodyRegular14,
+    textAlign: 'center',
+    fontSize: wp(4.2),            // screen width के हिसाब से font size
+    lineHeight: hp(3),            // text की height responsive
+    ...Typography.BodyRegular14,  // बाकी typography styles
   },
+  
   loginImage: {
     width: wp(100),
     alignSelf: 'center',

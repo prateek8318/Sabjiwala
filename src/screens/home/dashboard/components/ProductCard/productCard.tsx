@@ -395,7 +395,9 @@ const ProductCard: FC<ProductCardProps> = ({
               height: 60,
               alignItems: 'center',
               justifyContent: 'center',
+              flex: 1,
             }}
+            
           >
             <View style={{
               height: 40,
@@ -414,9 +416,10 @@ const ProductCard: FC<ProductCardProps> = ({
           {/* Variant List */}
           <View style={{
             backgroundColor: '#fff',
-            padding: 16,
             borderTopLeftRadius: 20,
-            borderTopRightRadius: 20
+            borderTopRightRadius: 20,
+            maxHeight: hp(80),        // ← responsive max height
+            paddingBottom: hp(4),
           }}>
             {selectedProduct?.variants?.map((v: any, index: number) => (
               <View

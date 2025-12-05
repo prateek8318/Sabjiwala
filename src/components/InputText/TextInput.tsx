@@ -12,6 +12,7 @@ import styles from './styles';
 import { heightPercentageToDP as hp } from '../../constant/dimentions';
 import { Colors, Icon } from '../../constant';
 interface TextInputProps {
+  placeholderTextColor?: string;   
   refs?: React.RefObject<TextInput>;
   placeholder?: string;
   placeHolderTextStyle?: string;

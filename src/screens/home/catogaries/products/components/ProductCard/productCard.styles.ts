@@ -1,9 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { Colors, Fonts, Typography } from '../../../.././../../constant';
-import {
-  widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from '../../../../../../constant/dimentions';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from '../../../../../../constant/dimentions';
 
 const styles = StyleSheet.create({
   listProduct: {
@@ -11,16 +8,16 @@ const styles = StyleSheet.create({
     marginBottom: hp(3),
   },
   cardProduct: {
-    width: wp(37),
+    width: wp(45), // chote screens ke liye thoda bada
     borderRadius: 12,
     marginRight: hp(1),
-    marginTop:hp(2),
+    marginTop: hp(2),
     alignSelf: 'center',
     backgroundColor: Colors.PRIMARY[300],
   },
   cardProductImage: {
-    width: wp(37),
-    height: 160,
+    width: '100%', // responsive width
+    height: hp(20), // responsive height
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.SECONDARY[300],
@@ -31,10 +28,9 @@ const styles = StyleSheet.create({
     top: 2,
     left: 2,
   },
-
   imgFlash: {
-    width: 40,
-    height: 40,
+    width: wp(8),
+    height: wp(8),
     resizeMode: 'contain',
   },
   imgHeart: {
@@ -48,8 +44,8 @@ const styles = StyleSheet.create({
     right: 8,
   },
   imgTradeMark: {
-    width: 10,
-    height: 10,
+    width: wp(3),
+    height: wp(3),
     resizeMode: 'contain',
   },
   cardProductPriceView: {
@@ -97,12 +93,12 @@ const styles = StyleSheet.create({
   },
   txtRating: {
     fontFamily: Fonts.Regular,
-    fontSize: wp(2),
-    marginLeft: hp(.5),
+    fontSize: wp(2.5),
+    marginLeft: hp(0.5),
   },
   addButtonView: {
-    width: 75,
-    height: 25,
+    width: wp(20),
+    height: hp(4),
     marginRight: hp(1),
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
@@ -110,8 +106,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addProductButon: {
-    height: 45,
-    width: 90,
+    height: hp(5),
+    width: wp(25),
     borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
@@ -121,8 +117,8 @@ const styles = StyleSheet.create({
     ...Typography.H5Medium16,
   },
   optionView: {
-    width: 75,
-    height: 25,
+    width: wp(20),
+    height: hp(4),
     backgroundColor: Colors.PRIMARY[600],
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 12,

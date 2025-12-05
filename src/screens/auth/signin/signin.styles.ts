@@ -16,9 +16,9 @@ const styles = StyleSheet.create({
   },
   txtLogin: {
     fontFamily: Fonts.Bold,
-    fontSize: wp(22),
+    fontSize: wp(20),
     left: 10,
-    marginBottom: hp(-10),
+    
     color: Colors.PRIMARY[300],
   },
   inputView: {

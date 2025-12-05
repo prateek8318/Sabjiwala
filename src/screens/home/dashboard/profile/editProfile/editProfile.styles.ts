@@ -31,11 +31,11 @@ const styles = StyleSheet.create({
     marginTop: hp(5),
     ...Typography.BodyRegular13,
   },
-   inputContainer: {
+  inputContainer: {
     flexDirection: 'row',
     width: wp(85),
     borderRadius: 12,
-    marginTop: hp(2),
+    marginBottom: hp(2),
     borderWidth: 1,
     color: Colors.PRIMARY[400],
     alignItems: 'center',
@@ -44,14 +44,45 @@ const styles = StyleSheet.create({
   inputView: {
     ...Typography.BodyMedium14,
     color: Colors.PRIMARY[100],
-    marginTop: 1,
+
     width: wp(90),
     paddingLeft: hp(2),
   },
+  profileImage: {
+    width: 110,
+    height: 110,
+    borderRadius: 60,
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  
+  smallButton: {
+    backgroundColor: Colors.PRIMARY[300],
+    paddingVertical: 6,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+  },
+  
+  submitButton: {
+    backgroundColor: Colors.PRIMARY[100],
+    height: hp(6),
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    marginTop: hp(2),
+  },
+  
+  submitText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  
   buttonView: {
     width: wp(90),
     position: 'absolute',
     bottom: 20,
+
     alignSelf: 'center',
   },
   buttonTitle: {

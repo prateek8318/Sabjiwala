@@ -1,4 +1,4 @@
-import React, { FC, useContext, useState } from 'react';
+import React, { FC, useState, useEffect } from 'react';
 import {
   SafeAreaView,
   KeyboardAvoidingView,
@@ -6,18 +6,15 @@ import {
   View,
   Text,
   Image,
+  ScrollView,
+  Keyboard,
 } from 'react-native';
 import styles from './signin.styles';
 import { AuthStackProps } from '../../../@types';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import {
-  CommonLoader,
-  CommonAlertModal,
-  TextView,
-  Button,
-} from '../../../components';
+import { TextView, Button } from '../../../components';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from '../../../constant/dimentions';
 import { Colors } from '../../../constant';
 import InputText from '../../../components/InputText/TextInput';
@@ -31,15 +28,31 @@ type SigninScreenNavigationType = NativeStackNavigationProp<
 
 const Signin: FC = () => {
   const navigation = useNavigation<SigninScreenNavigationType>();
-  const [number, setNumber] = useState("");
+  const [number, setNumber] = useState('');
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      setKeyboardVisible(true);
+    });
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false);
+    });
+
+    // Cleanup listeners on unmount
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
 
   const attemptSignIn = () => {
     if (!number) {
-      Toast.show({ type: "error", text1: "Please enter mobile number" });
+      Toast.show({ type: 'error', text1: 'Please enter mobile number' });
       return;
     }
     if (number.length !== 10) {
-      Toast.show({ type: "error", text1: "Please enter valid mobile number" });
+      Toast.show({ type: 'error', text1: 'Please enter valid mobile number' });
       return;
     }
     signIn();
@@ -66,136 +79,153 @@ const Signin: FC = () => {
   return (
     <SafeAreaView style={styles.container}>
 
-      {/* 🔥 Top background image FIXED */}
+      {/* ⭐ FIXED TOP IMAGES */}
       <Image
         source={require('../../../assets/images/style.png')}
         style={{
           width: '100%',
           position: 'absolute',
-          top: 15,
-          resizeMode: 'contain'
+          top: 0,
+          resizeMode: 'stretch',
         }}
       />
 
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 50 }}>
-        <Image
-          source={require('../../../assets/images/lemon.png')}
-          style={{
-            position: 'absolute',
-            top: 90,
-            left: 20,
-            width: 65,
-            height: 65,
-            resizeMode: 'contain',
-          }}
-        />
 
-        <Image
-          source={require('../../../assets/images/peas.png')}
-          style={{
-            position: 'absolute',
-            top: 300,
-            right: 20,
-            width: 130,
-            height: 85,
-            resizeMode: 'contain',
-          }}
-        />
-      </View>
 
-      <View style={styles.txtLoginView}>
-        <Text style={styles.txtLogin}>Login</Text>
-      </View>
 
-      {/* ✅ KeyboardAvoidingView ONLY for input section */}
+
+      {/* ⭐ WRAP ENTIRE CONTENT SO NO ERRORS */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1, justifyContent: "center" }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
-        <View style={{ flex: 1, justifyContent: 'center' }}>
-          <InputText
-            value={number}
-            //@ts-ignore
-            inputStyle={[styles.inputView]}
-            keyboardType="number-pad"
-            maxLength={10}
-            placeHolderTextStyle={Colors.FLOATINGINPUT[100]}
-            placeholder="Mobile Number"
-            onChangeText={(value: string) => {
-              const filteredValue = value.replace(/[^0-9]/g, "");
-              setNumber(filteredValue);
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: 'center',
+            paddingHorizontal: wp(5),
+            paddingBottom: isKeyboardVisible ? hp(0) : hp(10), // padding to avoid overlap with images
+          }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View
+            style={{
+              maxHeight: hp(40),
+              justifyContent: 'center',
             }}
-          />
+          >
+            <View style={styles.txtLoginView}>
+              <Image
+                source={require('../../../assets/images/lemon.png')}
+                style={{
+                  position: 'absolute',
+                  top: hp(-5),
+                  left: wp(5),
+                  width: wp(18),
+                  height: wp(18),
+                  resizeMode: 'contain',
+                }}
+              />
+              <Text style={styles.txtLogin}>Login</Text>
+              <Image
+                source={require('../../../assets/images/peas.png')}
+                style={{
+                  position: 'absolute',
+                  top: hp(15),
+                  right: wp(5),
+                  width: wp(28),
+                  height: wp(18),
+                  resizeMode: 'contain',
+                }}
+              />
+            </View>
 
-          <View>
+            <InputText
+              value={number}
+              //@ts-ignore
+              inputStyle={[styles.inputView]}
+              keyboardType="number-pad"
+              maxLength={10}
+              placeHolderTextStyle={Colors.FLOATINGINPUT[100]}
+              placeholder="Mobile Number"
+              onChangeText={(value: string) =>
+                setNumber(value.replace(/[^0-9]/g, ''))
+              }
+            />
+
             <Button
-              title={"Get OTP"}
+              title={'Get OTP'}
               style={styles.actionButton}
               buttonColor={Colors.PRIMARY[300]}
               titleStyle={styles.actionButtonTitle}
-              onPress={() => attemptSignIn()}
+              onPress={attemptSignIn}
             />
-          </View>
 
-          <View style={styles.txtView}>
-            <TextView style={styles.txtWhite}>
-              By continuing, you agree to our <TextView style={styles.txtYellow}>Terms of Use</TextView>
-              <TextView style={styles.txtWhite}> and </TextView>
-              <TextView style={styles.txtYellow}>Privacy Policy</TextView>
-            </TextView>
+            <View style={styles.txtView}>
+              <TextView style={styles.txtWhite}>
+                By continuing, you agree to our{' '}
+                <TextView style={styles.txtYellow}>Terms of Use</TextView>
+                <TextView style={styles.txtWhite}> and </TextView>
+                <TextView style={styles.txtYellow}>Privacy Policy</TextView>
+              </TextView>
+            </View>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* 🔥 Bottom images stay FIXED now */}
-      <Image
-        source={require('../../../assets/images/style3.png')}
-        style={{
-          width: 140,
-          height: 90,
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          resizeMode: 'contain'
-        }}
-      />
+      {/* ⭐ FIXED BOTTOM IMAGES - HIDE ON KEYBOARD VISIBLE */}
+      {!isKeyboardVisible && (
+        <>
+          <Image
+            source={require('../../../assets/images/style3.png')}
+            style={{
+              width: wp(35),
+              height: hp(14),
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              resizeMode: 'contain',
+            }}
+          />
 
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 40 }}>
-        <Image
-          source={require('../../../assets/images/beetroot.png')}
-          style={{
-            position: 'absolute',
-            bottom: 25,
-            left: 30,
-            width: 74,
-            height: 90,
-          }}
-        />
+          <Image
+            source={require('../../../assets/images/beetroot.png')}
+            style={{
+              position: 'absolute',
+              bottom: hp(4),
+              left: wp(7),
+              width: wp(20),
+              height: hp(12),
+              resizeMode: 'contain',
+            }}
+          />
 
-        <Image
-          source={require('../../../assets/images/tomato.png')}
-          style={{
-            position: 'absolute',
-            bottom: 150,
-            right: 0,
-            width: 45,
-            height: 75,
-          }}
-        />
-      </View>
+          <Image
+            source={require('../../../assets/images/tomato.png')}
+            style={{
+              position: 'absolute',
+              bottom: hp(17),
+              right: 0,
+              width: wp(15),
+              height: hp(10),
+              resizeMode: 'contain',
+            }}
+          />
 
-      <Image
-        source={require('../../../assets/images/style2.png')}
-        style={{
-          width: 140,
-          height: 80,
-          position: 'absolute',
-          bottom: 0,
-          right: 0,
-          resizeMode: 'contain'
-        }}
-      />
-
+          <Image
+            source={require('../../../assets/images/style2.png')}
+            style={{
+              width: wp(35),
+              height: hp(14),
+              position: 'absolute',
+              bottom: 0,
+              right: 0,
+              resizeMode: 'contain',
+            }}
+          />
+        </>
+      )}
     </SafeAreaView>
   );
 };

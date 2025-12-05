@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
   headerView: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: hp(2),
+    marginTop: hp(2.1),
   },
   profilePicView: {
     width: 55,

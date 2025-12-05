@@ -11,7 +11,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.PRIMARY[300],
   },
   txtHeading: {
-    color: Colors.PRIMARY[400],
+    color: "#000",
     fontFamily: Fonts.Medium,
     fontSize: wp(5),
     marginTop: hp(1),
@@ -19,6 +19,7 @@ const styles = StyleSheet.create({
   },
   txtContent: {
     ...Typography.BodyRegular14,
+    color: "#000",
     textAlign: 'left',
     letterSpacing: 1,
     marginTop: hp(1),

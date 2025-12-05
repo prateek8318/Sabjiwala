@@ -116,6 +116,14 @@ export const ApiService = {
     });
   },
 
+  updateProfile: async (data: { name?: string; email?: string; image?: string }) => {
+    return await api.patch('user/profile', data);
+  },
+
+  getUserProfile: async () => {
+    const response = await api.get('user/profile');
+    return response;
+  },
   // ---- Login (example) ----
   login: async (email: string, password: string) => {
     const res = await api.post('user/login', { email, password });
@@ -138,6 +146,30 @@ export const ApiService = {
     const response = await api.patch('user/location', { lat, long });
     return response;
   },
+  // ─────────────────────────────────────────────
+// ADDRESS API FUNCTIONS – ADD YE API SERVICE ME
+// ─────────────────────────────────────────────
+
+getAddresses: async () => {
+  return await api.get('user/address/list'); // ya jo bhi tera endpoint hai
+},
+
+addAddress: async (addressData: any) => {
+  return await api.post('user/address/add', addressData);
+},
+
+updateAddress: async (addressId: string, addressData: any) => {
+  return await api.patch(`user/address/update/${addressId}`, addressData);
+},
+
+deleteAddress: async (addressId: string) => {
+  return await api.delete(`user/address/delete/${addressId}`);
+},
+
+// Optional: Set default address
+setDefaultAddress: async (addressId: string) => {
+  return await api.patch(`user/address/default/${addressId}`);
+},
 
   // ---- FETCH USER HOME DATA ----
   getUserHome: async () => {
@@ -157,7 +189,9 @@ export const ApiService = {
   getHomeContent: async () => {
     return await api.get('user/homeProductContent');
   },
-
+  placeOrder: async (payload = {}) => {
+    return await api.post('createOrder', payload); // ← payload optional bana diya
+  },
   getSubCategoryProducts: async (subCategoryId: string) => {
     const endpoint = subCategoryId === 'all'
       ? 'user/getsubCategoryProductList/all'  // or your "all products" endpoint
@@ -205,7 +239,7 @@ export const ApiService = {
   addToWishlist: async (productId: string) => {
     const response = await api.post('user/wishlist', {
       "productId": productId,
-      
+
     });
     return response;
   },
@@ -222,6 +256,23 @@ export const ApiService = {
     return response;
   },
 
+  // apiService.ts me yeh 3 functions add kar de (kahi bhi, end me best)
+
+  getMyOrders: async () => {
+    return await api.get('user/order'); 
+  },
+
+  getOrderDetails: async (orderId: string) => {
+    return await api.get('user/orde', { params: { orderId } });
+  },
+
+  reorder: async (orderId: string) => {
+    return await api.post('user/order', { oldOrderId: orderId }); // ya jo bhi backend expect kare
+  },
+  // apiService.ts me yeh add kar de
+placeOrder: async (addressId: any) => {
+  return await api.post('user/order', addressId); 
+},
   // ---- Logout ----
   logout: () => storage.removeToken(),
 };

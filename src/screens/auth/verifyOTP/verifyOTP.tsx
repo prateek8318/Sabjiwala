@@ -16,7 +16,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { AuthStackProps } from "../../../@types";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { heightPercentageToDP as hp } from "../../../constant/dimentions";
+import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../../constant/dimentions";
 import ApiService from "../../../service/apiService";
 import { LocalStorage } from "../../../helpers/localstorage";
 import { storage } from "../../../service/storage";
@@ -31,7 +31,9 @@ const VerifyOTP: FC = () => {
   const { setUserData, setIsLoggedIn } = useContext<UserData>(UserDataContext);
   const insets = useSafeAreaInsets();
 
-  // Timer
+  // NEW: keyboard visibility state
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (globalTimer > 0) {
@@ -42,13 +44,27 @@ const VerifyOTP: FC = () => {
     return () => timer && clearTimeout(timer);
   }, [globalTimer]);
 
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener("keyboardDidShow", () => {
+      setKeyboardVisible(true);
+    });
+    const keyboardDidHideListener = Keyboard.addListener("keyboardDidHide", () => {
+      setKeyboardVisible(false);
+    });
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
+
   const handleResendOTP = () => {
     setGlobalTimer(30);
     setCanResend(false);
     sendOTPAgain();
   };
 
-  const attempVerify = async () => {
+  const attempVerify = () => {
     if (!code) {
       Toast.show({ type: "error", text1: "Please enter OTP" });
       return;
@@ -106,55 +122,56 @@ const VerifyOTP: FC = () => {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <SafeAreaView style={styles.container}>
 
-        {/* 🔥 Top background image (same as Signin) */}
+        {/* ---------- RESPONSIVE TOP IMAGES ---------- */}
         <Image
           source={require("../../../assets/images/style.png")}
           style={{
             width: "100%",
+
             position: "absolute",
-            top: 15,
-            resizeMode: "contain",
+            top: 0,
+            resizeMode: "stretch",
           }}
         />
 
-        {/* 🔥 Top floating lemon & peas (same positions as Signin) */}
-        <Image
-          source={require("../../../assets/images/lemon.png")}
-          style={{
-            position: "absolute",
-            top: 90,
-            left: 20,
-            width: 65,
-            height: 65,
-            resizeMode: "contain",
-          }}
-        />
 
-        <Image
-          source={require("../../../assets/images/peas.png")}
-          style={{
-            position: "absolute",
-            top: 135,
-            right: 20,
-            width: 120,
-            height: 80,
-            resizeMode: "contain",
-          }}
-        />
+        {/* ----------------------------------------------------------- */}
 
-        {/* 🔥 KeyboardAvoiding only on content – images fixed */}
         <KeyboardAvoidingView
           behavior="padding"
+          keyboardVerticalOffset={insets.top + 30}
           style={{ flex: 1 }}
-          keyboardVerticalOffset={insets.top}
         >
           <ScrollView
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ flexGrow: 1 }}
           >
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, paddingTop: hp(22) }}>
               <View style={styles.verifyOTPView}>
+                <Image
+                  source={require("../../../assets/images/lemon.png")}
+                  style={{
+                    position: "absolute",
+                    top: hp(-8),
+                    left: wp(5),
+                    width: wp(18),
+                    height: wp(18),
+                    resizeMode: "contain",
+                  }}
+                />
+
+                <Image
+                  source={require("../../../assets/images/peas.png")}
+                  style={{
+                    position: "absolute",
+                    top: hp(5),
+                    right: wp(5),
+                    width: wp(30),
+                    height: wp(20),
+                    resizeMode: "contain",
+                  }}
+                />
                 <TextView style={styles.titleText}>
                   A 4 Digit OTP has been Sent to +91 {route?.params?.number}
                 </TextView>
@@ -193,7 +210,8 @@ const VerifyOTP: FC = () => {
               {!canResend && (
                 <View style={styles.bottomView}>
                   <TextView style={styles.timerText}>
-                    Resend OTP in <TextView style={styles.secText}>{globalTimer}</TextView> sec
+                    Resend OTP in{" "}
+                    <TextView style={styles.secText}>{globalTimer}</TextView> sec
                   </TextView>
                 </View>
               )}
@@ -201,52 +219,59 @@ const VerifyOTP: FC = () => {
           </ScrollView>
         </KeyboardAvoidingView>
 
-        {/* 🔥 Bottom images same as Signin */}
-        <Image
-          source={require("../../../assets/images/style3.png")}
-          style={{
-            width: 140,
-            height: 90,
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            resizeMode: "contain",
-          }}
-        />
+        {/* ---------- RESPONSIVE BOTTOM IMAGES - HIDE WHEN KEYBOARD VISIBLE ---------- */}
+        {!isKeyboardVisible && (
+          <>
+            <Image
+              source={require("../../../assets/images/style3.png")}
+              style={{
+                width: wp(35),
+                height: hp(12),
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                resizeMode: "contain",
+              }}
+            />
 
-        <Image
-          source={require("../../../assets/images/beetroot.png")}
-          style={{
-            position: "absolute",
-            bottom: 25,
-            left: 30,
-            width: 74,
-            height: 90,
-          }}
-        />
+            <Image
+              source={require("../../../assets/images/beetroot.png")}
+              style={{
+                position: "absolute",
+                bottom: hp(3),
+                left: wp(8),
+                width: wp(18),
+                height: hp(12),
+                resizeMode: "contain",
+              }}
+            />
 
-        <Image
-          source={require("../../../assets/images/tomato.png")}
-          style={{
-            position: "absolute",
-            bottom: 150,
-            right: 0,
-            width: 45,
-            height: 75,
-          }}
-        />
+            <Image
+              source={require("../../../assets/images/tomato.png")}
+              style={{
+                position: "absolute",
+                bottom: hp(18),
+                right: wp(2),
+                width: wp(12),
+                height: hp(10),
+                resizeMode: "contain",
+              }}
+            />
 
-        <Image
-          source={require("../../../assets/images/style2.png")}
-          style={{
-            width: 140,
-            height: 80,
-            position: "absolute",
-            bottom: 0,
-            right: 0,
-            resizeMode: "contain",
-          }}
-        />
+            <Image
+              source={require("../../../assets/images/style2.png")}
+              style={{
+                width: wp(35),
+                height: hp(12),
+                position: "absolute",
+                bottom: 0,
+                right: 0,
+                resizeMode: "contain",
+              }}
+            />
+          </>
+        )}
+        {/* ----------------------------------------------------------- */}
 
       </SafeAreaView>
     </TouchableWithoutFeedback>

@@ -24,6 +24,15 @@ const styles = StyleSheet.create({
     marginTop: hp(1),
     padding: hp(1),
   },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: wp(7.5),
+    backgroundColor: '#fff',
+  },
+  headerTitle:{
+    color:"#000",
+  }
 });
 
 export default styles;

@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
 alignItems: 'center',
   flexDirection: 'row',
   justifyContent: 'center',
-  paddingBottom: 20,        // Adds bottom padding
+  paddingBottom: 0,        // Adds bottom padding
   paddingTop: 0,            // Optional: ensures no extra top padding
   paddingHorizontal: 0,
   },
