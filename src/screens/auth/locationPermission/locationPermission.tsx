@@ -14,8 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { TextView, LinearButton, BorderButton, CommonLoader } from '../../../components';
 import { Colors, Images } from '../../../constant';
 import { widthPercentageToDP as wp } from '../../../constant/dimentions';
-import Geolocation from 'react-native-geolocation-service';
-import { request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import { request, check, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import Toast from 'react-native-toast-message';
 import ApiService from '../../../service/apiService';
 import { LocalStorage } from '../../../helpers/localstorage';
@@ -40,68 +39,59 @@ const LocationPermission: FC = () => {
         permissionStatus = await request(PERMISSIONS.IOS.LOCATION_WHEN_IN_USE);
       } else {
         console.log('[LocationPermission] Requesting Android location permission');
+        const current = await check(PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION);
+        if (current === RESULTS.BLOCKED) {
+          Toast.show({
+            type: 'error',
+            text1: 'Location permission blocked',
+            text2: 'Enable it from settings to continue',
+          });
+          return;
+        }
         permissionStatus = await request(PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION);
       }
 
       console.log('[LocationPermission] Permission status:', permissionStatus);
 
       if (permissionStatus === RESULTS.GRANTED) {
-        console.log('[LocationPermission] Permission granted. Getting current position...');
-        Geolocation.getCurrentPosition(
-          async (position) => {
-            console.log('[LocationPermission] Current position:', position);
-            const lat = position.coords.latitude.toString();
-            const long = position.coords.longitude.toString();
-            console.log('[LocationPermission] Latitude:', lat, 'Longitude:', long);
+        // Skip native geolocation to avoid crash; directly call API then navigate
+        try {
+          showLoader();
+          console.log('[LocationPermission] Sending location to API without GPS');
+          const response = await ApiService.sendCurrentLoc('', '');
+          hideLoader();
+          console.log('[LocationPermission] API response:', response);
 
-            try {
-              showLoader();
-              console.log('[LocationPermission] Sending location to API...');
-              const response = await ApiService.sendCurrentLoc(lat, long);
-              hideLoader();
-              console.log('[LocationPermission] API response:', response);
+          if (response.status === 200) {
+            console.log('[LocationPermission] Location update successful. Saving data...');
+            await LocalStorage.save('@user', JSON.stringify(response.data.user || "Data"));
+            setUserData(response.data.user || "Data");
+            await LocalStorage.save('@login', true);
+            setIsLoggedIn(true);
 
-              if (response.status === 200) {
-                console.log('[LocationPermission] Location update successful. Saving data...');
-                await LocalStorage.save('@user', JSON.stringify(response.data.user || "Data"));
-                setUserData(response.data.user || "Data");
-                await LocalStorage.save('@login', true);
-                setIsLoggedIn(true);
+            Toast.show({
+              type: 'success',
+              text1: 'Location updated successfully!',
+            });
 
-                Toast.show({
-                  type: 'success',
-                  text1: 'Location updated successfully!',
-                });
-
-                console.log('[LocationPermission] Navigating to HomeStackNavigator...');
-                navigation.getParent()?.navigate('HomeStackNavigator');
-              } else {
-                console.log('[LocationPermission] API returned error message:', response.data?.message);
-                Toast.show({
-                  type: 'error',
-                  text1: response.data?.message || 'Failed to update location',
-                });
-              }
-            } catch (apiError: any) {
-              hideLoader();
-              console.log('[LocationPermission] API error:', apiError);
-              Toast.show({
-                type: 'error',
-                text1: 'Failed to send location',
-                text2: apiError.response?.data?.message || 'Please try again',
-              });
-            }
-          },
-          (error) => {
-            console.log('[LocationPermission] Geolocation error:', error);
+            console.log('[LocationPermission] Navigating to HomeStackNavigator...');
+            navigation.getParent()?.navigate('HomeStackNavigator');
+          } else {
+            console.log('[LocationPermission] API returned error message:', response.data?.message);
             Toast.show({
               type: 'error',
-              text1: 'Failed to get location',
-              text2: error.message,
+              text1: response.data?.message || 'Failed to update location',
             });
-          },
-          { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-        );
+          }
+        } catch (apiError: any) {
+          hideLoader();
+          console.log('[LocationPermission] API error:', apiError);
+          Toast.show({
+            type: 'error',
+            text1: 'Failed to send location',
+            text2: apiError.response?.data?.message || 'Please try again',
+          });
+        }
       } else {
         console.log('[LocationPermission] Permission denied');
         Toast.show({

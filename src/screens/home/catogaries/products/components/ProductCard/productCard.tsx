@@ -9,7 +9,7 @@ import {
   Text,
   Pressable,
 } from 'react-native';
-import { FC } from 'react';
+import { FC, useState, useEffect } from 'react';
 import _ from 'lodash';
 import { widthPercentageToDP as wp } from '../../../../../../constant/dimentions';
 import styles from './productCard.styles';
@@ -22,6 +22,7 @@ import {
 } from '../../../../../../constant';
 import { TextView } from '../../../../../../components';
 import LinearGradient from 'react-native-linear-gradient';
+import ApiService from '../../../../../../service/apiService';
 
 interface ProductCardProps {
   cardArray?: any;
@@ -38,9 +39,108 @@ const ProductCard: FC<ProductCardProps> = ({
   onAddAction,
   numOfColumn,
 }) => {
+  const [wishlist, setWishlist] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const loadWishlist = async () => {
+      try {
+        const res = await ApiService.getWishlist();
+        console.log('Category ProductCard - Wishlist response:', res?.data);
+        
+        // Handle different response structures
+        let items = [];
+        if (res?.data?.wishlist?.items) {
+          items = res.data.wishlist.items;
+        } else if (res?.data?.wishlist && Array.isArray(res.data.wishlist)) {
+          items = res.data.wishlist;
+        } else if (res?.data?.items) {
+          items = res.data.items;
+        } else if (res?.data?.data?.items) {
+          items = res.data.data.items;
+        }
+        
+        const ids = items.map((i: any) => i.productId?.toString()).filter(Boolean);
+        console.log('Category ProductCard - Loaded wishlist IDs:', ids);
+        setWishlist(new Set(ids));
+      } catch (e) {
+        console.log("wishlist load error", e);
+      }
+    };
+    loadWishlist();
+  }, []);
+
+  // Toggle favorite
+  const toggleWishlist = async (productId: string) => {
+    try {
+      const productIdStr = productId.toString();
+      console.log('Category ProductCard - Toggle wishlist - productId:', productIdStr);
+      console.log('Current wishlist before toggle:', Array.from(wishlist));
+      
+      const newList = new Set(wishlist);
+      const isFavorite = newList.has(productIdStr);
+
+      if (isFavorite) {
+        // remove - delete from wishlist
+        console.log('Removing from wishlist...');
+        await ApiService.deleteWishlist(productIdStr);
+        newList.delete(productIdStr);
+        setWishlist(newList);
+        console.log('Wishlist after remove:', Array.from(newList));
+      } else {
+        // add - add to wishlist
+        console.log('Adding to wishlist...');
+        await ApiService.addToWishlist(productIdStr);
+        newList.add(productIdStr);
+        setWishlist(newList);
+        console.log('Wishlist after add:', Array.from(newList));
+      }
+
+      // Reload wishlist from server to ensure sync
+      setTimeout(async () => {
+        try {
+          const res = await ApiService.getWishlist();
+          let items = [];
+          if (res?.data?.wishlist?.items) {
+            items = res.data.wishlist.items;
+          } else if (res?.data?.wishlist && Array.isArray(res.data.wishlist)) {
+            items = res.data.wishlist;
+          } else if (res?.data?.items) {
+            items = res.data.items;
+          }
+          const ids = items.map((i: any) => i.productId?.toString()).filter(Boolean);
+          console.log('Category ProductCard - Reloaded wishlist IDs:', ids);
+          setWishlist(new Set(ids));
+        } catch (e) {
+          console.log("Error reloading wishlist", e);
+        }
+      }, 500);
+    } catch (err) {
+      console.log("wishlist toggle error", err);
+      // On error, reload wishlist to sync with server
+      try {
+        const res = await ApiService.getWishlist();
+        let items = [];
+        if (res?.data?.wishlist?.items) {
+          items = res.data.wishlist.items;
+        } else if (res?.data?.wishlist && Array.isArray(res.data.wishlist)) {
+          items = res.data.wishlist;
+        } else if (res?.data?.items) {
+          items = res.data.items;
+        }
+        const ids = items.map((i: any) => i.productId?.toString()).filter(Boolean);
+        setWishlist(new Set(ids));
+      } catch (e) {
+        console.log("Error reloading wishlist", e);
+      }
+    }
+  };
+
   const renderProductItem = ({ item }: { item: (typeof cardArray)[0] }) => {
+    const productId = item.id?.toString() || item._id?.toString();
+    const isFavorite = wishlist.has(productId);
+    
     return (
-      <View style={styles.cardProduct}>
+      <Pressable style={styles.cardProduct}>
         <View style={{ position: 'relative' }}>
           <View>
             <Image
@@ -54,14 +154,23 @@ const ProductCard: FC<ProductCardProps> = ({
             </View>
           )}
 
-          <View style={styles.imgHeart}>
+          <Pressable
+            onPress={e => {
+              e.stopPropagation();
+              const productId = item.id?.toString() || item._id?.toString();
+              console.log('Category ProductCard - Toggle wishlist:', productId);
+              toggleWishlist(productId);
+            }}
+            style={styles.imgHeart}
+            hitSlop={10}
+          >
             <Icon
-              name="heart"
+              name={isFavorite ? 'heart' : 'hearto'}
               family="AntDesign"
               size={20}
-              color={Colors.PRIMARY[700]}
+              color={isFavorite ? '#E53935' : Colors.PRIMARY[700]}
             />
-          </View>
+          </Pressable>
           <View style={styles.imgTradeMarkView}>
             <Image source={Images.ic_trademark} style={styles.imgTradeMark} />
           </View>
@@ -132,7 +241,7 @@ const ProductCard: FC<ProductCardProps> = ({
             </View>
           )}
         </View>
-      </View>
+      </Pressable>
     );
   };
 
@@ -141,7 +250,7 @@ const ProductCard: FC<ProductCardProps> = ({
       <FlatList
         data={cardArray}
         renderItem={renderProductItem}
-        keyExtractor={item => item.id.toString()}
+        keyExtractor={item => (item.id?.toString() || item._id?.toString() || Math.random().toString())}
         horizontal={horizontal && horizontal}
         numColumns={numOfColumn && numOfColumn}
         showsHorizontalScrollIndicator={false}

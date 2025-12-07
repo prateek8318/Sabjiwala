@@ -147,29 +147,24 @@ export const ApiService = {
     return response;
   },
   // ─────────────────────────────────────────────
-// ADDRESS API FUNCTIONS – ADD YE API SERVICE ME
-// ─────────────────────────────────────────────
-
-getAddresses: async () => {
-  return await api.get('user/address/list'); // ya jo bhi tera endpoint hai
-},
-
-addAddress: async (addressData: any) => {
-  return await api.post('user/address/add', addressData);
-},
-
-updateAddress: async (addressId: string, addressData: any) => {
-  return await api.patch(`user/address/update/${addressId}`, addressData);
-},
-
-deleteAddress: async (addressId: string) => {
-  return await api.delete(`user/address/delete/${addressId}`);
-},
-
-// Optional: Set default address
-setDefaultAddress: async (addressId: string) => {
-  return await api.patch(`user/address/default/${addressId}`);
-},
+  // ADDRESS API FUNCTIONS
+  // ─────────────────────────────────────────────
+  getAddresses: async () => {
+    return await api.get('user/address/');
+  },
+  addAddress: async (addressData: any) => {
+    return await api.post('user/address/', addressData);
+  },
+  updateAddress: async (addressId: string, addressData: any) => {
+    return await api.patch(`user/address/${addressId}`, addressData);
+  },
+  deleteAddress: async (addressId: string) => {
+    return await api.delete(`user/address/${addressId}`);
+  },
+  // Optional: Set default address
+  setDefaultAddress: async (addressId: string) => {
+    return await api.patch(`user/address/default/${addressId}`);
+  },
 
   // ---- FETCH USER HOME DATA ----
   getUserHome: async () => {
@@ -190,7 +185,7 @@ setDefaultAddress: async (addressId: string) => {
     return await api.get('user/homeProductContent');
   },
   placeOrder: async (payload = {}) => {
-    return await api.post('createOrder', payload); // ← payload optional bana diya
+    return await api.post('user/order', payload);
   },
   getSubCategoryProducts: async (subCategoryId: string) => {
     const endpoint = subCategoryId === 'all'
@@ -218,10 +213,10 @@ setDefaultAddress: async (addressId: string) => {
     return response;
   },
 
-  removeCartItem: async (productId: string) => {
-    console.log(":::::::::", productId);
+  removeCartItem: async (productId: string, variantId?: string) => {
+    // Include variantId so only the targeted variant is removed
     const response = await api.delete('user/cart', {
-      data: { productId }
+      data: { productId, variantId }
     });
     return response;
   },
@@ -249,10 +244,11 @@ setDefaultAddress: async (addressId: string) => {
   },
 
   deleteWishlist: async (productId: string) => {
-    console.log(":::::::::", productId);
+    console.log("Delete wishlist - productId:", productId);
     const response = await api.delete('user/wishlist', {
-      data: { productId }
+      data: { productId: productId.toString() }
     });
+    console.log("Delete wishlist response:", response.data);
     return response;
   },
 
@@ -263,16 +259,16 @@ setDefaultAddress: async (addressId: string) => {
   },
 
   getOrderDetails: async (orderId: string) => {
-    return await api.get('user/orde', { params: { orderId } });
+    return await api.get('user/order', { params: { orderId } });
   },
 
   reorder: async (orderId: string) => {
     return await api.post('user/order', { oldOrderId: orderId }); // ya jo bhi backend expect kare
   },
-  // apiService.ts me yeh add kar de
-placeOrder: async (addressId: any) => {
-  return await api.post('user/order', addressId); 
-},
+
+  submitOrderRating: async (ratingData: any) => {
+    return await api.post('user/product/rating', ratingData);
+  },
   // ---- Logout ----
   logout: () => storage.removeToken(),
 };

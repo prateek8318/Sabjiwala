@@ -73,7 +73,22 @@ const ProductCard: FC<ProductCardProps> = ({
     const loadWishlist = async () => {
       try {
         const res = await ApiService.getWishlist();
-        const ids = res?.data?.items?.map((i: any) => i.productId);
+        console.log('Dashboard ProductCard - Wishlist response:', res?.data);
+        
+        // Handle different response structures
+        let items = [];
+        if (res?.data?.wishlist?.items) {
+          items = res.data.wishlist.items;
+        } else if (res?.data?.wishlist && Array.isArray(res.data.wishlist)) {
+          items = res.data.wishlist;
+        } else if (res?.data?.items) {
+          items = res.data.items;
+        } else if (res?.data?.data?.items) {
+          items = res.data.data.items;
+        }
+        
+        const ids = items.map((i: any) => i.productId?.toString()).filter(Boolean);
+        console.log('Dashboard ProductCard - Loaded wishlist IDs:', ids);
         setWishlist(new Set(ids));
       } catch (e) {
         console.log("wishlist load error", e);
@@ -85,21 +100,63 @@ const ProductCard: FC<ProductCardProps> = ({
   // Toggle favorite
   const toggleWishlist = async (productId: string) => {
     try {
+      const productIdStr = productId.toString();
+      console.log('Toggle wishlist - productId:', productIdStr);
+      
       const newList = new Set(wishlist);
+      const isFavorite = newList.has(productIdStr);
 
-      if (newList.has(productId)) {
-        // remove
-        await ApiService.deleteWishlist(productId);
-        newList.delete(productId);
+      if (isFavorite) {
+        // remove - delete from wishlist
+        console.log('Removing from wishlist...');
+        await ApiService.deleteWishlist(productIdStr);
+        newList.delete(productIdStr);
       } else {
-        // add
-        await ApiService.addToWishlist(productId);
-        newList.add(productId);
+        // add - add to wishlist
+        console.log('Adding to wishlist...');
+        await ApiService.addToWishlist(productIdStr);
+        newList.add(productIdStr);
       }
 
       setWishlist(newList);
+      
+      // Reload wishlist from server to ensure sync
+      setTimeout(async () => {
+        try {
+          const res = await ApiService.getWishlist();
+          let items = [];
+          if (res?.data?.wishlist?.items) {
+            items = res.data.wishlist.items;
+          } else if (res?.data?.wishlist && Array.isArray(res.data.wishlist)) {
+            items = res.data.wishlist;
+          } else if (res?.data?.items) {
+            items = res.data.items;
+          }
+          const ids = items.map((i: any) => i.productId?.toString()).filter(Boolean);
+          console.log('Dashboard ProductCard - Reloaded wishlist IDs:', ids);
+          setWishlist(new Set(ids));
+        } catch (e) {
+          console.log("Error reloading wishlist", e);
+        }
+      }, 500);
     } catch (err) {
       console.log("wishlist toggle error", err);
+      // On error, reload wishlist to sync with server
+      try {
+        const res = await ApiService.getWishlist();
+        let items = [];
+        if (res?.data?.wishlist?.items) {
+          items = res.data.wishlist.items;
+        } else if (res?.data?.wishlist && Array.isArray(res.data.wishlist)) {
+          items = res.data.wishlist;
+        } else if (res?.data?.items) {
+          items = res.data.items;
+        }
+        const ids = items.map((i: any) => i.productId?.toString()).filter(Boolean);
+        setWishlist(new Set(ids));
+      } catch (e) {
+        console.log("Error reloading wishlist", e);
+      }
     }
   };
 
@@ -113,7 +170,7 @@ const ProductCard: FC<ProductCardProps> = ({
       if (qty > 0) {
         await ApiService.addToCart(productId, variantId, qty.toString());
       } else {
-        await ApiService.removeFromCart(productId, variantId);
+        await ApiService.removeCartItem(productId, variantId);
       }
       setCartMap(prev => ({ ...prev, [productId]: qty }));
     } catch (e) { }
@@ -142,16 +199,19 @@ const ProductCard: FC<ProductCardProps> = ({
           <Pressable
             onPress={e => {
               e.stopPropagation();
-              toggleWishlist(item.id.toString());
+              const productId = item.id?.toString() || item._id?.toString();
+              console.log('Heart pressed for productId:', productId);
+              console.log('Is in wishlist?', wishlist.has(productId));
+              toggleWishlist(productId);
             }}
             style={styles.imgHeart}
             hitSlop={10}
           >
             <Icon
-              name={wishlist.has(item.id.toString()) ? 'heart' : 'hearto'}
+              name={wishlist.has(item.id?.toString() || item._id?.toString()) ? 'heart' : 'hearto'}
               family="AntDesign"
               size={26}
-              color={wishlist.has(item.id.toString()) ? '#E53935' : '#888'}
+              color={wishlist.has(item.id?.toString() || item._id?.toString()) ? '#E53935' : '#888'}
             />
           </Pressable>
 
@@ -409,7 +469,7 @@ const ProductCard: FC<ProductCardProps> = ({
               borderWidth: 2,
               borderColor: Colors.PRIMARY[200]
             }}>
-              <Icon name="close" size={18} color="green" />
+              <Icon name="close" family="AntDesign" size={18} color="green" />
             </View>
           </Pressable>
 

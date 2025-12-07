@@ -9,12 +9,42 @@ import {
   Modal,
   TextInput,
   ScrollView,
+  Dimensions,
 } from "react-native";
 import { Header, TextView } from "../../../../components";
 import ApiService from "../../../../service/apiService";
 import { Colors, Icon } from "../../../../constant";
+import { widthPercentageToDP as wp } from "../../../../constant/dimentions";
 import styles from "../SubCategoryList/SubCategoryListStyles";
 import ProductCard from "../../dashboard/components/ProductCard/productCard";
+
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const LEFT_PANE_WIDTH = 80;
+const RIGHT_PANE_PADDING = 12;
+const CARD_GAP = 8; // Space between cards
+const CONTAINER_PADDING = 0; // No padding to maximize space for cards
+
+// Calculate card width percentage for right pane (with left sidebar)
+const getCardWidthPercent = () => {
+  // rightPane has paddingLeft: 8, paddingHorizontal: 6
+  // So: left = 8, right = 6
+  const rightPaneLeftPadding = 8;
+  const rightPaneRightPadding = 6;
+  const availableWidth = SCREEN_WIDTH - LEFT_PANE_WIDTH - rightPaneLeftPadding - rightPaneRightPadding;
+  const totalPadding = CONTAINER_PADDING * 2; // Left and right padding from columnWrapperStyle
+  const usableWidth = availableWidth - totalPadding - CARD_GAP; // Subtract gap between cards
+  // Return as percentage - each card gets slightly less than 50% to ensure spacing
+  return (usableWidth / 2 / availableWidth) * 100;
+};
+
+// Calculate card width percentage for full screen (search mode)
+const getFullScreenCardWidthPercent = () => {
+  const availableWidth = SCREEN_WIDTH;
+  const totalPadding = CONTAINER_PADDING * 2; // Left and right padding
+  const usableWidth = availableWidth - totalPadding - CARD_GAP;
+  // Return as percentage - each card gets slightly less than 50% to ensure spacing
+  return (usableWidth / 2 / availableWidth) * 100;
+};
 
 const SubCategoryList = ({ route }: any) => {
   const { categoryId, categoryName } = route.params;
@@ -253,14 +283,23 @@ const SubCategoryList = ({ route }: any) => {
                 <FlatList
                   data={products}
                   numColumns={2}
-                  columnWrapperStyle={{ justifyContent: "space-between", paddingHorizontal: 12 }}
+                  columnWrapperStyle={{ 
+                    justifyContent: "space-between", 
+                    paddingHorizontal: CONTAINER_PADDING,
+                  }}
                   contentContainerStyle={{ paddingVertical: 16 }}
                   keyExtractor={(item) => item.id}
-                  renderItem={({ item }) => (
-                    <View style={{ width: "48%", marginBottom: 16 }}>
-                      <ProductCard cardArray={[item]} horizontal={false} numOfColumn={1} onAddPress={handleAddPress} />
-                    </View>
-                  )}
+                  renderItem={({ item }) => {
+                    return (
+                      <View style={{ 
+                        width: '48%',
+                        marginBottom: 12,
+                        paddingHorizontal: 2,
+                      }}>
+                        <ProductCard cardArray={[item]} horizontal={false} numOfColumn={1} onAddPress={handleAddPress} />
+                      </View>
+                    );
+                  }}
                 />
               )}
             </View>
@@ -279,14 +318,23 @@ const SubCategoryList = ({ route }: any) => {
                   <FlatList
                     data={products}
                     numColumns={2}
-                    columnWrapperStyle={{ justifyContent: "space-between", paddingHorizontal: 4 }}
+                    columnWrapperStyle={{ 
+                      justifyContent: "space-between", 
+                      paddingHorizontal: CONTAINER_PADDING,
+                    }}
                     contentContainerStyle={{ paddingBottom: 40 }}
                     keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => (
-                      <View style={{ width: "48%", marginBottom: 16 }}>
-                        <ProductCard cardArray={[item]} horizontal={false} numOfColumn={1} onAddPress={handleAddPress} />
-                      </View>
-                    )}
+                    renderItem={({ item }) => {
+                      return (
+                        <View style={{ 
+                          width: '48%',
+                          marginBottom: 12,
+                          paddingHorizontal: 2,
+                        }}>
+                          <ProductCard cardArray={[item]} horizontal={false} numOfColumn={1} onAddPress={handleAddPress} />
+                        </View>
+                    );
+                    }}
                   />
                 )}
               </View>

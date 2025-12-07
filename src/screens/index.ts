@@ -31,6 +31,8 @@ import ProductDetail from './home/productDetail/productDtetail';
 import Favorites from './home/favorites/favorites';
 import MyOrder from './home/myOrder/myOreder';
 import Cart from './home/cart/cart';
+import RateOrder from './home/myOrder/rateOrder/rateOrder';
+import Reorder from './home/myOrder/reorder/reorder';
 
 export {
   Signin,
@@ -57,4 +59,6 @@ export {
   Favorites,
   MyOrder,
   Cart,
+  RateOrder,
+  Reorder,
 };

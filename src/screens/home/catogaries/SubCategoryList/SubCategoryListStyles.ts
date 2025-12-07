@@ -126,8 +126,8 @@ export default StyleSheet.create({
 
  rightPane: {
   flex: 1,
-  paddingHorizontal: 8,
-  paddingLeft: 12,
+  paddingHorizontal: 6,
+  paddingLeft: 8,
     paddingTop: 8,
 },
 searchHeader: {
