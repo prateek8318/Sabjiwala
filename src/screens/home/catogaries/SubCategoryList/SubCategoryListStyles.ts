@@ -87,7 +87,7 @@ export default StyleSheet.create({
   },
 
   leftPane: {
-    width: 80,
+    width: 79,
     backgroundColor: "#F7F7F7",
     paddingTop: 12,
   },
@@ -126,9 +126,8 @@ export default StyleSheet.create({
 
  rightPane: {
   flex: 1,
-  paddingHorizontal: 6,
-  paddingLeft: 8,
-    paddingTop: 8,
+  
+    paddingTop: 6,
 },
 searchHeader: {
   flexDirection: "row",
@@ -142,7 +141,7 @@ searchHeader: {
 },
 
 searchBackBtn: {
-  padding: 8,
+  padding: 6,
 },
 
 searchInput: {

@@ -19,6 +19,7 @@ import {
   TermsCondition,
   Wallet,
 } from '../screens';
+import AddAddress from '../screens/auth/locationPermission/addAddress/addAddress';
 import BottomStackNavigator from './bottomTabNavigator';
 
 const HomeStackNavigator: FC = () => {
@@ -70,6 +71,11 @@ const HomeStackNavigator: FC = () => {
         <HomeStack.Screen
           name="Address"
           component={Address}
+          options={{ headerShown: false }}
+        />
+        <HomeStack.Screen
+          name="AddAddress"
+          component={AddAddress}
           options={{ headerShown: false }}
         />
         <HomeStack.Screen

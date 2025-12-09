@@ -9,10 +9,10 @@ import { storage } from './storage';
 
 // -------------------------------------------------
 // 1. Base URL (your live dev server)
-const BASE_URL = 'http://167.71.232.245:8539/api/';
-// const BASE_URL = 'http://192.168.1.6:5002/api/';
-export const IMAGE_BASE_URL = 'http://167.71.232.245:8539/';
-// export const IMAGE_BASE_URL = 'http://192.168.1.6:5002/';
+//const BASE_URL = 'http://167.71.232.245:8539/api/';
+ const BASE_URL = 'http://192.168.1.12:5002/api/';
+//export const IMAGE_BASE_URL = 'http://167.71.232.245:8539/';
+ export const IMAGE_BASE_URL = 'http://192.168.1.12:5002/';
 
 // 1. Base URL (your local dev server)
 // const BASE_URL = 'http://192.168.1.21:5002/api/';
@@ -116,7 +116,7 @@ export const ApiService = {
     });
   },
 
-  updateProfile: async (data: { name?: string; email?: string; image?: string }) => {
+  updateProfile: async (data: { name?: string; email?: string; profileImage?: string }) => {
     return await api.patch('user/profile', data);
   },
 
@@ -198,6 +198,10 @@ export const ApiService = {
   },
 
 
+
+getHomeProductContent: async () => {
+  return await api.get('user/homeProductContent');
+},
   getSubCategoryList: async (categoryId: string) => {
     const endpoint = `user/subCategoryList/${categoryId}`;
     return await api.get(endpoint);
@@ -244,14 +248,11 @@ export const ApiService = {
   },
 
   deleteWishlist: async (productId: string) => {
-    console.log("Delete wishlist - productId:", productId);
-    const response = await api.delete('user/wishlist', {
-      data: { productId: productId.toString() }
-    });
-    console.log("Delete wishlist response:", response.data);
+    console.log("Deleting wishlist item - ID:", productId);
+    const response = await api.delete(`user/wishlist/${productId}`);
+    console.log("Wishlist item deleted successfully:", response.data);
     return response;
   },
-
   // apiService.ts me yeh 3 functions add kar de (kahi bhi, end me best)
 
   getMyOrders: async () => {

@@ -44,7 +44,7 @@ const LocationPermission: FC = () => {
           Toast.show({
             type: 'error',
             text1: 'Location permission blocked',
-            text2: 'Enable it from settings to continue',
+            text2: 'Enable it from settings to continue', 
           });
           return;
         }

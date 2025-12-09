@@ -10,7 +10,7 @@ import { Colors } from '../../../constant';
  export default StyleSheet.create({
    container: {
      flex: 1,
-     
+     fontWeight: 'bold',
      backgroundColor: '#fff',
    },
   searchRow: {

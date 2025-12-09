@@ -5,11 +5,22 @@ import { widthPercentageToDP as wp, heightPercentageToDP as hp } from '../../../
 import { Fonts } from '../../../constant';
 
 export default StyleSheet.create({
-  imgContainer: { width: wp(100), height: hp(45) },
-  mainImg: { width: '100%', height: '100%' },
-  backBtn: { position: 'absolute', top: 40, left: 16, backgroundColor: '#fff', borderRadius: 30, padding: 8, elevation: 5 },
+  imgContainer: { width: wp(100), height: hp(45), position: 'relative' },
+  carouselContainer: { width: wp(100), height: hp(45) },
+  mainImg: { width: wp(100), height: hp(45) },
+  backBtn: { position: 'absolute', top: 40, left: 16, backgroundColor: '#fff', borderRadius: 30, padding: 8, elevation: 5, zIndex: 10 },
+  heartBtn: { position: 'absolute', top: 40, right: 16, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 30, padding: 8, elevation: 5, zIndex: 10 },
+  imageIndicators: { position: 'absolute', bottom: 16, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', zIndex: 10 },
+  indicator: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.5)', marginHorizontal: 4 },
+  indicatorActive: { backgroundColor: '#fff', width: 24, height: 8 },
 
-  productName: { fontSize: wp(6.5), fontFamily: Fonts.Bold, color: '#000', paddingHorizontal: wp(4), marginTop: hp(2) },
+  nameRatingRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: wp(4), marginTop: hp(2) },
+  nameRatingContainer: { flex: 1 },
+  productName: { fontSize: wp(6.5), fontFamily: Fonts.Bold, color: '#000' },
+  ratingContainer: { flexDirection: 'row', alignItems: 'center', marginTop: hp(0.5) },
+  ratingText: { fontSize: wp(4), color: '#666', marginLeft: wp(1), fontFamily: Fonts.Medium },
+  shareBtn: { backgroundColor: '#f0f0f0', borderRadius: 20, padding: 10, marginLeft: wp(2) },
+  shareIcon: { width: 20, height: 20, tintColor: '#000' },
   weightText: { fontSize: wp(4), color: '#666', paddingHorizontal: wp(4), marginTop: hp(0.5) },
 
   priceRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: wp(4), marginTop: hp(1.5) },

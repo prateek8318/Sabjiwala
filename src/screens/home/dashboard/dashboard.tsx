@@ -1,4 +1,3 @@
-
 import React, { FC, useState, useEffect, useCallback } from 'react';
 import {
   SafeAreaView,
@@ -9,6 +8,7 @@ import {
   Pressable,
   FlatList,
   RefreshControl,
+  Modal,
 } from 'react-native';
 import styles from './dashboard.styles';
 import { useNavigation } from '@react-navigation/native';
@@ -64,6 +64,9 @@ const Dashboard: FC = () => {
   const [favorite, setFavorite] = useState<ProductCardItem[]>([]);
   const [freshFood, setFreshFood] = useState<ProductCardItem[]>([]);
   const [userAddress, setUserAddress] = useState<string>('Fetching location...');
+  const [addressList, setAddressList] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [showAddressPicker, setShowAddressPicker] = useState(false);
   const [deliveryTime, setDeliveryTime] = useState<string>('Delivery In 10 Mins');
   const [loading, setLoading] = useState<boolean>(false);
   const [productLoading, setProductLoading] = useState<boolean>(false);
@@ -89,6 +92,36 @@ const Dashboard: FC = () => {
       setRefreshing(false);
     }
   };
+  const formatAddress = (addr: any) => {
+    if (!addr) return '';
+    const parts: string[] = [];
+    if (addr.houseNoOrFlatNo) parts.push(addr.houseNoOrFlatNo);
+    if (addr.floor) parts.push(`Floor ${addr.floor}`);
+    if (addr.landmark) parts.push(addr.landmark);
+    if (addr.city) parts.push(addr.city);
+    if (addr.pincode) parts.push(addr.pincode);
+    return parts.filter(Boolean).join(', ');
+  };
+
+  const fetchSavedAddress = async () => {
+    try {
+      const res = await ApiService.getAddresses();
+      const list = res?.data?.address?.[0]?.addresses || [];
+      setAddressList(list);
+      if (Array.isArray(list) && list.length > 0) {
+        const primary = list.find((item: any) => item?.isDefault) || list[0];
+        const formatted = formatAddress(primary) || 'Tap to set location';
+        setSelectedAddressId(primary?._id || null);
+        setUserAddress(formatted);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.log('fetchSavedAddress error:', err);
+      return false;
+    }
+  };
+
   const fetchUserLocation = async () => {
     try {
       console.log('Fetching user profile...');
@@ -284,7 +317,12 @@ const Dashboard: FC = () => {
     fetchCategories();
     fetchStaticContent();
     fetchHomeProductContent();
-    fetchUserLocation();
+    (async () => {
+      const hasSaved = await fetchSavedAddress();
+      if (!hasSaved) {
+        fetchUserLocation();
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -298,7 +336,12 @@ const Dashboard: FC = () => {
     fetchStaticContent(true);
     fetchHomeProductContent(true);
     fetchProducts(selectedCat);
-    fetchUserLocation();
+    (async () => {
+      const hasSaved = await fetchSavedAddress();
+      if (!hasSaved) {
+        fetchUserLocation();
+      }
+    })();
 
   }, [selectedCat]);
 
@@ -335,86 +378,13 @@ const Dashboard: FC = () => {
   };
 
 
-  const Product2 = [
-    {
-      id: 1,
-      name: 'Tomato',
-      image:
-        'https://t4.ftcdn.net/jpg/02/49/93/33/360_F_249933303_rB82fjbNuZdT3444cZfutFG1Wau0T1VA.jpg',
-      price: 16,
-      oldPrice: 30,
-      discount: '₹12 OFF',
-      weight: '1 pc (1.8-3 kg)',
-      rating: 4.7,
-      options: '2 Options',
-    },
-    {
-      id: 2,
-      name: 'Potato',
-      image:
-        'https://t3.ftcdn.net/jpg/03/11/01/12/360_F_311011245_9TZ5ZMQVpbFJKoKQYx24rk3zF4RxWfLC.jpg',
-      price: 20,
-      oldPrice: 35,
-      discount: '₹15 OFF',
-      weight: '1kg',
-      rating: 4.5,
-      options: '3 Options',
-    },
-    {
-      id: 3,
-      name: 'Apple',
-      image:
-        'https://t3.ftcdn.net/jpg/02/45/31/34/360_F_245313422_m2qHbcBSzdfdPahVZzB5ZmEBapItiaI1.jpg',
-      price: 120,
-      oldPrice: 150,
-      discount: '₹30 OFF',
-      weight: '1kg',
-      rating: 4.8,
-      options: '1 Option',
-    },
-  ];
-
   // 🔹 Render Deal Cards
-  const dealProduct = [
-    { id: 0, offer: 'UP TO 50% OFF', name: 'Personal Care' },
-    { id: 1, offer: 'UP TO 40% OFF', name: 'Cooking Essentials' },
-    { id: 2, offer: 'UP TO 30% OFF', name: 'Packaged Food' },
-    { id: 3, offer: 'UP TO 20% OFF', name: 'Pet Food & Toys' },
-    { id: 4, offer: 'UP TO 10% OFF', name: 'Cleaning Essentials' },
-    { id: 5, offer: 'UP TO 50% OFF', name: 'Beverages' },
-  ];
-
-  const popularProduct = [
-    {
-      id: 1,
-      name: 'Banana',
-      image: 'https://images.pexels.com/photos/931177/pexels-photo-931177.jpeg',
-      price: 45,
-      oldPrice: 60,
-      discount: '₹15 OFF',
-      weight: '6 pcs (~1 kg)',
-      rating: 4.6,
-      options: '2 Options',
-    },
-    {
-      id: 2,
-      name: 'Capsicum',
-      image: 'https://images.pexels.com/photos/1435899/pexels-photo-1435899.jpeg',
-      price: 35,
-      oldPrice: 50,
-      discount: '₹15 OFF',
-      weight: '500 g',
-      rating: 4.4,
-      options: '3 Options',
-    },
-  ];
-
-  const renderDealProduct = ({ item }: any) => (
+  const renderDealProduct = ({ item }: { item: ProductCardItem }) => (
 
     <View style={styles.cardDealMainView}>
       <View style={styles.cardDealView}>
         <View style={styles.cardDealOfferView}>
-          <TextView style={styles.cardDealTxtOffer}>{item.offer}</TextView>
+          <TextView style={styles.cardDealTxtOffer}>{item.discount}</TextView>
         </View>
       </View>
       <TextView style={styles.cardDealTxtProduct}>{item.name}</TextView>
@@ -527,7 +497,7 @@ const Dashboard: FC = () => {
                   style={styles.profilePic}
                 />
               </Pressable>
-              <View>
+              <Pressable onPress={() => setShowAddressPicker(true)}>
                 <TextView style={styles.txtDelivery}>{deliveryTime}</TextView>
                 <View style={styles.addressView}>
                   <Icon family="EvilIcons" name="location" color={Colors.PRIMARY[300]} size={24} />
@@ -536,7 +506,7 @@ const Dashboard: FC = () => {
                   </TextView>
                   <Icon family="Entypo" name="chevron-down" color={Colors.PRIMARY[300]} size={24} />
                 </View>
-              </View>
+              </Pressable>
               <View style={styles.actionButtonView}>
                 <Pressable onPress={() => navigation.navigate('Wallet')}>
                   <Image
@@ -702,7 +672,7 @@ const Dashboard: FC = () => {
             </View>
           </View>
           <ProductCard
-            cardArray={Product2}
+            cardArray={favorite}
             horizontal
             type="BOUGHT"
             navigation={navigation}
@@ -761,7 +731,7 @@ const Dashboard: FC = () => {
               </Pressable>
             </View>
           </View>
-          <ProductCard cardArray={popularProduct} horizontal type="BOUGHT" navigation={navigation} />
+          <ProductCard cardArray={recommended} horizontal type="BOUGHT" navigation={navigation} />
         </View>
 
         {/* Fresh Fruits Section */}
@@ -888,9 +858,88 @@ const Dashboard: FC = () => {
               </Pressable>
             </View>
           </View>
-          <ProductCard cardArray={popularProduct} type="LIMITED" horizontal />
+          <ProductCard cardArray={dealOfTheDay} type="LIMITED" horizontal />
         </View>
       </ScrollView>
+
+      {/* Address Picker */}
+      <Modal
+        visible={showAddressPicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAddressPicker(false)}
+      >
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' }} onPress={() => setShowAddressPicker(false)}>
+          <View
+            style={{
+              backgroundColor: '#fff',
+              marginTop: hp(12),
+              marginHorizontal: wp(4),
+              borderRadius: 14,
+              padding: wp(4),
+              maxHeight: hp(50),
+            }}
+          >
+            <TextView style={{ fontSize: 18, fontWeight: '700', color: '#000', marginBottom: hp(1) }}>
+              Select delivery address
+            </TextView>
+
+            <ScrollView>
+              {addressList.map((addr) => {
+                const isSelected = selectedAddressId === addr._id;
+                return (
+                  <Pressable
+                    key={addr._id}
+                    onPress={() => {
+                      setSelectedAddressId(addr._id);
+                      setUserAddress(formatAddress(addr) || 'Tap to set location');
+                      setShowAddressPicker(false);
+                    }}
+                    style={{
+                      paddingVertical: hp(1.6),
+                      borderBottomWidth: 1,
+                      borderColor: '#eee',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: wp(2),
+                    }}
+                  >
+                    <Icon
+                      family="MaterialCommunityIcons"
+                      name={isSelected ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                      size={22}
+                      color={isSelected ? Colors.PRIMARY[100] : '#999'}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <TextView style={{ color: '#000', fontWeight: '700' }}>
+                        {addr.addressType || 'Home'}
+                      </TextView>
+                      <TextView style={{ color: '#555', marginTop: 2 }}>
+                        {formatAddress(addr)}
+                      </TextView>
+                    </View>
+                  </Pressable>
+                );
+              })}
+
+              {addressList.length === 0 && (
+                <TextView style={{ color: '#666', marginTop: hp(1) }}>
+                  No saved addresses. Add one first.
+                </TextView>
+              )}
+            </ScrollView>
+
+            <LinearButton
+              title="Add Address"
+              onPress={() => {
+                setShowAddressPicker(false);
+                navigation.navigate('AddAddress');
+              }}
+              style={{ marginTop: hp(2) }}
+            />
+          </View>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 };

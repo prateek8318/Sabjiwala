@@ -20,6 +20,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     ...Typography.H4Bold20,
     color: Colors.PRIMARY[400],
+    fontSize: 20,
     fontWeight: 'bold',
   },
   loadingContainer: {
@@ -52,22 +53,25 @@ const styles = StyleSheet.create({
     paddingTop: hp(1),
   },
   cardProduct: {
-    width: wp(42),               // 2 cards per row with safe gap
-    minHeight: hp(30),           // flexible height
-    marginBottom: hp(2),
+    width: wp(42),
+    height: hp(38),                    // ← Sab cards ki height same
     marginHorizontal: wp(2),
+    marginBottom: hp(2),
     backgroundColor: Colors.PRIMARY[300],
     borderRadius: 14,
     borderWidth: 0.5,
     borderColor: Colors.PRIMARY[400],
     overflow: 'hidden',
     justifyContent: 'space-between',
+    paddingBottom: hp(1),
   },
+  
   cardProductImage: {
     width: '100%',
-    height: wp(30) * 1.1,         // image height proportional to card width
+    height: hp(18),                    // ← Fixed image size
     resizeMode: 'cover',
   },
+  
   imgFlashView: { position: 'absolute', top: 6, left: 6 },
   imgFlash: { width: 36, height: 36 },
   imgHeart: { position: 'absolute', top: 8, right: 8 },

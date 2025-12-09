@@ -220,7 +220,7 @@ const MyOrder = () => {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={Colors.PRIMARY[300]} />
+        <ActivityIndicator size="large" color={Colors.PRIMARY[100]} />
       </View>
     );
   }

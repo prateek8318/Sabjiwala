@@ -155,7 +155,7 @@ const ProductList = ({ route, navigation }: any) => {
             keyExtractor={(item) => item._id}
             numColumns={2}
             columnWrapperStyle={{
-              paddingHorizontal: 12,
+              paddingHorizontal: 8,
               justifyContent: "space-between",
             }}
             contentContainerStyle={{ paddingBottom: 20 }}

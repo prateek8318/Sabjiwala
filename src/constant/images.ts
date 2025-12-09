@@ -44,5 +44,8 @@ const Images = {
   ic_heart: require('../assets/images/dashboard/ic_heart.png'),
   ic_order: require('../assets/images/dashboard/ic_order.png'),
   ic_cart: require('../assets/images/dashboard/ic_cart.png'),
+
+  //Empty State
+  empty_cart: require('../assets/images/empty-cart.png'),
 };
 export default Images;

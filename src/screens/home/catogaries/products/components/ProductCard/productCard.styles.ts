@@ -8,10 +8,10 @@ const styles = StyleSheet.create({
     marginBottom: hp(3),
   },
   cardProduct: {
-    width: wp(42),               // 2 cards per row with safe gap
-    minHeight: hp(30),           // flexible height
+    width: wp(36),               // 2 cards per row with safe gap
+    minHeight: hp(32),           // flexible height
     marginBottom: hp(2),
-    marginHorizontal: wp(2),
+    marginHorizontal: wp(1),
     backgroundColor: Colors.PRIMARY[300],
     borderRadius: 14,
     borderWidth: 0.5,

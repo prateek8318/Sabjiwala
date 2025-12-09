@@ -24,6 +24,7 @@ export type HomeStackProps = {
   AboutUs:undefined;
   InviteFriend:undefined;
   BottomStackNavigator:undefined
+  AddAddress: undefined;
 };
 
 export interface HomeApiResponse {

@@ -18,19 +18,23 @@ const styles = StyleSheet.create({
   itemAddressView: {
     width: wp(90),
     marginTop: hp(2),
-    padding: hp(1),
+    padding: hp(2),
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
     borderColor: '#A1D9FF',
     borderRadius: 12,
     borderWidth: 1,
+   
   },
   itemAddressType: {
     width: wp(20),
+    height: wp(7),
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.PRIMARY[600],
     borderRadius: 50,
+    marginBottom: hp(1),
   },
   itemAddressTypeTxt: {
     color: Colors.PRIMARY[400],
@@ -39,27 +43,30 @@ const styles = StyleSheet.create({
   itemAddressTxt: {
     color: Colors.PRIMARY[400],
     fontFamily: Fonts.Regular,
-    fontSize: wp(3.5),
-    margin: hp(1),
+    fontSize: wp(3.8),
+    lineHeight: hp(2.8),
   },
   imgDelete: {
-    width: 30,
-    height: 30,
-    alignSelf: 'flex-end',
+    
+    width: 28,
+    height: 28,
+    marginBottom: hp(1.5),
   },
-
-  btnEditView: {
-    width: wp(18),
-    borderRadius: 50,
-    height: 35,
-    marginTop: hp(2),
-    justifyContent: 'center',
+  actionsContainer: {
+    alignItems: 'center',
+  },
+  btnEdit: {
+    backgroundColor: Colors.PRIMARY[100],
+    paddingHorizontal: wp(7),
+    paddingVertical: hp(1.3),
+    borderRadius: wp(10),
+    minWidth: wp(22),
     alignItems: 'center',
   },
   txtEdit: {
-    color: Colors.PRIMARY[300],
-    fontFamily: Fonts.Regular,
-    fontSize: wp(3),
+    color: '#FFFFFF',
+    fontFamily: Fonts.SemiBold,
+    fontSize: wp(4),
   },
 });
 

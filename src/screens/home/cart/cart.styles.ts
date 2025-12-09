@@ -5,7 +5,7 @@ import {
 } from '../../../constant/dimentions';
 import { Colors } from '../../../constant';
 
-const styles = StyleSheet.create({
+const styles: any = StyleSheet.create({
 
   container: {
     flex: 1,
@@ -220,6 +220,47 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: hp(1.8),
     color: "#000",
+  },
+
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: hp(12),
+    paddingHorizontal: wp(6),
+  },
+
+  emptyImage: {
+    width: wp(42),
+    height: wp(42),
+    opacity: 0.7,
+  },
+
+  emptyTitle: {
+    fontSize: hp(2.4),
+    color: '#444',
+    marginTop: hp(2),
+    fontWeight: '700',
+  },
+
+  emptySubtitle: {
+    fontSize: hp(1.8),
+    color: '#888',
+    marginTop: hp(0.8),
+  },
+
+  browseButton: {
+    marginTop: hp(3),
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: wp(10),
+    paddingVertical: hp(1.6),
+    borderRadius: 12,
+  },
+
+  browseButtonText: {
+    color: '#fff',
+    fontSize: hp(2),
+    fontWeight: '700',
   },
 
   bottomBar: {

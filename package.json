@@ -31,6 +31,7 @@
     "react-native-keyboard-aware-scroll-view": "^0.9.5",
     "react-native-linear-gradient": "^2.8.3",
     "react-native-modal": "^14.0.0-rc.1",
+    "react-native-permission": "^0.0.1",
     "react-native-permissions": "^5.4.4",
     "react-native-raw-bottom-sheet": "^3.0.0",
     "react-native-reanimated": "^3.18.0",

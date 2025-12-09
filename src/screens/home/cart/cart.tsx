@@ -16,7 +16,9 @@ import ApiService from "../../../service/apiService";
 import Icon from "react-native-vector-icons/Ionicons";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { useIsFocused } from "@react-navigation/native";
-import styles from "../cart/cart.styles";
+import cartStyles from "../cart/cart.styles";
+import { Images } from "../../../constant";
+const styles: any = cartStyles;
 
 const Cart = ({ navigation }: any) => {
   const [items, setItems] = useState<any[]>([]);
@@ -253,18 +255,24 @@ const Cart = ({ navigation }: any) => {
 
         {/* EMPTY CART */}
         {items.length === 0 ? (
-          <View style={{ flex: 1, justifyContent: "center", alignItems: "center", marginTop: 100 }}>
+          <View style={styles.emptyContainer}>
             <Image
-              source={require("../../../assets/images/empty-cart.png")} // optional: add image
-              style={{ width: 150, height: 150, opacity: 0.5 }}
+              source={Images.empty_cart}
+              style={styles.emptyImage}
               resizeMode="contain"
             />
-            <Text style={{ fontSize: 20, color: "#777", marginTop: 20 }}>
+            <Text style={styles.emptyTitle}>
               Your cart is empty
             </Text>
-            <Text style={{ fontSize: 14, color: "#999", marginTop: 8 }}>
+            <Text style={styles.emptySubtitle}>
               Add items to get started!
             </Text>
+            <TouchableOpacity
+              style={styles.browseButton}
+              onPress={() => navigation.navigate("Home", { screen: "Dashboard" })}
+            >
+              <Text style={styles.browseButtonText}>Browse shopping</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <>

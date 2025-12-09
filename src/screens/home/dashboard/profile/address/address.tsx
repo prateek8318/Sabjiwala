@@ -1,4 +1,4 @@
-import React, { FC, useContext, useState } from 'react';
+import React, { FC, useEffect, useState } from 'react';
 import {
   SafeAreaView,
   KeyboardAvoidingView,
@@ -24,54 +24,90 @@ import {
 } from '../../../../../constant/dimentions';
 import { Colors, Fonts, Images, Typography } from '../../../../../constant';
 import LinearGradient from 'react-native-linear-gradient';
+import ApiService from '../../../../../service/apiService';
 
 type AddressScreenNavigationType = NativeStackNavigationProp<
   HomeStackProps,
   'Address'
 >;
 
-const address = [
-  {
-    type: 'Home',
-    address: 'H-146, Sector - 63, Noida, 201301',
-  },
-  {
-    type: 'Office',
-    address: 'B-90, Gaur City 1, Noida, 201301',
-  },
-];
-
 const Address: FC = () => {
   const navigation = useNavigation<AddressScreenNavigationType>();
+  const [addresses, setAddresses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const formatAddress = (addr: any) => {
+    if (!addr) return '';
+    const parts: string[] = [];
+    if (addr.houseNoOrFlatNo) parts.push(addr.houseNoOrFlatNo);
+    if (addr.floor) parts.push(`Floor ${addr.floor}`);
+    if (addr.landmark) parts.push(addr.landmark);
+    if (addr.city) parts.push(addr.city);
+    if (addr.pincode) parts.push(addr.pincode);
+    return parts.filter(Boolean).join(', ');
+  };
+
+  const fetchAddresses = async () => {
+    try {
+      setLoading(true);
+      const res = await ApiService.getAddresses();
+      const list = res?.data?.address?.[0]?.addresses || [];
+      setAddresses(list);
+    } catch (err) {
+      console.log('Address list fetch error:', err);
+      Alert.alert('Error', 'Unable to load addresses right now.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAddresses();
+  }, []);
+
+  const handleDelete = async (id: string) => {
+    Alert.alert('Delete', 'Are you sure you want to delete this address?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await ApiService.deleteAddress(id);
+            fetchAddresses();
+          } catch (err) {
+            console.log('Delete address error:', err);
+            Alert.alert('Error', 'Failed to delete address.');
+          }
+        },
+      },
+    ]);
+  };
 
   const renderAddress = (item: any) => {
     return (
       <View style={styles.itemAddressView}>
-        <View>
+        <View style={{ flex: 1 }}>
           <View style={styles.itemAddressType}>
             <TextView style={styles.itemAddressTypeTxt}>
-              {item.item.type}
+              {item.item.addressType || 'Home'}
             </TextView>
           </View>
-          <View>
-            <TextView style={styles.itemAddressTxt}>
-              {item.item.address}
-            </TextView>
-          </View>
+          <TextView style={styles.itemAddressTxt}>
+            {formatAddress(item.item)}
+          </TextView>
         </View>
-        <View>
-          <View>
+  
+        <View style={styles.actionsContainer}>
+          <Pressable onPress={() => handleDelete(item.item._id)}>
             <Image source={Images.ic_delete} style={styles.imgDelete} />
-          </View>
-          <Pressable onPress={() => navigation.navigate('EditAddress')}>
-            <LinearGradient
-              colors={[Colors.PRIMARY[100], Colors.PRIMARY[200]]}
-              style={styles.btnEditView}
-              start={{ x: 0.5, y: 0.2 }}
-              end={{ x: 0.5, y: 1 }}
-            >
-              <TextView style={styles.txtEdit}>Edit</TextView>
-            </LinearGradient>
+          </Pressable>
+  
+          <Pressable
+            onPress={() => navigation.navigate('AddAddress', { address: item.item })}
+            style={styles.btnEdit}
+          >
+            <TextView style={styles.txtEdit}>Edit</TextView>
           </Pressable>
         </View>
       </View>
@@ -93,8 +129,26 @@ const Address: FC = () => {
           <TextView style={styles.txtSavedAddress}>Your Saved Address</TextView>
 
           <View>
-            <FlatList data={address} renderItem={renderAddress} />
+            {loading ? (
+              <Text style={{ color: '#000', marginTop: 10 }}>Loading addresses...</Text>
+            ) : (
+              <FlatList
+                data={addresses}
+                renderItem={renderAddress}
+                ListEmptyComponent={
+                  <Text style={{ color: '#666', marginTop: 10 }}>
+                    No address saved yet
+                  </Text>
+                }
+              />
+            )}
           </View>
+
+          <LinearButton
+            title="Add Address"
+            onPress={() => navigation.navigate('AddAddress')}
+            style={{ marginTop: 20 }}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>
