@@ -36,6 +36,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',   
     alignItems: 'center',
     marginTop: hp(5),
+    marginBottom: hp(2),
   },
   
   addressTypeButton: {

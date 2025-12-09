@@ -11,7 +11,7 @@ import {
   Modal,
 } from 'react-native';
 import styles from './dashboard.styles';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 
@@ -26,7 +26,7 @@ import {
 } from '../../../constant/dimentions';
 import { Colors, Icon, Images } from '../../../constant';
 // 🔹 Local Category Icons Mapping
-export const CategoryIcons = {
+export const CategoryIcons: Record<string, any> = {
   all: require('../../../assets/images/catogaries/all.png'),
   bread1: require('../../../assets/images/catogaries/bread.png'),
   vegetables: require('../../../assets/images/catogaries/vegetables.png'),
@@ -44,6 +44,8 @@ import InputText from '../../../components/InputText/TextInput';
 import ProductCard from './components/ProductCard/productCard';
 import ApiService, { IMAGE_BASE_URL } from '../../../service/apiService';
 import { Product, ProductCardItem, SubCategory } from '../../../@types';
+import { LocalStorage } from '../../../helpers/localstorage';
+import { reverseGeocode } from '../../../helpers/geocoding';
 
 type DashboardScreenNavigationType = NativeStackNavigationProp<any, 'Dashboard'>;
 
@@ -74,6 +76,7 @@ const Dashboard: FC = () => {
   const [groceryCards, setGroceryCards] = useState<
     { id: string; name: string; image?: string }[]
   >([]);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
 
   // 🧠 Fetch Categories
@@ -108,14 +111,19 @@ const Dashboard: FC = () => {
       const res = await ApiService.getAddresses();
       const list = res?.data?.address?.[0]?.addresses || [];
       setAddressList(list);
-      if (Array.isArray(list) && list.length > 0) {
-        const primary = list.find((item: any) => item?.isDefault) || list[0];
-        const formatted = formatAddress(primary) || 'Tap to set location';
-        setSelectedAddressId(primary?._id || null);
-        setUserAddress(formatted);
-        return true;
+      if (!Array.isArray(list) || list.length === 0) return false;
+
+      const storedId = await LocalStorage.read('@selectedAddressId');
+      const matched = list.find((item: any) => item?._id === storedId);
+      const primary = matched || list.find((item: any) => item?.isDefault) || list[0];
+      const formatted = formatAddress(primary) || 'Tap to set location';
+
+      setSelectedAddressId(primary?._id || null);
+      setUserAddress(formatted);
+      if (primary?._id) {
+        await LocalStorage.save('@selectedAddressId', primary._id);
       }
-      return false;
+      return true;
     } catch (err) {
       console.log('fetchSavedAddress error:', err);
       return false;
@@ -135,6 +143,10 @@ const Dashboard: FC = () => {
         console.log('No user data found');
         setUserAddress('Tap to set location');
         return;
+      }
+
+      if (user.profileImage) {
+        setProfileImage(user.profileImage);
       }
   
       const lat = user.lat || user.location?.coordinates?.[1];
@@ -156,47 +168,14 @@ const Dashboard: FC = () => {
         return;
       }
   
-      // Reverse geocoding with proper headers (must for Nominatim)
-      console.log('Fetching address from OpenStreetMap...');
-      const geoRes = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`,
-        {
-          headers: {
-            'User-Agent': 'MyGroceryApp/1.0 (+prateek@example.com)', 
-          },
-        }
-      );
-  
-      if (!geoRes.ok) {
-        console.log('Nominatim failed:', geoRes.status, geoRes.statusText);
-        setUserAddress('Sector 63, Noida');
-        return;
-      }
-  
-      const geoData = await geoRes.json();
-      console.log('Reverse Geo Response:', geoData);
-  
-      if (geoData?.display_name) {
-        let shortAddress = 'Current Location';
-  
-        if (geoData.address) {
-          const parts = [];
-          if (geoData.address.road) parts.push(geoData.address.road);
-          if (geoData.address.suburb || geoData.address.neighbourhood) {
-            parts.push(geoData.address.suburb || geoData.address.neighbourhood);
-          }
-          if (geoData.address.city || geoData.address.town || geoData.address.village) {
-            parts.push(geoData.address.city || geoData.address.town || geoData.address.village);
-          }
-  
-          shortAddress = parts.join(', ') || geoData.display_name.split(',')[0];
-        }
-  
-        console.log('Final Address Set:', shortAddress);
-        setUserAddress(shortAddress);
-      } else {
-        setUserAddress('Sector 63, Noida');
-      }
+      const geoData = await reverseGeocode(Number(lat), Number(lng));
+      const shortAddress =
+        geoData.landmark ||
+        [geoData.houseNumber, geoData.landmark, geoData.city].filter(Boolean).join(', ') ||
+        geoData.formattedAddress ||
+        'Current Location';
+
+      setUserAddress(shortAddress);
   
     } catch (err: any) {
       console.error('fetchUserLocation FAILED:', err);
@@ -204,6 +183,35 @@ const Dashboard: FC = () => {
       setUserAddress('H-146, Sector-63, Noida');
     }
   };
+
+  const handleAddressSelect = async (addr: any) => {
+    try {
+      if (addr?._id) {
+        try {
+          await ApiService.setDefaultAddress(addr._id);
+        } catch (e) {
+          console.log('setDefaultAddress failed, continuing:', e);
+        }
+        await LocalStorage.save('@selectedAddressId', addr._id);
+      }
+      setSelectedAddressId(addr?._id || null);
+      setUserAddress(formatAddress(addr) || 'Tap to set location');
+    } finally {
+      setShowAddressPicker(false);
+    }
+  };
+
+  // Load cached user image immediately (no network)
+  const loadCachedUser = useCallback(async () => {
+    try {
+      const saved = await LocalStorage.read('@user');
+      if (saved) {
+        if (saved?.profileImage) setProfileImage(saved.profileImage);
+      }
+    } catch (err) {
+      console.log('loadCachedUser error', err);
+    }
+  }, []);
   // Fetch Static Home Content (Banners + Categories + Explore)
   const fetchStaticContent = async (isRefresh = false) => {
     try {
@@ -318,6 +326,7 @@ const Dashboard: FC = () => {
     fetchStaticContent();
     fetchHomeProductContent();
     (async () => {
+      await loadCachedUser();
       const hasSaved = await fetchSavedAddress();
       if (!hasSaved) {
         fetchUserLocation();
@@ -328,6 +337,14 @@ const Dashboard: FC = () => {
   useEffect(() => {
     fetchProducts(selectedCat);
   }, [selectedCat]);
+
+  // Refresh profile image whenever we return to this screen
+  useFocusEffect(
+    useCallback(() => {
+      loadCachedUser();
+      fetchUserLocation();
+    }, [loadCachedUser])
+  );
 
   // 🧠 Pull to refresh
   const onRefresh = useCallback(() => {
@@ -474,6 +491,10 @@ const Dashboard: FC = () => {
   );
 
 
+  const headerProfileImage = profileImage
+    ? (profileImage.startsWith('http') ? profileImage : `${IMAGE_BASE_URL}${profileImage}`)
+    : 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ4YreOWfDX3kK-QLAbAL4ufCPc84ol2MA8Xg&s';
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -490,12 +511,7 @@ const Dashboard: FC = () => {
                 style={styles.profilePicView}
                 onPress={() => navigation.navigate('Profile')}
               >
-                <Image
-                  source={{
-                    uri: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ4YreOWfDX3kK-QLAbAL4ufCPc84ol2MA8Xg&s',
-                  }}
-                  style={styles.profilePic}
-                />
+                <Image source={{ uri: headerProfileImage }} style={styles.profilePic} />
               </Pressable>
               <Pressable onPress={() => setShowAddressPicker(true)}>
                 <TextView style={styles.txtDelivery}>{deliveryTime}</TextView>
@@ -523,11 +539,11 @@ const Dashboard: FC = () => {
           </View>
 
           {/* 🔹 Search bar */}
-          <Pressable
-            style={styles.searchBox}
-            onPress={() => navigation.navigate('Search')}
-          >
-            <View style={styles.searchView}>
+          <View style={styles.searchBox}>
+            <Pressable
+              style={[styles.searchView, { flex: 1 }]}
+              onPress={() => navigation.navigate('Search')}
+            >
               <Icon
                 family="EvilIcons"
                 name="search"
@@ -536,13 +552,16 @@ const Dashboard: FC = () => {
               />
               <InputText
                 value={''}
-                inputStyle={[styles.inputView]}
+                inputStyle={styles.inputView}
                 editable={false}
                 placeHolderTextStyle={Colors.PRIMARY[300]}
                 placeholder="Search"
               />
-            </View>
-            <View style={styles.micView}>
+            </Pressable>
+            <Pressable
+              style={styles.micView}
+              onPress={() => navigation.navigate('Search', { startVoice: true })}
+            >
               <View style={styles.divider} />
               <Icon
                 family="FontAwesome"
@@ -550,8 +569,8 @@ const Dashboard: FC = () => {
                 color={Colors.PRIMARY[300]}
                 size={24}
               />
-            </View>
-          </Pressable>
+            </Pressable>
+          </View>
 
           {/* 🔹 Category List */}
           <View style={styles.catListView}>
@@ -675,8 +694,6 @@ const Dashboard: FC = () => {
             cardArray={favorite}
             horizontal
             type="BOUGHT"
-            navigation={navigation}
-            onPress={() => navigation.navigate('Products')}  // <-- Yeh line add kar do
           />
         </View>
 
@@ -731,7 +748,7 @@ const Dashboard: FC = () => {
               </Pressable>
             </View>
           </View>
-          <ProductCard cardArray={recommended} horizontal type="BOUGHT" navigation={navigation} />
+        <ProductCard cardArray={recommended} horizontal type="BOUGHT" />
         </View>
 
         {/* Fresh Fruits Section */}
@@ -890,11 +907,7 @@ const Dashboard: FC = () => {
                 return (
                   <Pressable
                     key={addr._id}
-                    onPress={() => {
-                      setSelectedAddressId(addr._id);
-                      setUserAddress(formatAddress(addr) || 'Tap to set location');
-                      setShowAddressPicker(false);
-                    }}
+                    onPress={() => handleAddressSelect(addr)}
                     style={{
                       paddingVertical: hp(1.6),
                       borderBottomWidth: 1,
@@ -948,18 +961,26 @@ export default Dashboard;
 
 // 🔹 Transform API product → ProductCardItem
 const transformProductToCard = (product: Product): ProductCardItem => {
-  const variant = product.variants[0];
-  const imageUrl = variant?.images?.[0] || product.images?.[0] || '';
+  const variant =
+    (product as any)?.ProductVarient?.[0] ||
+    (product as any)?.variants?.[0] ||
+    {};
+  const images =
+    variant?.images ||
+    (product as any)?.primary_image ||
+    (product as any)?.images ||
+    [];
+  const imageUrl = images?.[0] || '';
 
   return {
-    id: product._id,
-    name: product.name,
-    image: IMAGE_BASE_URL + imageUrl,
-    price: variant?.price || product.price || 0,
-    oldPrice: variant?.originalPrice || product.mrp || 0,
+    id: (product as any)?._id || '',
+    name: (product as any)?.productName || (product as any)?.name || 'Product',
+    image: imageUrl ? IMAGE_BASE_URL + imageUrl : '',
+    price: variant?.price || (product as any)?.price || 0,
+    oldPrice: variant?.originalPrice || (product as any)?.mrp || 0,
     discount: variant?.discount ? `₹${variant.discount} OFF` : '',
     weight: `${variant?.stock || 1} ${variant?.unit || ''}`,
     rating: 4.5,
-    options: `${product.variants.length} Option${product.variants.length > 1 ? 's' : ''}`,
+    options: `${((product as any)?.ProductVarient || (product as any)?.variants || []).length} Option${(((product as any)?.ProductVarient || (product as any)?.variants || []).length || 0) > 1 ? 's' : ''}`,
   };
 };

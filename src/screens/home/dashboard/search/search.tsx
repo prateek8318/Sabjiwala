@@ -1,25 +1,27 @@
-import React, { FC, useContext, useState } from 'react';
+import React, { FC, useEffect, useMemo, useState } from 'react';
 import {
   SafeAreaView,
-  KeyboardAvoidingView,
-  Platform,
   View,
   Image,
-  TouchableOpacity,
   FlatList,
-  ScrollView,
+  ActivityIndicator,
+  Pressable,
+  PermissionsAndroid,
+  Platform,
 } from 'react-native';
 import styles from './search.styles';
 import { HomeStackProps } from '../../../../@types';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from '../../../../constant/dimentions';
 import { Colors, Fonts, Icon, Images, Typography } from '../../../../constant';
-import { Header } from '../../../../components';
+import { Header, TextView } from '../../../../components';
 import InputText from '../../../../components/InputText/TextInput';
+import ApiService from '../../../../service/apiService';
+import Voice, { SpeechResultsEvent } from '@react-native-voice/voice';
 
 type SearchScreenNavigationType = NativeStackNavigationProp<
   HomeStackProps,
@@ -28,19 +30,180 @@ type SearchScreenNavigationType = NativeStackNavigationProp<
 
 const Search: FC = () => {
   const navigation = useNavigation<SearchScreenNavigationType>();
+  const route = useRoute<any>();
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [listening, setListening] = useState(false);
+
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery.trim()) return allProducts;
+    const query = searchQuery.toLowerCase();
+    return allProducts.filter((item) =>
+      (item.name || item.productName || '')
+        .toLowerCase()
+        .includes(query)
+    );
+  }, [allProducts, searchQuery]);
+
+  const buildImageUrl = (rawPath?: string) => {
+    if (!rawPath) return null;
+
+    if (rawPath.startsWith('http')) return rawPath;
+
+    const cleaned = rawPath
+      .replace('public\\', '')
+      .replace('public/', '')
+      .replace(/\\/g, '/')
+      .replace(/^\//, '');
+
+    return ApiService.getImage(cleaned);
+  };
+
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      const res = await ApiService.getSubCategoryProducts('all');
+
+      const apiData =
+        res.data?.paginateData ||
+        res.data?.products ||
+        res.data?.productData ||
+        res.data?.data ||
+        res.data?.items ||
+        [];
+
+      setAllProducts(Array.isArray(apiData) ? apiData : []);
+    } catch (error) {
+      console.log('Search load error:', error);
+      setAllProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProducts();
+    Voice.onSpeechResults = onSpeechResults;
+    Voice.onSpeechError = () => setListening(false);
+
+    return () => {
+      Voice.destroy().finally(() => Voice.removeAllListeners());
+    };
+  }, []);
+
+  useEffect(() => {
+    if (route.params?.startVoice) {
+      handleMicPress();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.params?.startVoice]);
+
+  const requestMicPermission = async () => {
+    if (Platform.OS !== 'android') return true;
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.RECORD_AUDIO
+    );
+    return granted === PermissionsAndroid.RESULTS.GRANTED;
+  };
+
+  const onSpeechResults = (event: SpeechResultsEvent) => {
+    const value = event.value?.[0] || '';
+    setSearchQuery(value);
+    setListening(false);
+  };
+
+  const handleMicPress = async () => {
+    if (listening) {
+      setListening(false);
+      Voice.stop();
+      return;
+    }
+
+    const hasPermission = await requestMicPermission();
+    if (!hasPermission) {
+      return;
+    }
+
+    try {
+      setListening(true);
+      await Voice.start('en-US');
+    } catch (error) {
+      console.log('Voice start error:', error);
+      setListening(false);
+    }
+  };
+
+  const renderItem = ({ item }: { item: any }) => {
+    const rawImage =
+      item?.primary_image ||
+      item?.primaryImage ||
+      item?.thumbnail ||
+      item?.images?.[0] ||
+      item?.ProductVarient?.[0]?.images?.[0] ||
+      item?.variants?.[0]?.images?.[0] ||
+      item?.image;
+
+    const image = rawImage
+      ? buildImageUrl(rawImage)
+      : 'https://via.placeholder.com/100x100.png?text=No+Image';
+
+    const price =
+      item?.variants?.[0]?.price ??
+      item?.ProductVarient?.[0]?.price ??
+      item?.price ??
+      '0';
+
+    return (
+      <Pressable
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: '#ffffff',
+          marginHorizontal: wp(4),
+          marginVertical: hp(0.8),
+          borderRadius: 12,
+          padding: wp(3),
+          elevation: 1,
+        }}
+        onPress={() =>
+          // @ts-ignore navigation type is loosely defined in stack
+          navigation.navigate('ProductDetail', { productId: item._id })
+        }
+      >
+        <Image
+          source={{ uri: image || '' }}
+          style={{ width: 64, height: 64, borderRadius: 10 }}
+          resizeMode="cover"
+        />
+        <View style={{ marginLeft: wp(3), flex: 1 }}>
+          <TextView
+            style={{ fontSize: 14, fontWeight: '700', color: '#212121' }}
+            numberOfLines={1}
+          >
+            {item.name || item.productName || 'Unknown'}
+          </TextView>
+          <TextView style={{ marginTop: 4, color: Colors.PRIMARY[300] }}>
+            ₹ {price}
+          </TextView>
+        </View>
+        <Icon
+          family="Entypo"
+          name="chevron-right"
+          size={20}
+          color={Colors.PRIMARY[300]}
+        />
+      </Pressable>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View>
-          <Header />
-        </View>
+      <View style={{ flex: 1 }}>
+        <Header />
 
-        <View>
+        <View style={{ marginTop: hp(2) }}>
           <View style={styles.searchBox}>
             <View style={styles.searchView}>
               <Icon
@@ -50,22 +213,59 @@ const Search: FC = () => {
                 size={30}
               />
               <InputText
-                value={''}
+                value={searchQuery}
                 //@ts-ignore
                 inputStyle={[styles.inputView]}
                 placeHolderTextStyle={Colors.PRIMARY[500]}
                 placeholder="Search for Grocery"
-                onChangeText={(value: string) => {
-                  console.log('TEst', value);
-                }}
+                onChangeText={setSearchQuery}
+                autoFocus
               />
             </View>
+            <Pressable
+              onPress={handleMicPress}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: wp(3),
+                paddingVertical: hp(1),
+              }}
+            >
+              <View style={{ width: 1, height: '100%', backgroundColor: Colors.PRIMARY[400], marginRight: wp(2) }} />
+              <Icon
+                family="FontAwesome"
+                name="microphone"
+                color={listening ? Colors.PRIMARY[100] : Colors.PRIMARY[300]}
+                size={22}
+              />
+            </Pressable>
           </View>
         </View>
-        <View style={styles.imgSearchView}>
-          <Image source={Images.img_search} style={styles.imgSearch} />
-        </View>
-      </ScrollView>
+
+        {loading ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={Colors.PRIMARY[100]} />
+          </View>
+        ) : filteredProducts.length === 0 && searchQuery.trim() ? (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <TextView style={{ color: '#fff', fontSize: 16 }}>
+              No products found
+            </TextView>
+          </View>
+        ) : filteredProducts.length === 0 ? (
+          <View style={styles.imgSearchView}>
+            <Image source={Images.img_search} style={styles.imgSearch} />
+          </View>
+        ) : (
+          <FlatList
+            data={filteredProducts}
+            renderItem={renderItem}
+            keyExtractor={(item) => item._id}
+            contentContainerStyle={{ paddingVertical: hp(2) }}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </View>
     </SafeAreaView>
   );
 };

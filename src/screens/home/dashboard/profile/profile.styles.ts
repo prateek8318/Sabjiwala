@@ -27,6 +27,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 50,
     marginTop: hp(2),
+    overflow: 'hidden', // keep image within circle
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   profilePicContainer: {
     position: 'relative',
@@ -37,9 +40,9 @@ const styles = StyleSheet.create({
     right: 4,
     bottom: 4,
     backgroundColor: "#000",
-    width: wp(5),
-    height: wp(4),
-    borderRadius: 3,
+    width: wp(8),
+    height: wp(8),
+    borderRadius: wp(4),
     borderColor: '#fff',
     
     justifyContent: 'center',
@@ -54,7 +57,7 @@ const styles = StyleSheet.create({
   profilePic: {
     width: 55,
     height: 55,
-    resizeMode: 'contain',
+    resizeMode: 'cover',
     borderRadius: 50,
   },
   profileView: {

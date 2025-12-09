@@ -54,6 +54,8 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     borderWidth: 2,
     borderColor: "#fff",
+    resizeMode: 'cover',
+    overflow: 'hidden',
   },
   
   smallButton: {

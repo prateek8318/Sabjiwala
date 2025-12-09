@@ -23,7 +23,7 @@ import InputText from '../../../../../components/InputText/TextInput';
 import { UserDataContext, UserData } from '../../../../../context/userDataContext';
 import Toast from 'react-native-toast-message';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
-import { ApiService } from '../../../../../service/apiService';
+import { ApiService, IMAGE_BASE_URL } from '../../../../../service/apiService';
 import ActionSheet, { SheetManager } from 'react-native-actions-sheet';
 
 type EditProfileNavigationType = NativeStackNavigationProp<
@@ -39,6 +39,12 @@ const EditProfile: FC = () => {
   const [email, setEmail] = useState(userData?.email || '');
   const [profileImage, setProfileImage] = useState(userData?.profileImage || '');
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+
+  const displayImage = profileImage
+    ? (profileImage.startsWith('http') || profileImage.startsWith('file:'))
+      ? profileImage
+      : `${IMAGE_BASE_URL}${profileImage}`
+    : 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ4YreOWfDX3kK-QLAbAL4ufCPc84ol2MA8Xg&s';
 
   const showImagePicker = () => {
     SheetManager.show('image-picker-sheet');
@@ -86,29 +92,32 @@ const EditProfile: FC = () => {
       // Agar nayi image select ki hai
       if (selectedImageUri) {
         console.log('Uploading image...', selectedImageUri);
-        
-        const uploadResponse = await ApiService.upload('user/profile/profileImage', selectedImageUri);
-        
+
+        const uploadResponse = await ApiService.uploadProfileImage({ uri: selectedImageUri }, 'image');
+
         console.log('Upload Response:', uploadResponse.data);
-  
-        // Server se jo bhi image URL aaye, usko use karo
-        finalImageUrl = uploadResponse.data.imageUrl 
-          || uploadResponse.data.url 
-          || uploadResponse.data.image 
-          || uploadResponse.data.data?.imageUrl 
-          || finalImageUrl;
-  
-        if (!finalImageUrl || finalImageUrl.includes('null')) {
+
+        const uploadedImage =
+          uploadResponse.data?.user?.profileImage ||
+          uploadResponse.data?.imageUrl ||
+          uploadResponse.data?.url ||
+          uploadResponse.data?.image ||
+          uploadResponse.data?.path ||
+          uploadResponse.data?.data?.imageUrl;
+
+        if (!uploadedImage || `${uploadedImage}`.includes('null')) {
           Toast.show({ type: 'error', text1: 'Image upload failed – No URL received' });
           return;
         }
+
+        finalImageUrl = uploadedImage;
       }
   
       // Profile update
       await ApiService.updateProfile({
         name: name.trim(),
         email: email.trim() || undefined,
-        image: finalImageUrl !== userData?.profileImage ? finalImageUrl : undefined,
+        profileImage: finalImageUrl !== userData?.profileImage ? finalImageUrl : undefined,
       });
   
       // Context update
@@ -155,9 +164,7 @@ const EditProfile: FC = () => {
             <TouchableOpacity onPress={showImagePicker} style={styles.imageContainer}>
               <Image
                 source={{
-                  uri:
-                    profileImage ||
-                    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ4YreOWfDX3kK-QLAbAL4ufCPc84ol2MA8Xg&s',
+                  uri: displayImage,
                 }}
                 style={styles.profileImage}
               />

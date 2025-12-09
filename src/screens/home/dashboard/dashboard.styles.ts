@@ -30,11 +30,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 50,
     marginTop: hp(2),
+    overflow: 'hidden', // keep image clipped inside the circle
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   profilePic: {
     width: 55,
     height: 55,
-    resizeMode: 'contain',
+    resizeMode: 'cover',
     borderRadius: 50,
   },
   txtDelivery: {

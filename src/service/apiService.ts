@@ -116,7 +116,30 @@ export const ApiService = {
     });
   },
 
-  updateProfile: async (data: { name?: string; email?: string; profileImage?: string }) => {
+  uploadProfileImage: (
+    file: FormData | { uri: string; name?: string; type?: string } | string,
+    fieldName = 'image' // backend multer expects "image"
+  ) => {
+    const formData = (file && typeof file === 'object' && 'append' in file)
+      ? (file as FormData)
+      : (() => {
+          const fd = new FormData();
+          const fileUri = typeof file === 'string' ? file : file.uri;
+          fd.append(fieldName, {
+            uri: fileUri,
+            name: (typeof file === 'string' ? undefined : file.name) || 'profile.jpg',
+            type: (typeof file === 'string' ? undefined : file.type) || 'image/jpeg',
+          } as any);
+          return fd;
+        })();
+
+    // Backend accepts profile update with multipart form-data on the same profile route
+    return api.patch('user/profile', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  updateProfile: async (data: { name?: string; email?: string; profileImage?: string; image?: string }) => {
     return await api.patch('user/profile', data);
   },
 

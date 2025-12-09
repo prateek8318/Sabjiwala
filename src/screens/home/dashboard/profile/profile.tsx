@@ -121,14 +121,28 @@ const Profile: FC = () => {
         const formData = new FormData();
         formData.append('profileImage', file as any);
 
-        const res = await ApiService.uploadProfileImage(formData);
+        const res = await ApiService.uploadProfileImage(formData, 'image');
 
-        if (res.status === 200 && res.data?.user) {
-          const updatedUser = res.data.user;
-          setUserData(updatedUser);
-          await LocalStorage.save('@user', JSON.stringify(updatedUser));
-          Toast.show({ type: 'success', text1: 'Profile picture updated!' });
+        const uploadedImage =
+          res.data?.user?.profileImage ||
+          res.data?.image ||
+          res.data?.imageUrl ||
+          res.data?.url ||
+          res.data?.path ||
+          res.data?.data?.imageUrl;
+
+        if (!uploadedImage) {
+          Toast.show({ type: 'error', text1: 'Upload failed', text2: 'No image returned from server' });
+          return;
         }
+
+        const updatedUser = res.data?.user
+          ? res.data.user
+          : { ...userData, profileImage: uploadedImage };
+
+        setUserData(updatedUser);
+        await LocalStorage.save('@user', JSON.stringify(updatedUser));
+        Toast.show({ type: 'success', text1: 'Profile picture updated!' });
       } catch (err: any) {
         Toast.show({
           type: 'error',
@@ -195,7 +209,11 @@ const Profile: FC = () => {
                 resizeMode="cover"
               />
 
-              <TouchableOpacity onPress={handleImageUpload} style={styles.cameraIconView}>
+              <TouchableOpacity
+                onPress={handleImageUpload}
+                style={styles.cameraIconView}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
                 <Icon
                   family="MaterialIcons"
                   name="photo-camera"

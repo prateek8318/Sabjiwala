@@ -138,5 +138,6 @@ dependencies {
 
     // Use a single explicit version for fused location to avoid class/interface mismatch
     implementation("com.google.android.gms:play-services-location:21.0.1")
+    implementation("com.google.android.gms:play-services-base:18.2.0")
 }
 
