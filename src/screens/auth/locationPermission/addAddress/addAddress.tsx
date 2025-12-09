@@ -25,6 +25,7 @@ const AddAddress: FC = () => {
   const route = useRoute<any>();
   const { setIsLoggedIn } = useContext<UserData>(UserDataContext);
 
+  const placeholderColor = '#000';
   const [addressType, setAddressType] = useState<'home' | 'work' | 'other'>('home');
   const [floor, setFloor] = useState('');
   const [houseNoOrFlatNo, setHouseNoOrFlatNo] = useState('');
@@ -34,9 +35,12 @@ const AddAddress: FC = () => {
   const [receiverName, setReceiverName] = useState('');
   const [receiverNo, setReceiverNo] = useState('');
   const [loading, setLoading] = useState(false);
+  const [coords, setCoords] = useState<{ lat?: number; long?: number }>({});
 
   const editingAddress = route?.params?.address;
   const isEdit = !!editingAddress;
+  const sanitizeText = (text: string, limit: number) =>
+    text ? text.replace(/\s+/g, ' ').trim().slice(0, limit) : '';
 
   useEffect(() => {
     if (editingAddress) {
@@ -50,6 +54,23 @@ const AddAddress: FC = () => {
       setReceiverNo(editingAddress.receiverNo || '');
     }
   }, [editingAddress]);
+
+  useEffect(() => {
+    const prefill = route?.params?.prefillAddress;
+    if (prefill && !editingAddress) {
+      if (prefill.addressType) {
+        setAddressType(prefill.addressType);
+      }
+      setFloor(prefill.floor || 'Ground');
+      setHouseNoOrFlatNo(sanitizeText(prefill.houseNoOrFlatNo || '', 60));
+      setLandmark(sanitizeText(prefill.landmark || '', 80));
+      setPincode(prefill.pincode || '');
+      setCity(prefill.city || '');
+      if (prefill.lat && prefill.long) {
+        setCoords({ lat: prefill.lat, long: prefill.long });
+      }
+    }
+  }, [editingAddress, route?.params?.prefillAddress]);
 
   const saveAddress = async () => {
     // Required validation
@@ -68,6 +89,9 @@ const AddAddress: FC = () => {
       city: city.trim(),
       receiverName: receiverName.trim() || undefined,
       receiverNo: receiverNo.trim() || undefined,
+      ...(coords.lat && coords.long
+        ? { lat: coords.lat.toString(), long: coords.long.toString() }
+        : {}),
     };
 
     console.log('Sending to backend →', payload);
@@ -127,9 +151,11 @@ const AddAddress: FC = () => {
           enableOnAndroid
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 32 }}
+          nestedScrollEnabled
+          decelerationRate="fast"
         >
-          <Header title={isEdit ? "Edit Address" : "Add New Address"} onBack={() => navigation.goBack()} />
+          <Header title={isEdit ? "Edit Address" : "Add New Address"} />
 
           <View style={styles.addressView}>
             <TextView style={styles.txtAddress}>Save address as</TextView>
@@ -145,12 +171,12 @@ const AddAddress: FC = () => {
                       styles.addressTypeButton,
                       {
                         borderColor: selected ? Colors.PRIMARY[100] : '#ddd',
-                        backgroundColor: selected ? Colors.PRIMARY[50] : 'transparent',
+                        backgroundColor: selected ? Colors.PRIMARY[100] : 'transparent',
                       },
                     ]}
                   >
-                    <TextView style={{ 
-                      color: selected ? Colors.PRIMARY[100] : '#666',
+                    <TextView style={{
+                      color: selected ? '#FFFFFF' : '#666',
                       fontWeight: selected ? '600' : '400'
                     }}>
                       {label}
@@ -165,24 +191,30 @@ const AddAddress: FC = () => {
                 placeholder="Floor *"
                 value={floor}
                 onChangeText={setFloor}
+                placeHolderTextStyle={placeholderColor}
                 inputStyle={styles.inputView}
                 inputContainer={styles.inputContainer}
+        maxLength={30}
               />
 
               <InputText
                 placeholder="Flat / House No *"
                 value={houseNoOrFlatNo}
-                onChangeText={setHouseNoOrFlatNo}
+        onChangeText={(txt) => setHouseNoOrFlatNo(sanitizeText(txt, 60))}
+                placeHolderTextStyle={placeholderColor}
                 inputStyle={styles.inputView}
                 inputContainer={styles.inputContainer}
+        maxLength={60}
               />
 
               <InputText
                 placeholder="Landmark *"
                 value={landmark}
-                onChangeText={setLandmark}
+        onChangeText={(txt) => setLandmark(sanitizeText(txt, 80))}
+                placeHolderTextStyle={placeholderColor}
                 inputStyle={styles.inputView}
                 inputContainer={styles.inputContainer}
+        maxLength={80}
               />
 
               <InputText
@@ -191,6 +223,7 @@ const AddAddress: FC = () => {
                 onChangeText={setPincode}
                 keyboardType="number-pad"
                 maxLength={6}
+                placeHolderTextStyle={placeholderColor}
                 inputStyle={styles.inputView}
                 inputContainer={styles.inputContainer}
               />
@@ -199,6 +232,7 @@ const AddAddress: FC = () => {
                 placeholder="City *"
                 value={city}
                 onChangeText={setCity}
+                placeHolderTextStyle={placeholderColor}
                 inputStyle={styles.inputView}
                 inputContainer={styles.inputContainer}
               />
@@ -207,6 +241,7 @@ const AddAddress: FC = () => {
                 placeholder="Receiver Name (Optional)"
                 value={receiverName}
                 onChangeText={setReceiverName}
+                placeHolderTextStyle={placeholderColor}
                 inputStyle={styles.inputView}
                 inputContainer={styles.inputContainer}
               />
@@ -216,6 +251,7 @@ const AddAddress: FC = () => {
                 value={receiverNo}
                 onChangeText={setReceiverNo}
                 keyboardType="phone-pad"
+                placeHolderTextStyle={placeholderColor}
                 inputStyle={styles.inputView}
                 inputContainer={styles.inputContainer}
               />

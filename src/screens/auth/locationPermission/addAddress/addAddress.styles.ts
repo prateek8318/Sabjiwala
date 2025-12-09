@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     color: Colors.PRIMARY[400],
     height: hp(6),
     marginTop: 1,
-     width: wp(90),
+    width: '90%', // keep text within container to avoid overflow
     paddingLeft: hp(2),
   },
  

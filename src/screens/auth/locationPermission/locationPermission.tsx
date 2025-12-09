@@ -1,4 +1,4 @@
-import React, { FC, useContext } from 'react';
+import React, { FC } from 'react';
 import {
   SafeAreaView,
   KeyboardAvoidingView,
@@ -12,14 +12,12 @@ import { AuthStackProps } from '../../../@types';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { TextView, LinearButton, BorderButton, CommonLoader } from '../../../components';
-import { Colors, Images } from '../../../constant';
+import { Images } from '../../../constant';
 import { widthPercentageToDP as wp } from '../../../constant/dimentions';
 import { request, check, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import Geolocation from 'react-native-geolocation-service';
 import Toast from 'react-native-toast-message';
 import ApiService from '../../../service/apiService';
-import { LocalStorage } from '../../../helpers/localstorage';
-import { UserData, UserDataContext } from '../../../context/userDataContext';
 import { reverseGeocode } from '../../../helpers/geocoding';
 
 type LocationPermissionScreenNavigationType = NativeStackNavigationProp<
@@ -30,47 +28,39 @@ type LocationPermissionScreenNavigationType = NativeStackNavigationProp<
 const LocationPermission: FC = () => {
   const navigation = useNavigation<LocationPermissionScreenNavigationType>();
   const { showLoader, hideLoader } = CommonLoader();
-  const { setIsLoggedIn, setUserData } = useContext<UserData>(UserDataContext);
 
-  const saveAddressFromCoords = async (lat: number, long: number) => {
-    try {
-      const geo = await reverseGeocode(lat, long);
-
-      if (!geo.city || !geo.pincode) {
-        console.log('[LocationPermission] Geocoded address missing city/pincode, skip save');
-        return;
-      }
-
-      const payload = {
-        addressType: 'home',
-        floor: 'Ground',
-        houseNoOrFlatNo: geo.houseNumber || 'Near current location',
-        landmark: geo.landmark || geo.formattedAddress || 'Current location',
-        pincode: geo.pincode,
-        city: geo.city,
-        lat: lat.toString(),
-        long: long.toString(),
+  const getLocation = (): Promise<{ latitude: number; longitude: number }> => {
+    return new Promise((resolve, reject) => {
+      const options: any = {
+        enableHighAccuracy: false,
+        timeout: 20000,
+        maximumAge: 60000,
+        distanceFilter: 10,
       };
 
-      const res = await ApiService.addAddress(payload);
-      const newId =
-        res?.data?._id ||
-        res?.data?.address?._id ||
-        res?.data?.data?._id;
-
-      if (newId) {
-        try {
-          await ApiService.setDefaultAddress(newId);
-        } catch (e) {
-          console.log('[LocationPermission] setDefaultAddress failed:', e);
-        }
-        await LocalStorage.save('@selectedAddressId', newId);
+      if (Platform.OS === 'android') {
+        options.forceLocationManager = true;
       }
 
-      console.log('[LocationPermission] Address saved from current location');
-    } catch (error) {
-      console.log('[LocationPermission] Failed to save geocoded address:', error);
-    }
+      Geolocation.getCurrentPosition(
+        (position: any) => {
+          const { latitude, longitude } = position.coords;
+          resolve({ latitude, longitude });
+        },
+        (error: any) => {
+          let errorMessage = 'Failed to get location';
+          if (error.code === 1) {
+            errorMessage = 'Location permission denied';
+          } else if (error.code === 2) {
+            errorMessage = 'Location unavailable';
+          } else if (error.code === 3) {
+            errorMessage = 'Location request timeout';
+          }
+          reject({ code: error.code, message: errorMessage });
+        },
+        options
+      );
+    });
   };
 
   const requestLocationPermission = async () => {
@@ -97,109 +87,55 @@ const LocationPermission: FC = () => {
       console.log('[LocationPermission] Permission status:', permissionStatus);
 
       if (permissionStatus === RESULTS.GRANTED) {
-        // Get current location using GPS with proper error handling
         try {
           showLoader();
           console.log('[LocationPermission] Getting current location...');
-          
-          // Use react-native-geolocation-service with forceLocationManager to avoid FusedLocationProviderClient
-          const getLocation = (): Promise<{ latitude: number; longitude: number }> => {
-            return new Promise((resolve, reject) => {
-              const options: any = {
-                enableHighAccuracy: false,
-                timeout: 20000,
-                maximumAge: 60000,
-                distanceFilter: 10,
-              };
 
-              // Force Android to use LocationManager instead of FusedLocationProviderClient
-              if (Platform.OS === 'android') {
-                options.forceLocationManager = true;
-              }
+          const { latitude, longitude } = await getLocation();
+          console.log('[LocationPermission] Location obtained:', latitude, longitude);
 
-              Geolocation.getCurrentPosition(
-                (position: any) => {
-                  const { latitude, longitude } = position.coords;
-                  console.log('[LocationPermission] Location obtained:', latitude, longitude);
-                  resolve({ latitude, longitude });
-                },
-                (error: any) => {
-                  console.log('[LocationPermission] Geolocation error:', error);
-                  let errorMessage = 'Failed to get location';
-                  
-                  if (error.code === 1) {
-                    errorMessage = 'Location permission denied';
-                  } else if (error.code === 2) {
-                    errorMessage = 'Location unavailable';
-                  } else if (error.code === 3) {
-                    errorMessage = 'Location request timeout';
-                  }
-                  
-                  reject({
-                    code: error.code,
-                    message: errorMessage,
-                  });
-                },
-                options
-              );
+          let geo;
+          try {
+            geo = await reverseGeocode(latitude, longitude);
+          } catch (geoErr) {
+            console.log('[LocationPermission] Reverse geocode failed:', geoErr);
+          }
+
+          if (!geo?.city || !geo?.pincode) {
+            hideLoader();
+            Toast.show({
+              type: 'error',
+              text1: 'Could not resolve city and pincode from location',
             });
-          };
+            return;
+          }
 
           try {
-            const { latitude, longitude } = await getLocation();
-            console.log('[LocationPermission] Location obtained:', latitude, longitude);
-            
-            const lat = latitude.toString();
-            const long = longitude.toString();
-            
-            console.log('[LocationPermission] Sending location to API');
-            const response = await ApiService.sendCurrentLoc(lat, long);
-            hideLoader();
-            console.log('[LocationPermission] API response:', response);
-
-            if (response.status === 200) {
-              console.log('[LocationPermission] Location update successful. Saving data...');
-              await saveAddressFromCoords(latitude, longitude);
-              await LocalStorage.save('@user', JSON.stringify(response.data.user || "Data"));
-              setUserData(response.data.user || "Data");
-              await LocalStorage.save('@login', true);
-              setIsLoggedIn(true);
-
-              Toast.show({
-                type: 'success',
-                text1: 'Location updated successfully!',
-              });
-
-              console.log('[LocationPermission] Navigating to HomeStackNavigator...');
-              navigation.getParent()?.navigate('HomeStackNavigator');
-            } else {
-              hideLoader();
-              console.log('[LocationPermission] API returned error message:', response.data?.message);
-              Toast.show({
-                type: 'error',
-                text1: response.data?.message || 'Failed to update location',
-              });
-            }
-          } catch (locationError: any) {
-            hideLoader();
-            console.log('[LocationPermission] Location error:', locationError);
-            
-            // If location fails, allow user to proceed with search location
-            Toast.show({
-              type: 'info',
-              text1: 'Could not get current location',
-              text2: 'Please use "Search Your Location" to add address',
-            });
+            await ApiService.sendCurrentLoc(latitude.toString(), longitude.toString());
+          } catch (err) {
+            console.log('[LocationPermission] sendCurrentLoc failed, continuing:', err);
           }
-        } catch (error: any) {
+
           hideLoader();
-          console.log('[LocationPermission] Unexpected error getting location:', error);
+          (navigation as any).navigate('AddAddress', {
+            prefillAddress: {
+              pincode: geo.pincode,
+              city: geo.city,
+              landmark: geo.formattedAddress || geo.landmark || '',
+              floor: 'Ground',
+              houseNoOrFlatNo: geo.houseNumber || '',
+              lat: latitude,
+              long: longitude,
+            },
+          });
+        } catch (locationError: any) {
+          hideLoader();
+          console.log('[LocationPermission] Location error:', locationError);
           
-          // Don't show error, just guide user to search location
           Toast.show({
             type: 'info',
-            text1: 'Location service unavailable',
-            text2: 'Please use "Search Your Location" to continue',
+            text1: locationError?.message || 'Could not get current location',
+            text2: 'Please use "Search Your Location" to add address',
           });
         }
       } else {

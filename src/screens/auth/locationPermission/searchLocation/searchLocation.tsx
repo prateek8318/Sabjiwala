@@ -48,6 +48,7 @@ const SearchLocation: FC = () => {
   const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [resolvedAddress, setResolvedAddress] = useState<GeocodedAddress | null>(null);
+  const [mapError, setMapError] = useState(false);
   const { showLoader, hideLoader } = CommonLoader();
   const { setIsLoggedIn, setUserData } = useContext<UserData>(UserDataContext);
 
@@ -197,53 +198,6 @@ const SearchLocation: FC = () => {
     }
   };
 
-  const saveAddressFromCoords = async (lat: number, long: number) => {
-    try {
-      const geo = await reverseGeocode(lat, long);
-      setResolvedAddress(geo);
-
-      // Require at least city and pincode before attempting to save
-      if (!geo.city || !geo.pincode) {
-        console.log('Geocoded address missing city/pincode, skipping save');
-        return;
-      }
-
-      const payload = {
-        addressType: 'home',
-        floor: 'Ground',
-        houseNoOrFlatNo: geo.houseNumber || 'Near current location',
-        landmark: geo.landmark || geo.formattedAddress || 'Current location',
-        pincode: geo.pincode,
-        city: geo.city,
-        lat: lat.toString(),
-        long: long.toString(),
-      };
-
-      const res = await ApiService.addAddress(payload);
-      const newId =
-        res?.data?._id ||
-        res?.data?.address?._id ||
-        res?.data?.data?._id;
-
-      if (newId) {
-        try {
-          await ApiService.setDefaultAddress(newId);
-        } catch (e) {
-          console.log('setDefaultAddress failed, continuing:', e);
-        }
-        await LocalStorage.save('@selectedAddressId', newId);
-      }
-      fetchAddresses();
-
-      Toast.show({
-        type: 'success',
-        text1: 'Current location saved in addresses',
-      });
-    } catch (error) {
-      console.log('Error saving geocoded address:', error);
-    }
-  };
-
   const handleUseCurrentLocation = async () => {
     try {
       let permissionStatus;
@@ -296,30 +250,40 @@ const SearchLocation: FC = () => {
       const lat = currentLocation.latitude.toString();
       const long = currentLocation.longitude.toString();
 
-      const response = await ApiService.sendCurrentLoc(lat, long);
-        
-      if (response.status === 200) {
-        await saveAddressFromCoords(currentLocation.latitude, currentLocation.longitude);
-        hideLoader();
-        await LocalStorage.save('@user', JSON.stringify(response.data.user || "Data"));
-        setUserData(response.data.user || "Data");
-        await LocalStorage.save('@login', true);
-        setIsLoggedIn(true);
+      // Try resolving address if not already available
+      const geo =
+        resolvedAddress ||
+        (await reverseGeocode(currentLocation.latitude, currentLocation.longitude));
+      setResolvedAddress(geo);
 
-        Toast.show({
-          type: 'success',
-          text1: 'Location updated successfully!',
-        });
-
-        setShowMapModal(false);
-        navigation.getParent()?.navigate('HomeStackNavigator');
-      } else {
+      if (!geo?.city || !geo?.pincode) {
         hideLoader();
         Toast.show({
           type: 'error',
-          text1: response.data?.message || 'Failed to update location',
+          text1: 'Could not resolve city and pincode from location',
         });
+        return;
       }
+
+      try {
+        await ApiService.sendCurrentLoc(lat, long);
+      } catch (err) {
+        console.log('sendCurrentLoc failed, continuing to AddAddress:', err);
+      }
+
+      hideLoader();
+      setShowMapModal(false);
+      (navigation as any).navigate('AddAddress', {
+        prefillAddress: {
+          pincode: geo.pincode,
+          city: geo.city,
+          landmark: geo.formattedAddress || geo.landmark || '',
+          floor: 'Ground',
+          houseNoOrFlatNo: geo.houseNumber || '',
+          lat: currentLocation.latitude,
+          long: currentLocation.longitude,
+        },
+      });
     } catch (error: any) {
       hideLoader();
       console.log('Error confirming location:', error);
@@ -472,7 +436,7 @@ const SearchLocation: FC = () => {
             <SafeAreaView style={styles.fullScreenMapSafeArea}>
               <View style={styles.mapHeader}>
                 <TextView style={styles.mapTitle}>
-                  {currentLocation ? 'Your Location' : 'Delhi NCR'}
+                  {resolvedAddress?.city || (currentLocation ? 'Your Location' : 'Delhi NCR')}
                 </TextView>
                 <TouchableOpacity onPress={() => setShowMapModal(false)}>
                   <Icon
@@ -484,12 +448,15 @@ const SearchLocation: FC = () => {
                 </TouchableOpacity>
               </View>
               <View style={styles.mapViewContainer}>
-                {locationLoading ? (
-                  <View style={styles.mapLoadingContainer}>
-                    <TextView style={styles.loadingText}>Fetching your location...</TextView>
-                  </View>
-                ) : currentLocation ? (
+                {mapError ? (
+                  <Image
+                    source={Images.img_map}
+                    style={styles.mapImage}
+                    resizeMode="cover"
+                  />
+                ) : (
                   <WebView
+                    originWhitelist={['*']}
                     source={{
                       html: `
                         <!DOCTYPE html>
@@ -506,30 +473,34 @@ const SearchLocation: FC = () => {
                           <body>
                             <div id="map"></div>
                             <script>
-                              var map = L.map('map').setView([${currentLocation.latitude}, ${currentLocation.longitude}], 15);
+                              var lat = ${currentLocation?.latitude ?? 28.6139};
+                              var lon = ${currentLocation?.longitude ?? 77.2090};
+                              var map = L.map('map').setView([lat, lon], ${currentLocation ? 15 : 11});
                               L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                                 attribution: '© OpenStreetMap contributors',
                                 maxZoom: 19
                               }).addTo(map);
-                              var marker = L.marker([${currentLocation.latitude}, ${currentLocation.longitude}]).addTo(map);
-                              marker.bindPopup('Your Location').openPopup();
+                              var marker = L.marker([lat, lon]).addTo(map);
+                              marker.bindPopup('${resolvedAddress?.city ? `You are near ${resolvedAddress.city}` : 'Your Location'}').openPopup();
                             </script>
                           </body>
                         </html>
                       `,
                     }}
                     style={styles.mapWebView}
-                    javaScriptEnabled={true}
-                    domStorageEnabled={true}
-                    startInLoadingState={true}
-                    scalesPageToFit={true}
+                    javaScriptEnabled
+                    domStorageEnabled
+                    startInLoadingState
+                    scalesPageToFit
+                    mixedContentMode="always"
+                    onError={() => setMapError(true)}
+                    onHttpError={() => setMapError(true)}
                   />
-                ) : (
-                  <Image
-                    source={Images.img_map}
-                    style={styles.mapImage}
-                    resizeMode="cover"
-                  />
+                )}
+                {locationLoading && (
+                  <View style={styles.mapLoadingContainer}>
+                    <TextView style={styles.loadingText}>Fetching your location...</TextView>
+                  </View>
                 )}
               </View>
               {resolvedAddress?.formattedAddress ? (
