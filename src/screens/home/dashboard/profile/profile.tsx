@@ -209,18 +209,7 @@ const Profile: FC = () => {
                 resizeMode="cover"
               />
 
-              <TouchableOpacity
-                onPress={handleImageUpload}
-                style={styles.cameraIconView}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Icon
-                  family="MaterialIcons"
-                  name="photo-camera"
-                  size={22}
-                  color="#fff"
-                />
-              </TouchableOpacity>
+             
             </View>
 
             <View style={styles.profileView}>

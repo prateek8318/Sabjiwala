@@ -49,6 +49,8 @@ import { reverseGeocode } from '../../../helpers/geocoding';
 
 type DashboardScreenNavigationType = NativeStackNavigationProp<any, 'Dashboard'>;
 
+const FALLBACK_IMAGE = 'https://via.placeholder.com/300x150.png?text=No+Image';
+
 const Dashboard: FC = () => {
   const navigation = useNavigation<DashboardScreenNavigationType>();
 
@@ -259,24 +261,32 @@ const Dashboard: FC = () => {
 
       // Transform each section using same logic as transformProductToCard
       const transform = (product: any): ProductCardItem => {
-        const variant = product.ProductVarient?.[0];
-        const imagePath = variant?.images?.[0] || product.primary_image?.[0] || '';
+        const variant = product?.ProductVarient?.[0] || product?.variants?.[0] || {};
+        const preferredImages =
+          (Array.isArray(variant?.images) && variant.images.length > 0
+            ? variant.images
+            : null) ||
+          (Array.isArray(product?.primary_image) && product.primary_image.length > 0
+            ? product.primary_image
+            : null) ||
+          (Array.isArray(product?.images) && product.images.length > 0
+            ? product.images
+            : []);
 
-        const cleanPath = imagePath
-          .replace('public\\', '')
-          .replace('public/', 'public/')
-          .replace(/\\/g, '/');
+        const rawImage = preferredImages?.[0] || '';
+        const normalizedImage = rawImage ? rawImage.replace(/\\/g, '/') : '';
+        const fullImageUrl = normalizedImage ? IMAGE_BASE_URL + normalizedImage : '';
 
         return {
-          id: product._id,
-          name: product.productName,
-          image: imagePath ? IMAGE_BASE_URL + cleanPath : '',
-          price: variant?.price || product.price || 0,
-          oldPrice: variant?.originalPrice || product.mrp || 0,
+          id: product?._id || '',
+          name: product?.productName || product?.name || 'Product',
+          image: fullImageUrl,
+          price: variant?.price || product?.price || 0,
+          oldPrice: variant?.originalPrice || product?.mrp || 0,
           discount: variant?.discount ? `₹${variant.discount} OFF` : '',
-          weight: variant ? `${variant.stock || 1} ${variant.unit || ''}` : 'N/A',
-          rating: product.rating || 4.5,
-          options: `${product.ProductVarient?.length || 0} Option${(product.ProductVarient?.length || 0) > 1 ? 's' : ''}`,
+          weight: `${variant?.stock || product?.stock || 1} ${variant?.unit || product?.unit || ''}`,
+          rating: product?.rating || 4.5,
+          options: `${(product?.ProductVarient || product?.variants || []).length} Option${((product?.ProductVarient || product?.variants || []).length || 0) > 1 ? 's' : ''}`,
         };
       };
 
@@ -397,11 +407,28 @@ const Dashboard: FC = () => {
 
   // 🔹 Render Deal Cards
   const renderDealProduct = ({ item }: { item: ProductCardItem }) => (
-
     <View style={styles.cardDealMainView}>
       <View style={styles.cardDealView}>
         <View style={styles.cardDealOfferView}>
-          <TextView style={styles.cardDealTxtOffer}>{item.discount}</TextView>
+          <TextView style={styles.cardDealTxtOffer}>{item.discount || 'Deal'}</TextView>
+        </View>
+        <View style={styles.cardDealImageWrapper}>
+          {item.image ? (
+            <Image
+              source={{ uri: item.image }}
+              style={styles.cardDealImage}
+              resizeMode="contain"
+            />
+          ) : (
+            <View style={styles.cardDealImagePlaceholder}>
+              <Icon
+                family="MaterialCommunityIcons"
+                name="image-off"
+                color={Colors.PRIMARY[200]}
+                size={24}
+              />
+            </View>
+          )}
         </View>
       </View>
       <TextView style={styles.cardDealTxtProduct}>{item.name}</TextView>
@@ -960,22 +987,30 @@ const Dashboard: FC = () => {
 export default Dashboard;
 
 // 🔹 Transform API product → ProductCardItem
-const transformProductToCard = (product: Product): ProductCardItem => {
+  const transformProductToCard = (product: Product): ProductCardItem => {
   const variant =
     (product as any)?.ProductVarient?.[0] ||
     (product as any)?.variants?.[0] ||
     {};
-  const images =
-    variant?.images ||
-    (product as any)?.primary_image ||
-    (product as any)?.images ||
-    [];
-  const imageUrl = images?.[0] || '';
+  const preferredImages =
+    (Array.isArray(variant?.images) && variant.images.length > 0
+      ? variant.images
+      : null) ||
+    (Array.isArray((product as any)?.primary_image) && (product as any)?.primary_image.length > 0
+      ? (product as any)?.primary_image
+      : null) ||
+    (Array.isArray((product as any)?.images) && (product as any)?.images.length > 0
+      ? (product as any)?.images
+      : []);
+
+  const imageUrl = preferredImages?.[0] || '';
+  const normalizedImage = imageUrl ? imageUrl.replace(/\\/g, '/') : '';
+  const fullImageUrl = normalizedImage ? IMAGE_BASE_URL + normalizedImage : '';
 
   return {
     id: (product as any)?._id || '',
     name: (product as any)?.productName || (product as any)?.name || 'Product',
-    image: imageUrl ? IMAGE_BASE_URL + imageUrl : '',
+    image: fullImageUrl || FALLBACK_IMAGE,
     price: variant?.price || (product as any)?.price || 0,
     oldPrice: variant?.originalPrice || (product as any)?.mrp || 0,
     discount: variant?.discount ? `₹${variant.discount} OFF` : '',

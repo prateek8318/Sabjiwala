@@ -497,7 +497,7 @@ const Favorites = () => {
             Tap the heart icon on products to add them to favorites
           </TextView>
           <TextView style={[styles.emptySubText, { marginTop: hp(2), fontSize: 12 }]}>
-            Debug: Products count = {favoriteProducts.length}
+            
           </TextView>
         </View>
       ) : (

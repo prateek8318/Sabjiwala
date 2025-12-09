@@ -64,6 +64,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     justifyContent: 'space-between',
     paddingBottom: hp(1),
+    
   },
   
   cardProductImage: {

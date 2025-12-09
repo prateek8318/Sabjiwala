@@ -14,7 +14,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from '../../../constant/dimentions';
 import { Colors, Fonts, Icon, Images } from '../../../constant';
-import ApiService from '../../../service/apiService';
+import ApiService, { IMAGE_BASE_URL } from '../../../service/apiService';
 import styles from './productDetail.styles';
 import { useRoute } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
@@ -111,12 +111,24 @@ const ProductDetail = () => {
     (product.variants?.[0]
       ? `${product.variants[0].weight || 1} ${product.variants[0].unit || 'kg'}`
       : '1 kg');
-  const img = product.images?.[0] ? `http://167.71.232.245:8539/${product.images[0]}` : '';
+  const buildImageUrl = (path?: string) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+
+    // Normalize slashes but keep the "public" prefix since the server exposes it
+    const clean = path.replace(/\\/g, '/');
+    const normalized = clean.startsWith('/') ? clean.slice(1) : clean;
+    return `${IMAGE_BASE_URL}${normalized}`;
+  };
+
+  const fallbackImg = buildImageUrl(product.images?.[0]);
 
   // Get product images for carousel
   const productImages = product?.images?.length > 0
-    ? product.images.map((image: string) => `http://167.71.232.245:8539/${image}`)
-    : img ? [img] : [];
+    ? product.images.map((image: string) => buildImageUrl(image)).filter(Boolean)
+    : fallbackImg
+      ? [fallbackImg]
+      : [];
 
   const info = product.info || {};
 
@@ -183,31 +195,27 @@ const ProductDetail = () => {
         borderWidth: 1.5,
         borderColor: selectedQty === item.id ? '#4CAF50' : '#E0E0E0',
         backgroundColor: selectedQty === item.id ? '#4CAF50' : '#fff',
-        paddingHorizontal: 18,
-        paddingVertical: 12,
-        borderRadius: 30,
-        minWidth: 100,
+        paddingVertical: 4,          
+        paddingHorizontal: 16,
+        borderRadius: 25,
         marginRight: 12,
-        alignItems: 'center',
+        alignItems: 'center',        
+        justifyContent: 'center',    
       }}
     >
-      <Text style={{
-        color: selectedQty === item.id ? '#fff' : '#000',
-        fontWeight: selectedQty === item.id ? '600' : '500',
-        fontSize: 14,
-      }}>
-        {String(item.label || '')}
-      </Text>
-      <Text style={{
-        color: selectedQty === item.id ? '#fff' : '#4CAF50',
-        fontWeight: 'bold',
-        fontSize: 13,
-        marginTop: 4,
-      }}>
-        ₹{String(item.price || 0)}
+      <Text
+        style={{
+          color: selectedQty === item.id ? '#fff' : '#000',
+          fontWeight: '600',
+          fontSize: 14,
+          textAlign: 'center',      
+        }}
+      >
+        {item.label}
       </Text>
     </Pressable>
   );
+  
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>

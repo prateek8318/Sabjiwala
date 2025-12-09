@@ -39,6 +39,7 @@ const EditProfile: FC = () => {
   const [email, setEmail] = useState(userData?.email || '');
   const [profileImage, setProfileImage] = useState(userData?.profileImage || '');
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+  const [selectedUploadFile, setSelectedUploadFile] = useState<{ uri: string; name?: string; type?: string } | null>(null);
 
   const displayImage = profileImage
     ? (profileImage.startsWith('http') || profileImage.startsWith('file:'))
@@ -50,16 +51,35 @@ const EditProfile: FC = () => {
     SheetManager.show('image-picker-sheet');
   };
 
+  const handleSelectedAsset = (asset: any) => {
+    const uri = asset?.uri;
+    const type = asset?.type;
+    const name = asset?.fileName || 'profile.jpg';
+
+    if (!uri) {
+      Toast.show({ type: 'error', text1: 'Image selection failed' });
+      return;
+    }
+
+    if (type && !type.startsWith('image/')) {
+      Toast.show({ type: 'error', text1: 'Please select an image (no videos)' });
+      return;
+    }
+
+    setSelectedImageUri(uri);
+    setSelectedUploadFile({ uri, name, type: type || 'image/jpeg' });
+    setProfileImage(uri);
+  };
+
   const pickFromGallery = () => {
     SheetManager.hide('image-picker-sheet');
     launchImageLibrary(
       { mediaType: 'photo', selectionLimit: 1 },
       (response) => {
         if (response.didCancel || response.errorMessage) return;
-        const uri = response.assets?.[0]?.uri;
-        if (uri) {
-          setSelectedImageUri(uri);
-          setProfileImage(uri);
+        const asset = response.assets?.[0];
+        if (asset) {
+          handleSelectedAsset(asset);
         }
       }
     );
@@ -68,13 +88,12 @@ const EditProfile: FC = () => {
   const pickFromCamera = () => {
     SheetManager.hide('image-picker-sheet');
     launchCamera(
-      { mediaType: 'photo' },
+      { mediaType: 'photo', quality: 0.8, saveToPhotos: false },
       (response) => {
         if (response.didCancel || response.errorMessage) return;
-        const uri = response.assets?.[0]?.uri;
-        if (uri) {
-          setSelectedImageUri(uri);
-          setProfileImage(uri);
+        const asset = response.assets?.[0];
+        if (asset) {
+          handleSelectedAsset(asset);
         }
       }
     );
@@ -90,10 +109,17 @@ const EditProfile: FC = () => {
       let finalImageUrl = profileImage;
   
       // Agar nayi image select ki hai
-      if (selectedImageUri) {
-        console.log('Uploading image...', selectedImageUri);
+      if (selectedUploadFile) {
+        console.log('Uploading image...', selectedUploadFile);
 
-        const uploadResponse = await ApiService.uploadProfileImage({ uri: selectedImageUri }, 'image');
+        const uploadResponse = await ApiService.uploadProfileImage(
+          {
+            uri: selectedUploadFile.uri,
+            name: selectedUploadFile.name || 'profile.jpg',
+            type: selectedUploadFile.type || 'image/jpeg',
+          },
+          'image'
+        );
 
         console.log('Upload Response:', uploadResponse.data);
 

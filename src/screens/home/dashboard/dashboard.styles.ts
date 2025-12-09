@@ -239,9 +239,10 @@ const styles = StyleSheet.create({
     width: wp(28),
     borderColor: Colors.SECONDARY[400],
     borderWidth: 1,
-    height: hp(15),
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
+    height: hp(18),
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: Colors.PRIMARY[300],
   },
   cardDealOfferView: {
     height: 30,
@@ -254,6 +255,25 @@ const styles = StyleSheet.create({
   cardDealTxtOffer: {
     color: Colors.PRIMARY[300],
     ...Typography.H6Semibold13,
+  },
+  cardDealImageWrapper: {
+    flex: 1,
+    backgroundColor: Colors.PRIMARY[300],
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: wp(2),
+    paddingVertical: hp(1),
+  },
+  cardDealImage: {
+    width: '100%',
+    height: '100%',
+  },
+  cardDealImagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F2F2F2',
   },
   cardDealTxtProduct: {
     color: Colors.PRIMARY[400],
