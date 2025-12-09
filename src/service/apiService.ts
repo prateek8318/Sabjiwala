@@ -9,10 +9,10 @@ import { storage } from './storage';
 
 // -------------------------------------------------
 // 1. Base URL (your live dev server)
-//const BASE_URL = 'http://167.71.232.245:8539/api/';
- const BASE_URL = 'http://192.168.1.12:5002/api/';
-//export const IMAGE_BASE_URL = 'http://167.71.232.245:8539/';
- export const IMAGE_BASE_URL = 'http://192.168.1.12:5002/';
+const BASE_URL = 'http://159.89.146.245:5010/api/';
+//  const BASE_URL = 'http://192.168.1.12:5002/api/';
+export const IMAGE_BASE_URL = 'http://159.89.146.245:5010/';
+//  export const IMAGE_BASE_URL = 'http://192.168.1.12:5002/';
 
 // 1. Base URL (your local dev server)
 // const BASE_URL = 'http://192.168.1.21:5002/api/';
