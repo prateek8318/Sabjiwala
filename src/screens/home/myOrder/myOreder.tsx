@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { TextView } from '../../../components';
 import styles from './myOrder.styles';
@@ -20,6 +22,8 @@ const MyOrder = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  const [showSummary, setShowSummary] = useState(false);
 
   const fetchOrders = async (isRefresh = false) => {
     try {
@@ -98,7 +102,10 @@ const MyOrder = () => {
     return (
       <TouchableOpacity
         activeOpacity={0.9}
-        onPress={() => navigation.navigate('OrderSummary', { orderId: item._id, order: item })}
+        onPress={() => {
+          setSelectedOrder(item);
+          setShowSummary(true);
+        }}
         style={[styles.orderCard, { backgroundColor: '#fff' }]}
       >
         {/* Status and summary */}
@@ -202,6 +209,13 @@ const MyOrder = () => {
             <TextView style={styles.actionText}>Rate Order</TextView>
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => navigation.navigate('OrderTracking', { orderId: item._id, order: item })}
+          >
+            <TextView style={styles.actionText}>Track</TextView>
+          </TouchableOpacity>
+
           {(item.status === 'Delivered' || item.status === 'Completed') && (
             <TouchableOpacity
               style={[styles.actionBtn, styles.returnBtn]}
@@ -242,6 +256,153 @@ const MyOrder = () => {
           </View>
         }
       />
+
+      {/* Order Summary Modal */}
+      <Modal
+        visible={showSummary}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowSummary(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPressOut={() => setShowSummary(false)}
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => {}}
+            style={{
+              backgroundColor: '#fff',
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              maxHeight: '90%',
+              paddingHorizontal: 16,
+              paddingTop: 12,
+            }}
+          >
+            <View style={{ alignItems: 'center', marginBottom: 10 }}>
+              <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#ccc' }} />
+            </View>
+            <TextView style={{ fontSize: 18, fontWeight: '700', color: '#000', marginBottom: 10 }}>
+              Order Summary
+            </TextView>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 20 }}
+            >
+              {selectedOrder ? (
+                <>
+                  <TextView style={{ color: '#444', marginBottom: 6 }}>
+                    Order ID: {selectedOrder._id}
+                  </TextView>
+                  <TextView style={{ color: '#444', marginBottom: 12 }}>
+                    Date: {formatDate(selectedOrder.createdAt || selectedOrder.orderDate)}
+                  </TextView>
+
+                  {(selectedOrder.products || selectedOrder.items || []).map((product: any, idx: number) => {
+                    const productObj = product.productId || product.product || product;
+                    const variantObj = product.variantId || product.variant;
+                    const candidates = [
+                      product.image,
+                      product.productImage,
+                      product.images?.[0],
+                      productObj?.image,
+                      productObj?.images?.[0],
+                      productObj?.productImage,
+                      productObj?.productImages?.[0],
+                      productObj?.featuredImage,
+                      variantObj?.image,
+                      variantObj?.images?.[0],
+                      productObj?.thumbnail,
+                      variantObj?.thumbnail,
+                      product.thumbnail,
+                    ].filter(Boolean);
+                    const img = candidates[0];
+                    const isAbsolute =
+                      typeof img === 'string' &&
+                      (img.startsWith('http://') || img.startsWith('https://'));
+                    const source = img
+                      ? { uri: isAbsolute ? img : ApiService.getImage(img) }
+                      : require('../../../assets/images/order.png');
+                    const price = Number(product.price || variantObj?.price || 0);
+                    return (
+                      <View
+                        key={`${selectedOrder._id}-prod-${idx}`}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          marginBottom: 10,
+                          backgroundColor: '#F7F7F7',
+                          borderRadius: 10,
+                          padding: 10,
+                        }}
+                      >
+                        <Image
+                          source={source}
+                          style={{ width: 54, height: 54, borderRadius: 8, marginRight: 10 }}
+                          defaultSource={require('../../../assets/images/order.png')}
+                        />
+                        <View style={{ flex: 1 }}>
+                          <TextView style={{ color: '#000', fontWeight: '700' }} numberOfLines={2}>
+                            {productObj?.name || 'Item'}
+                          </TextView>
+                          <TextView style={{ color: '#555', marginTop: 2 }}>
+                            Qty: {product.quantity || 1}
+                          </TextView>
+                        </View>
+                        <TextView style={{ color: '#000', fontWeight: '700' }}>
+                          ₹{price}
+                        </TextView>
+                      </View>
+                    );
+                  })}
+
+                  <View style={{ marginTop: 12, padding: 12, borderRadius: 10, backgroundColor: '#F2F7EC' }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <TextView style={{ color: '#000' }}>Payment</TextView>
+                      <TextView style={{ color: '#000', fontWeight: '700' }}>
+                        {selectedOrder.paymentMethod?.toUpperCase()}
+                      </TextView>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <TextView style={{ color: '#000' }}>Status</TextView>
+                      <TextView style={{ color: '#000', fontWeight: '700' }}>
+                        {selectedOrder.status || selectedOrder.orderStatus || 'pending'}
+                      </TextView>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <TextView style={{ color: '#000', fontWeight: '700' }}>Grand Total</TextView>
+                      <TextView style={{ color: '#000', fontWeight: '700' }}>
+                        ₹{selectedOrder.grandTotal || selectedOrder.totalAmount || selectedOrder.total || 0}
+                      </TextView>
+                    </View>
+                  </View>
+                </>
+              ) : null}
+            </ScrollView>
+
+            <TouchableOpacity
+              onPress={() => {
+                setShowSummary(false);
+                if (selectedOrder?._id) {
+                  navigation.navigate('RateOrder', { orderId: selectedOrder._id, order: selectedOrder });
+                }
+              }}
+              activeOpacity={0.9}
+              style={{
+                backgroundColor: Colors.PRIMARY[100],
+                paddingVertical: 14,
+                borderRadius: 12,
+                alignItems: 'center',
+                marginBottom: 20,
+              }}
+            >
+              <TextView style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Rate Product</TextView>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };

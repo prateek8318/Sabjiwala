@@ -33,6 +33,7 @@ import MyOrder from './home/myOrder/myOreder';
 import Cart from './home/cart/cart';
 import RateOrder from './home/myOrder/rateOrder/rateOrder';
 import Reorder from './home/myOrder/reorder/reorder';
+import OrderTracking from './home/myOrder/orderTracking';
 
 export {
   Signin,
@@ -61,4 +62,5 @@ export {
   Cart,
   RateOrder,
   Reorder,
+  OrderTracking,
 };

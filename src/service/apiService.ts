@@ -9,8 +9,8 @@ import { storage } from './storage';
 
 // -------------------------------------------------
 // 1. Base URL (your live dev server)
-const BASE_URL = 'http://159.89.146.245:5010/api/';
-//  const BASE_URL = 'http://192.168.1.12:5002/api/';
+// const BASE_URL = 'http://159.89.146.245:5010/api/';
+ const BASE_URL = 'http://192.168.1.26:5002/api/';
 export const IMAGE_BASE_URL = 'http://159.89.146.245:5010/';
 //  export const IMAGE_BASE_URL = 'http://192.168.1.12:5002/';
 
@@ -240,6 +240,10 @@ getHomeProductContent: async () => {
     return response;
   },
 
+  getCoupons: async () => {
+    return await api.get('user/coupon');
+  },
+
   removeCartItem: async (productId: string, variantId?: string) => {
     // Include variantId so only the targeted variant is removed
     const response = await api.delete('user/cart', {
@@ -293,6 +297,33 @@ getHomeProductContent: async () => {
   submitOrderRating: async (ratingData: any) => {
     return await api.post('user/product/rating', ratingData);
   },
+
+  // ---- Wallet History ----
+  createWalletHistory: async (walletData: {
+    amount: string;
+    action: 'credit' | 'debit';
+    razorpay_id: string;
+    description?: string;
+  }) => {
+    return await api.post('user/walletHistory/create', walletData);
+  },
+
+  getWalletHistory: async () => {
+    return await api.get('user/walletHistory/list');
+  },
+
+  getWalletBalance: async () => {
+    return await api.get('user/getWalletBalance');
+  },
+
+  // ---- Razorpay ----
+  createRazorpayOrder: async (amount: number | string) => {
+    // Backend sample payload: { "amount": "100" } in rupees
+    // Send as string to match backend expectation; backend converts to paise
+    const rupees = typeof amount === 'number' ? amount.toString() : amount;
+    return await api.post('user/create-razorpay-order', { amount: rupees, currency: 'INR' });
+  },
+
   // ---- Logout ----
   logout: () => storage.removeToken(),
 };

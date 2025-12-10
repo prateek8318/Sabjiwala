@@ -49,8 +49,6 @@ import { reverseGeocode } from '../../../helpers/geocoding';
 
 type DashboardScreenNavigationType = NativeStackNavigationProp<any, 'Dashboard'>;
 
-const FALLBACK_IMAGE = 'https://via.placeholder.com/300x150.png?text=No+Image';
-
 const Dashboard: FC = () => {
   const navigation = useNavigation<DashboardScreenNavigationType>();
 
@@ -557,10 +555,10 @@ const Dashboard: FC = () => {
                     style={[styles.actionButton, { marginRight: hp(0.5) }]}
                   />
                 </Pressable>
-                <Image
+                {/* <Image
                   source={Images.ic_notificaiton}
                   style={[styles.actionButton, { marginLeft: hp(0.5) }]}
-                />
+                /> */}
               </View>
             </View>
           </View>
@@ -1003,14 +1001,14 @@ export default Dashboard;
       ? (product as any)?.images
       : []);
 
-  const imageUrl = preferredImages?.[0] || '';
-  const normalizedImage = imageUrl ? imageUrl.replace(/\\/g, '/') : '';
-  const fullImageUrl = normalizedImage ? IMAGE_BASE_URL + normalizedImage : '';
+    const imageUrl = preferredImages?.[0] || '';
+    const normalizedImage = imageUrl ? imageUrl.replace(/\\/g, '/') : '';
+    const fullImageUrl = normalizedImage ? IMAGE_BASE_URL + normalizedImage : '';
 
   return {
     id: (product as any)?._id || '',
     name: (product as any)?.productName || (product as any)?.name || 'Product',
-    image: fullImageUrl || FALLBACK_IMAGE,
+      image: fullImageUrl,
     price: variant?.price || (product as any)?.price || 0,
     oldPrice: variant?.originalPrice || (product as any)?.mrp || 0,
     discount: variant?.discount ? `₹${variant.discount} OFF` : '',

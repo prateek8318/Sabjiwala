@@ -1,7 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Dashboard, Catogaries, Favorites, MyOrder, Cart, RateOrder, Reorder } from '../screens';
+import { Dashboard, Catogaries, Favorites, MyOrder, Cart, RateOrder, Reorder, OrderTracking } from '../screens';
 import { Colors, Fonts, Images } from '../constant';
 import LinearGradient from 'react-native-linear-gradient';
 import { Image, View, Text } from 'react-native';
@@ -35,6 +35,7 @@ const MyOrderPageStack = () => (
     <Stack.Screen name="MyOrder" component={MyOrder} />
     <Stack.Screen name="RateOrder" component={RateOrder} />
     <Stack.Screen name="Reorder" component={Reorder} />
+    <Stack.Screen name="OrderTracking" component={OrderTracking} />
   </Stack.Navigator>
 );
 const CartPageStack = () => (

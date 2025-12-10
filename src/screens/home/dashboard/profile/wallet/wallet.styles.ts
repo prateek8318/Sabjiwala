@@ -10,6 +10,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.PRIMARY[300],
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: hp(8),
+  },
   cardView: {
     width: wp(90),
     alignSelf: 'center',
@@ -31,33 +37,17 @@ const styles = StyleSheet.create({
     marginTop: hp(2),
     fontSize: wp(9),
   },
-  actionButtonView: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    marginTop: hp(2),
-    width: wp(90),
-//     height:hp(20),
-  },
-//   btnView: {
-//     width: wp(90),
-//     alignSelf: 'center',
-//     marginTop: hp(2),
-//     height:hp(20)
-//   },
-btnView: {
-  width: wp(90),
-  alignSelf: 'center',
-  marginTop: hp(2),
-  height: hp(7),  // Ensure there is enough height for the button and text
-},
   priceMainView: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: hp(2),
+    paddingHorizontal: hp(2),
     width: wp(90),
-    marginTop: hp(1),
+    marginTop: hp(2),
     alignSelf: 'center',
+  },
+  priceViewSelected: {
+    backgroundColor: Colors.PRIMARY[100],
+    borderColor: Colors.PRIMARY[200],
   },
   priceView: {
     width: wp(25),
@@ -73,18 +63,22 @@ btnView: {
     fontFamily: Fonts.Medium,
     fontSize: wp(4),
   },
+  inputWrapper: {
+    width: wp(90),
+    alignSelf: 'center',
+    marginTop: hp(2),
+  },
   inputContainer: {
     flexDirection: 'row',
     width: wp(90),
     borderRadius: 12,
-    marginTop: hp(1),
     borderWidth: 1,
     color: Colors.PRIMARY[400],
     alignItems: 'center',
     alignSelf: 'center',
   },
   buttonTitle: {
-    color: Colors.PRIMARY[200],
+    color: Colors.PRIMARY[300],
     ...Typography.H5Medium16,
   },
   inputView: {
@@ -97,11 +91,25 @@ btnView: {
     width: wp(100),
     position: 'absolute',
     bottom: 0,
-    elevation: 1,
+    elevation: 5,
+    backgroundColor: Colors.PRIMARY[300],
+    paddingTop: hp(1),
+    paddingBottom: hp(2),
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: Colors.PRIMARY[100],
+  },
+  addMoneyButtonContainer: {
+    width: wp(100),
+    paddingHorizontal: hp(2),
+    alignItems: 'center',
+  },
+  btnAddMoney: {
+    width: wp(90),
+    height: hp(7),
   },
   payModeView: {
     width: wp(45),
@@ -149,6 +157,81 @@ btnView: {
 
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  btnPayViewDisabled: {
+    opacity: 0.6,
+  },
+  historyWrapper: {
+    width: wp(90),
+    alignSelf: 'center',
+    marginTop: hp(2),
+    minHeight: hp(20),
+  },
+  historyTitle: {
+    color: Colors.PRIMARY[100],
+    fontFamily: Fonts.Medium,
+    fontSize: wp(5),
+    marginBottom: hp(2),
+  },
+  historyItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.PRIMARY[300],
+    padding: hp(2),
+    borderRadius: 12,
+    marginBottom: hp(1.5),
+    borderWidth: 1,
+    borderColor: Colors.PRIMARY[100],
+  },
+  historyItemLeft: {
+    flex: 1,
+  },
+  historyItemRight: {
+    alignItems: 'flex-end',
+  },
+  historyAction: {
+    color: Colors.PRIMARY[100],
+    fontFamily: Fonts.Medium,
+    fontSize: wp(4),
+    marginBottom: hp(0.5),
+  },
+  historyDate: {
+    color: Colors.PRIMARY[400],
+    ...Typography.BodyRegular12,
+    marginBottom: hp(0.5),
+  },
+  historyDescription: {
+    color: Colors.PRIMARY[400],
+    ...Typography.BodyRegular12,
+  },
+  historyAmount: {
+    fontFamily: Fonts.Medium,
+    fontSize: wp(4.5),
+    marginBottom: hp(0.5),
+  },
+  creditAmount: {
+    color: '#4CAF50',
+  },
+  debitAmount: {
+    color: '#F44336',
+  },
+  historyBalance: {
+    color: Colors.PRIMARY[400],
+    ...Typography.BodyRegular12,
+  },
+  loadingContainer: {
+    padding: hp(3),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyContainer: {
+    padding: hp(3),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    color: Colors.PRIMARY[400],
+    ...Typography.BodyRegular14,
   },
 });
 

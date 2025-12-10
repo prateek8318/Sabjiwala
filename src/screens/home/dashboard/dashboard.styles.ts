@@ -203,26 +203,27 @@ const styles = StyleSheet.create({
     marginTop: hp(1),
   },
   groceryCard1: {
-    width: wp(42),
-    height: hp(20),
+    width: wp(40),
+    height: hp(16),
     elevation:5,
-  
+    marginLeft: hp(0.5),
     backgroundColor: '#E8FAA8',
     borderRadius: 12,
   },
   groceryCard2: {
-    width: wp(42),
-    height: hp(20),
+    width: wp(40),
+    height: hp(16),
      elevation:5,
-    marginRight: hp(1),
+    
     backgroundColor: '#E3E3E3',
     borderRadius: 12,
   },
   commonGroceryCard: {
-    width: wp(30),
-     elevation:5,
+    width: wp(28),
+     elevation:6,
     height: hp(10),
     borderRadius: 12,
+    margin: hp(.5),
   },
   imgDeal: {
     width: 400,
