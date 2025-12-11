@@ -111,6 +111,11 @@ const styles = StyleSheet.create({
     width: wp(90),
     height: hp(7),
   },
+  priceTxtSelected: {
+    color: '#FFFFFF',  // White text jab selected ho
+    fontFamily: Fonts.Medium,
+    fontSize: wp(4),
+  },
   payModeView: {
     width: wp(45),
     flexDirection: 'row',

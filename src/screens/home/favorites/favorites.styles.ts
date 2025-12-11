@@ -54,23 +54,32 @@ const styles = StyleSheet.create({
   },
   cardProduct: {
     width: wp(42),
-    height: hp(38),                    // ← Sab cards ki height same
+    minHeight: hp(32),                    // ← Sab cards ki height same
     marginHorizontal: wp(2),
-    marginBottom: hp(2),
+    marginBottom: hp(1),
     backgroundColor: Colors.PRIMARY[300],
     borderRadius: 14,
-    borderWidth: 0.5,
-    borderColor: Colors.PRIMARY[400],
+    boxShadow:'20',
     overflow: 'hidden',
     justifyContent: 'space-between',
-    paddingBottom: hp(1),
+    shadowColor: '#000',
+  shadowOffset: { width: 0, height: 3 },
+  shadowOpacity: 0.15,
+  shadowRadius: 6,
+
+  // ===== SHADOW (Android) =====
+  elevation: 8,
     
   },
   
   cardProductImage: {
     width: '100%',
-    height: hp(18),                    // ← Fixed image size
+    height: wp(28) * 1.5,
     resizeMode: 'cover',
+    borderWidth: 1,
+    borderColor: 'darkgreen',
+    borderRadius: 14,
+    
   },
   
   imgFlashView: { position: 'absolute', top: 6, left: 6 },
@@ -82,43 +91,59 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: wp(3),
+    paddingHorizontal: wp(1.5),
     paddingTop: hp(1),
   },
   cardProductPriceText: {
     ...Typography.H5Medium16,
     color: Colors.PRIMARY[400],
+    fontSize: 18,
+    fontWeight: '800',
   },
   cardProductPriceDiscount: {
     ...Typography.BodyRegular14,
-    color: Colors.PRIMARY[400],
+    color: '#9E9E9E',                 // ← 100% safe, hamesha chalega
     textDecorationLine: 'line-through',
-    marginLeft: 4,
+    fontSize: 14,
+    fontWeight: '700',
   },
   offerView: {
-    backgroundColor: Colors.PRIMARY[600],
+    // backgroundColor: '#E53935',        
+    backgroundColor: '#27AE60',
     borderRadius: 50,
-    paddingVertical: hp(0.4),
-    paddingHorizontal: wp(3),
+    width: 40,
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    marginLeft: 'auto',
   },
+
   offerTxt: {
-    color: Colors.PRIMARY[400],
-    ...Typography.BodyRegular12,
+    color: '#FFFFFF',                
+    ...Typography.BodyMedium12,
+    fontWeight: '400',
+    fontSize: 8,
   },
   txtProduct: {
     ...Typography.H5Medium16,
     color: Colors.PRIMARY[400],
-    paddingHorizontal: wp(3),
-    marginTop: hp(0.5),
+    paddingHorizontal: wp(1.5),       // pehle 0.8 tha
+    numberOfLines: 2,
+    top:3,
+    bottom:4,
+    fontSize:16,
+    fontWeight: '700',
+    lineHeight: 17,           // pehle 20 tha
   },
+
   quantityView: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    paddingHorizontal: wp(3),
-    paddingBottom: hp(1.5),
-    marginTop: hp(1),
+    paddingHorizontal: wp(2),
+    paddingBottom: hp(1.2),   // thoda kam kiya
+          // pehle 1 tha
   },
+
   txtWeight: {
     ...Typography.BodyRegular13,
     color: Colors.PRIMARY[400],
@@ -126,23 +151,26 @@ const styles = StyleSheet.create({
   ratingView: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: hp(0.5),
+    marginTop: 'auto',
   },
+
   txtRating: {
     ...Typography.BodyRegular13,
-    marginLeft: wp(1),
+    marginLeft:'auto' ,
+    marginTop:'auto',
     color: '#000',
     fontWeight: '600',
   },
   addProductButon: {
-    height: hp(5),
-    width: wp(22),
+    height: hp(4.5),
+    width: wp(15),
     borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   optionView: {
-    width: 80,
+    width: 66,
     height: 20,
     backgroundColor: Colors.PRIMARY[600],
     borderBottomLeftRadius: 50,
@@ -152,20 +180,22 @@ const styles = StyleSheet.create({
   },
   txtOption: {
     color: Colors.PRIMARY[400],
-    ...Typography.BodyRegular13,
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+
+  txtAdd: {
+    color: Colors.PRIMARY[300],
+    fontSize: 14,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
   },
   addButton: {
     width: 80,
     height: 120,
   },
-  txtAdd: {
-    color: Colors.PRIMARY[300],
-    fontSize: 14,
-    textAlign: 'center',        // horizontally center
-    textAlignVertical: 'center', // vertically center (Android)
-    includeFontPadding: false,   // clean centering
-  },
+  
   cartButton: {
     height: hp(3),
     width: hp(3),

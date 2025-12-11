@@ -209,7 +209,7 @@ const EditProfile: FC = () => {
               inputStyle={styles.inputView}
             />
 
-            <TextView style={{ color: '#000', fontSize: 14, marginTop: hp(2) }}>
+            <TextView style={{ color: '#000', fontSize: 14,  }}>
               Mobile Number:
             </TextView>
             <InputText
@@ -219,7 +219,7 @@ const EditProfile: FC = () => {
               inputStyle={[styles.inputView, { color: '#000' }]}
             />
 
-            <TextView style={{ color: '#000', fontSize: 14, marginTop: hp(2) }}>
+            <TextView style={{ color: '#000', fontSize: 14,  }}>
               Email address (optional):
             </TextView>
             <InputText

@@ -7,6 +7,7 @@ import {
   TouchableWithoutFeedback,
   View,
   Image,
+  Platform,
 } from "react-native";
 import styles from "./verifyOTP.style";
 import { Colors } from "../../../constant";
@@ -138,8 +139,8 @@ const VerifyOTP: FC = () => {
         {/* ----------------------------------------------------------- */}
 
         <KeyboardAvoidingView
-          behavior="padding"
-          keyboardVerticalOffset={insets.top + 30}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 30 : 0}
           style={{ flex: 1 }}
         >
           <ScrollView
@@ -184,7 +185,7 @@ const VerifyOTP: FC = () => {
                 </View>
               </View>
 
-              <View style={{ marginTop: hp(4) }}>
+              <View style={{ marginTop: hp(0.5) }}>
                 {canResend && (
                   <Button
                     title="Resend"
@@ -199,7 +200,7 @@ const VerifyOTP: FC = () => {
                   title="Submit"
                   style={[
                     styles.actionButton,
-                    { marginTop: canResend ? hp(4) : hp(8) },
+                    { marginTop: canResend ? hp(2) : hp(4) },
                   ]}
                   buttonColor={Colors.PRIMARY[300]}
                   titleStyle={styles.actionButtonTitle}

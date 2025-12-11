@@ -34,10 +34,53 @@ export default StyleSheet.create({
   qtyTextActive: { color: '#fff' },
 
   infoSection: { marginTop: hp(3), paddingHorizontal: wp(4) },
-  infoTitle: { fontSize: wp(5), fontFamily: Fonts.Bold, color: '#000', marginBottom: hp(2) },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: hp(1), borderBottomWidth: 0.5, borderColor: '#eee' },
-  infoKey: { fontSize: wp(4), color: '#555', width: wp(40) },
-  infoValue: { fontSize: wp(4), color: '#000', flex: 1, textAlign: 'right' },
+  infoTitle: { fontSize: wp(5), fontFamily: Fonts.Bold, color: '#000', marginBottom: hp(1.5) },
+  infoTable: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#fafafa',
+  },
+  infoHeaderRow: {
+    flexDirection: 'row',
+    backgroundColor: '#f0f5f0',
+    paddingVertical: hp(1.2),
+    paddingHorizontal: wp(3),
+    borderBottomWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  infoHeaderCell: {
+    flex: 1,
+    fontSize: wp(3.6),
+    fontFamily: Fonts.Medium,
+    color: '#333',
+    textAlign: 'left',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    paddingVertical: hp(1.2),
+    paddingHorizontal: wp(3),
+    borderBottomWidth: 1,
+    borderColor: '#e0e0e0',
+    backgroundColor: '#fff',
+  },
+  infoRowAlt: {
+    backgroundColor: '#f9f9f9',
+  },
+  infoKey: {
+    flex: 1,
+    fontSize: wp(3.8),
+    color: '#555',
+    fontFamily: Fonts.Medium,
+    textAlign: 'left',
+  },
+  infoValue: {
+    flex: 1,
+    fontSize: wp(3.8),
+    color: '#000',
+    textAlign: 'left',
+  },
 
   bottomCartBar: {
     position: 'absolute',
@@ -63,31 +106,6 @@ export default StyleSheet.create({
     fontWeight: 'bold'
   },
   
-  qtyBtn: {
-    backgroundColor: '#E0E0E0', // light gray
-    marginRight: 10,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  
-  qtyBtnActive: {
-    backgroundColor: '#4CAF50', // green
-  },
-  
-  qtyText: {
-    fontSize: 14,
-    color: '#000',
-  },
-  
-  qtyTextActive: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  qtyBtnActiveText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
   priceTag: {
     fontSize: 13,
     color: '#4CAF50',

@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  FlatList,
 } from 'react-native';
 import styles from './wallet.styles';
 import { HomeStackProps } from '../../../../../@types';
@@ -255,23 +256,39 @@ const Wallet: FC = () => {
           {addMoney && (
             <>
               <View style={styles.priceMainView}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.priceView, amount === '500' && styles.priceViewSelected]}
                   onPress={() => setAmount('500')}
                 >
-                  <TextView style={styles.priceTxt}>+₹ 500</TextView>
+                  <TextView style={[
+                    styles.priceTxt,
+                    amount === '500' && styles.priceTxtSelected
+                  ]}>
+                    +₹ 500
+                  </TextView>
                 </TouchableOpacity>
-                <TouchableOpacity 
+
+                <TouchableOpacity
                   style={[styles.priceView, amount === '1000' && styles.priceViewSelected]}
                   onPress={() => setAmount('1000')}
                 >
-                  <TextView style={styles.priceTxt}>+₹ 1000</TextView>
+                  <TextView style={[
+                    styles.priceTxt,
+                    amount === '1000' && styles.priceTxtSelected
+                  ]}>
+                    +₹ 1000
+                  </TextView>
                 </TouchableOpacity>
-                <TouchableOpacity 
+
+                <TouchableOpacity
                   style={[styles.priceView, amount === '2000' && styles.priceViewSelected]}
                   onPress={() => setAmount('2000')}
                 >
-                  <TextView style={styles.priceTxt}>+₹ 2000</TextView>
+                  <TextView style={[
+                    styles.priceTxt,
+                    amount === '2000' && styles.priceTxtSelected]}>
+                    +₹ 2000
+                  </TextView>
                 </TouchableOpacity>
               </View>
 
@@ -297,6 +314,7 @@ const Wallet: FC = () => {
           {/* Wallet History List */}
           <View style={styles.historyWrapper}>
             <TextView style={styles.historyTitle}>Transaction History</TextView>
+
             {loading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator color={Colors.PRIMARY[100]} size="small" />
@@ -306,13 +324,16 @@ const Wallet: FC = () => {
                 <TextView style={styles.emptyText}>No transactions yet</TextView>
               </View>
             ) : (
-              <ScrollView
+              /* Ye naya FlatList laga do – perfect scroll karega */
+              <FlatList
+                data={walletHistory}
+                keyExtractor={(item) => item._id}
                 showsVerticalScrollIndicator={false}
-                nestedScrollEnabled
-                contentContainerStyle={{ paddingBottom: 12 }}
-              >
-                {walletHistory.map((item) => (
-                  <View key={item._id} style={styles.historyItem}>
+                scrollEnabled={true}
+                bounces={true}
+                contentContainerStyle={{ paddingBottom: hp(12) }}  /* bottom button ke liye space */
+                renderItem={({ item }) => (
+                  <View style={styles.historyItem}>
                     <View style={styles.historyItemLeft}>
                       <TextView style={styles.historyAction}>
                         {item.action === 'credit' ? 'Credit' : 'Debit'}
@@ -325,18 +346,14 @@ const Wallet: FC = () => {
                         })}
                       </TextView>
                       {item.description ? (
-                        <TextView style={styles.historyDescription}>
-                          {item.description}
-                        </TextView>
+                        <TextView style={styles.historyDescription}>{item.description}</TextView>
                       ) : null}
                     </View>
                     <View style={styles.historyItemRight}>
                       <TextView
                         style={[
                           styles.historyAmount,
-                          item.action === 'credit'
-                            ? styles.creditAmount
-                            : styles.debitAmount,
+                          item.action === 'credit' ? styles.creditAmount : styles.debitAmount,
                         ]}>
                         {item.action === 'credit' ? '+' : '-'}₹ {item.amount.toFixed(2)}
                       </TextView>
@@ -345,8 +362,8 @@ const Wallet: FC = () => {
                       </TextView>
                     </View>
                   </View>
-                ))}
-              </ScrollView>
+                )}
+              />
             )}
           </View>
         </ScrollView>

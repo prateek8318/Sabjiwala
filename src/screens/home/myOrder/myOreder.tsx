@@ -59,14 +59,38 @@ const MyOrder = () => {
 
   const getStatusColor = (status: string) => {
     const s = status?.toLowerCase();
-    if (s?.includes('delivered') || s?.includes('completed')) return '#4CAF50';
-    if (s?.includes('cancel')) return '#F44336';
+    if (!s) return '#666';
+
+    // Return / pending -> yellow, Delivered / Completed -> green, Cancelled -> red
+    if (s.includes('return')) return '#FBC02D';
+    if (s.includes('pending')) return '#FBC02D';
+    if (s.includes('delivered') || s.includes('completed')) return '#2E7D32';
+    if (s.includes('cancel')) return '#D32F2F';
+
     return '#666';
   };
 
   const renderOrder = ({ item }: { item: any }) => {
     const items = item.items || item.products || [];
     const totalItems = items.length;
+    const status = (item.status || item.orderStatus || '').toLowerCase();
+    const isReturnRequested =
+      status.includes('returned_requested') ||
+      status.includes('return_requested') ||
+      status.includes('return requested');
+    const isDelivered = isReturnRequested || status.includes('delivered') || status.includes('completed');
+    const deliveredDate =
+      item.deliveredAt ||
+      item.delivered_on ||
+      item.deliveryDate ||
+      item.completedAt ||
+      item.updatedAt ||
+      item.statusUpdatedAt ||
+      item.deliveredDate;
+    const deliveredAt = deliveredDate ? new Date(deliveredDate) : null;
+    const diffHours = deliveredAt ? (Date.now() - deliveredAt.getTime()) / 36e5 : Infinity;
+    const RETURN_WINDOW_HOURS = 72;
+    const windowOpen = diffHours <= RETURN_WINDOW_HOURS;
 
     const bill = item.billSummary || item.bill || item.pricing || {};
 
@@ -115,7 +139,7 @@ const MyOrder = () => {
               paddingHorizontal: 12,
               paddingVertical: 6,
               borderRadius: 14,
-              backgroundColor: '#E8F5E9',
+              backgroundColor: '#fff',
               borderWidth: 1,
               borderColor: getStatusColor(item.status || item.orderStatus || ''),
             }}>
@@ -202,12 +226,27 @@ const MyOrder = () => {
             <TextView style={styles.actionText}>Reorder</TextView>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => navigation.navigate('RateOrder', { orderId: item._id, order: item })}
-          >
-            <TextView style={styles.actionText}>Rate Order</TextView>
-          </TouchableOpacity>
+          {isDelivered && (
+            <TouchableOpacity
+              style={[
+                styles.actionBtn,
+                styles.returnBtn,
+                !windowOpen && !isReturnRequested ? { borderColor: '#ccc', backgroundColor: '#f5f5f5' } : null,
+              ]}
+              disabled={!windowOpen && !isReturnRequested}
+              onPress={() => navigation.navigate('ReturnOrder', { orderId: item._id, order: item })}
+            >
+              <TextView
+                style={[
+                  styles.actionText,
+                  { color: Colors.PRIMARY[300] },
+                  !windowOpen && !isReturnRequested ? { color: '#999' } : null,
+                ]}
+              >
+                {isReturnRequested ? 'Return Requested' : windowOpen ? 'Return' : 'Return Closed'}
+              </TextView>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={styles.actionBtn}
@@ -215,17 +254,6 @@ const MyOrder = () => {
           >
             <TextView style={styles.actionText}>Track</TextView>
           </TouchableOpacity>
-
-          {(item.status === 'Delivered' || item.status === 'Completed') && (
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.returnBtn]}
-              onPress={() => navigation.navigate('ReturnOrder', { orderId: item._id })}
-            >
-              <TextView style={[styles.actionText, { color: Colors.PRIMARY[300] }]}>
-                Return
-              </TextView>
-            </TouchableOpacity>
-          )}
         </View>
       </TouchableOpacity>
     );

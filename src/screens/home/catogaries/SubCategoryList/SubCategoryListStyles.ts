@@ -2,6 +2,7 @@
 
 import { StyleSheet } from "react-native";
 import { Colors } from "../../../../constant";
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "../../../../constant/dimentions";
 
 export default StyleSheet.create({
   container: {
@@ -27,9 +28,9 @@ export default StyleSheet.create({
   sortButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    gap: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 24,
     backgroundColor: "#fff",
     borderWidth: 1,
@@ -40,9 +41,9 @@ export default StyleSheet.create({
   filterButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    gap: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 24,
     backgroundColor: "#fff",
     borderWidth: 1,
@@ -51,8 +52,8 @@ export default StyleSheet.create({
 
   actionText: {
     fontSize: 13,
-    fontWeight: "500",
-    color: "#000",
+    fontWeight: "700",
+    color: "#228B22",
   },
 
   // Search Icon Button (with border)
@@ -87,7 +88,7 @@ export default StyleSheet.create({
   },
 
   leftPane: {
-    width: 80,
+    width: 75,
     backgroundColor: "#F7F7F7",
     paddingTop: 12,
   },
@@ -115,19 +116,26 @@ export default StyleSheet.create({
   },
   subTitle: {
     marginTop: 8,
-    fontSize: 11,
-    color: "#666",
+    fontSize: 9.6,
+    color: "#228B22",
     textAlign: "center",
   },
   subTitleActive: {
-    color: "#000",
-    fontWeight: "600",
+    color: "#228B22",
+    fontWeight: "700",
   },
 
   rightPane: {
-    flex: 1.5,
+    flex: 1,
     paddingTop: 6,
-    paddingHorizontal: 10, 
+    paddingHorizontal: -4, 
+    marginLeft:-7,
+    
+  },
+  productCardWrapper: {
+    width: "50%",           // 2 cards perfect fit
+    marginBottom: hp(.5),  
+    paddingHorizontal: -4,
   },
 searchHeader: {
   flexDirection: "row",

@@ -123,11 +123,17 @@ const ProductDetail = () => {
 
   const fallbackImg = buildImageUrl(product.images?.[0]);
 
-  // Get product images for carousel
-  const productImages = product?.images?.length > 0
+  // Get product images for carousel; if only one image, duplicate so carousel still scrolls
+  const baseImages = product?.images?.length > 0
     ? product.images.map((image: string) => buildImageUrl(image)).filter(Boolean)
     : fallbackImg
       ? [fallbackImg]
+      : [];
+
+  const productImages = baseImages.length > 1
+    ? baseImages
+    : baseImages.length === 1
+      ? [baseImages[0], baseImages[0]]
       : [];
 
   const info = product.info || {};
@@ -314,19 +320,25 @@ const ProductDetail = () => {
         {info && typeof info === 'object' && Object.keys(info).length > 0 ? (
           <View style={styles.infoSection}>
             <Text style={styles.infoTitle}>Additional Info</Text>
-            {Object.keys(info).map((key) => {
-              const value = info[key];
-              // Convert value to string if it's not already
-              const displayValue = value !== null && value !== undefined
-                ? (typeof value === 'object' ? JSON.stringify(value) : String(value))
-                : '';
-              return (
-                <View key={key} style={styles.infoRow}>
-                  <Text style={styles.infoKey}>{String(key || '')}</Text>
-                  <Text style={styles.infoValue}>{displayValue}</Text>
-                </View>
-              );
-            })}
+            <View style={styles.infoTable}>
+              <View style={styles.infoHeaderRow}>
+                <Text style={styles.infoHeaderCell}>Key</Text>
+                <Text style={styles.infoHeaderCell}>Details</Text>
+              </View>
+              {Object.keys(info).map((key, index) => {
+                const value = info[key];
+                const displayValue = value !== null && value !== undefined
+                  ? (typeof value === 'object' ? JSON.stringify(value) : String(value))
+                  : '';
+                const rowStyle = [styles.infoRow, index % 2 === 1 && styles.infoRowAlt];
+                return (
+                  <View key={key} style={rowStyle}>
+                    <Text style={styles.infoKey}>{String(key || '')}</Text>
+                    <Text style={styles.infoValue}>{displayValue}</Text>
+                  </View>
+                );
+              })}
+            </View>
           </View>
         ) : null}
       </ScrollView>

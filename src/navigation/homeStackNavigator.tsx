@@ -8,6 +8,7 @@ import {
   Dashboard,
   EditAddress,
   EditProfile,
+  ExploreListing,
   InviteFriend,
   PrivacyPolicy,
   ProductDetail,
@@ -106,6 +107,11 @@ const HomeStackNavigator: FC = () => {
         <HomeStack.Screen
           name="ProductDetail"
           component={ProductDetail}
+          options={{ headerShown: false }}
+        />
+        <HomeStack.Screen
+          name="ExploreListing"
+          component={ExploreListing}
           options={{ headerShown: false }}
         />
       </HomeStack.Navigator>

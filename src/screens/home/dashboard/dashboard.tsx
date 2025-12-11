@@ -404,34 +404,50 @@ const Dashboard: FC = () => {
 
 
   // 🔹 Render Deal Cards
-  const renderDealProduct = ({ item }: { item: ProductCardItem }) => (
-    <View style={styles.cardDealMainView}>
-      <View style={styles.cardDealView}>
-        <View style={styles.cardDealOfferView}>
-          <TextView style={styles.cardDealTxtOffer}>{item.discount || 'Deal'}</TextView>
-        </View>
-        <View style={styles.cardDealImageWrapper}>
-          {item.image ? (
-            <Image
-              source={{ uri: item.image }}
-              style={styles.cardDealImage}
-              resizeMode="contain"
-            />
-          ) : (
-            <View style={styles.cardDealImagePlaceholder}>
-              <Icon
-                family="MaterialCommunityIcons"
-                name="image-off"
-                color={Colors.PRIMARY[200]}
-                size={24}
+  const renderDealProduct = ({ item }: { item: ProductCardItem }) => {
+    // Get explore section ID - use first explore section or fallback to the one from API
+    const exploreSectionId = exploreSections?.[0]?._id || '68b3d1d421325e626fcd0ae7';
+    const exploreSectionName = exploreSections?.[0]?.name || 'Deals of the Day';
+
+    return (
+      <Pressable
+        style={styles.cardDealMainView}
+        onPress={() => {
+          if (exploreSectionId) {
+            navigation.navigate('ExploreListing', {
+              exploreSectionId,
+              exploreSectionName,
+            });
+          }
+        }}
+      >
+        <View style={styles.cardDealView}>
+          <View style={styles.cardDealOfferView}>
+            <TextView style={styles.cardDealTxtOffer}>{item.discount || 'Deal'}</TextView>
+          </View>
+          <View style={styles.cardDealImageWrapper}>
+            {item.image ? (
+              <Image
+                source={{ uri: item.image }}
+                style={styles.cardDealImage}
+                resizeMode="contain"
               />
-            </View>
-          )}
+            ) : (
+              <View style={styles.cardDealImagePlaceholder}>
+                <Icon
+                  family="MaterialCommunityIcons"
+                  name="image-off"
+                  color={Colors.PRIMARY[200]}
+                  size={24}
+                />
+              </View>
+            )}
+          </View>
         </View>
-      </View>
-      <TextView style={styles.cardDealTxtProduct}>{item.name}</TextView>
-    </View>
-  );
+        <TextView style={styles.cardDealTxtProduct}>{item.name}</TextView>
+      </Pressable>
+    );
+  };
 
   // 🔹 Grocery Section
   const renderGroceryKitchen = () => (
@@ -552,13 +568,13 @@ const Dashboard: FC = () => {
                 <Pressable onPress={() => navigation.navigate('Wallet')}>
                   <Image
                     source={Images.ic_wallet}
-                    style={[styles.actionButton, { marginRight: hp(0.5) }]}
+                    style={[styles.actionButton, { marginRight: hp(0.8) }]}
                   />
                 </Pressable>
-                {/* <Image
+                <Image
                   source={Images.ic_notificaiton}
-                  style={[styles.actionButton, { marginLeft: hp(0.5) }]}
-                /> */}
+                  style={[styles.actionButton, { marginLeft: hp(0.5),marginRight: hp(0.5) }]}
+                />
               </View>
             </View>
           </View>
@@ -572,14 +588,15 @@ const Dashboard: FC = () => {
               <Icon
                 family="EvilIcons"
                 name="search"
-                color={Colors.PRIMARY[300]}
-                size={30}
+                color={Colors.PRIMARY[200]}
+                size={34}
+                style={{ marginTop: hp(-1) }}
               />
               <InputText
                 value={''}
                 inputStyle={styles.inputView}
                 editable={false}
-                placeHolderTextStyle={Colors.PRIMARY[300]}
+                placeHolderTextStyle={Colors.PRIMARY[200]}
                 placeholder="Search"
               />
             </Pressable>
@@ -615,7 +632,7 @@ const Dashboard: FC = () => {
             <View style={styles.cardMainView}>
               <View>
                 <TextView style={styles.txtOffer}>
-                  50% OFF on Fresh {'\n'}grocery
+                  50% OFF on {'\n'}Fresh grocery
                 </TextView>
                 <Image source={Images.ic_code} style={styles.imgCode} />
               </View>
@@ -626,15 +643,15 @@ const Dashboard: FC = () => {
                 />
               </View>
             </View>
+            {/* 🔹 Product List */}
+          <ProductCard cardArray={products} type="OFFER" horizontal />
+        
           </View>
         </View>
 
 
 
-        {/* 🔹 Product List */}
-        <View style={styles.groceryCard}>
-          <ProductCard cardArray={products} type="OFFER" horizontal />
-        </View>
+        
 
         {/*  EXPLORE BUTTON */}
         <View style={styles.buttonView}>

@@ -7,23 +7,26 @@ import {
 
 const styles = StyleSheet.create({
   cardProduct: {
-    width: wp(36),
+    width: wp(38),
     minHeight: hp(32),
-    marginBottom: hp(2),
+    marginBottom: hp(1),
     marginHorizontal: wp(1),
     backgroundColor: Colors.PRIMARY[300],
     borderRadius: 14,
-    borderWidth: 0.5,
-    borderColor: Colors.PRIMARY[400],
-    overflow: 'hidden',
+    elevation: 0,
+    
+    
     justifyContent: 'space-between',
   },
 
   cardProductImage: {
     width: '100%',
-    height: wp(28) * 1.1,
+    height: wp(24.5) * 1.5,
     resizeMode: 'cover',
-    top:-4,
+    
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'darkgreen',
   },
 
   imgFlashView: { position: 'absolute', top: 6, left: 6 },
@@ -46,89 +49,95 @@ const styles = StyleSheet.create({
 
   // Price Section
   cardProductPriceView: {
-    paddingHorizontal: wp(3),
-    paddingTop: hp(1),
+    paddingHorizontal: wp(1.2),
+    
   },
 
   cardProductPriceText: {
     ...Typography.H5Medium16,
     color: Colors.PRIMARY[400],
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 
-  priceRowBelow: {
+  priceMainRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: hp(0.6),
-    gap: wp(2), // ← Better spacing than marginRight
+    flexWrap: 'nowrap',
+    gap: wp(1),               // sab ek line me + perfect spacing
   },
 
   cardProductPriceDiscount: {
     ...Typography.BodyRegular14,
     color: '#9E9E9E',                 // ← 100% safe, hamesha chalega
     textDecorationLine: 'line-through',
-    fontSize: 13,
+    fontSize: 14,
+    fontWeight: '700',
   },
 
   offerView: {
-    backgroundColor: '#E53935',        
-    // backgroundColor: '#27AE60',
+    // backgroundColor: '#E53935',        
+    backgroundColor: '#27AE60',
     borderRadius: 50,
-    paddingHorizontal: wp(3),
-    paddingVertical: hp(0.5),
-    minWidth: wp(10),
+    width: 40,
     alignItems: 'center',
+    alignSelf: 'flex-end',
+    marginLeft: 'auto',
   },
 
   offerTxt: {
     color: '#FFFFFF',                
-    ...Typography.BodyMedium14,
-    fontWeight: '700',
-    fontSize: 12,
+    ...Typography.BodyMedium12,
+    fontWeight: '400',
+    fontSize: 8,
   },
 
   txtProduct: {
     ...Typography.H5Medium16,
     color: Colors.PRIMARY[400],
-    paddingHorizontal: wp(3),
-    marginTop: hp(0.8),
+    paddingHorizontal: wp(1.5),       // pehle 0.8 tha
     numberOfLines: 2,
-    lineHeight: 20,
+    top:-5,
+    fontSize:16,
+    fontWeight: '700',
+    lineHeight: 14,           // pehle 20 tha
   },
 
   quantityView: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    paddingHorizontal: wp(3),
-    paddingBottom: hp(1.5),
-    marginTop: hp(1),
+    paddingHorizontal: wp(2),
+    marginTop:0,
+    paddingBottom: hp(1.2),   // thoda kam kiya
+          // pehle 1 tha
   },
 
   ratingView: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: hp(0.5),
+    marginTop: 'auto',
   },
 
   txtRating: {
     ...Typography.BodyRegular13,
-    marginLeft: wp(0.5),
+    marginLeft: wp(1.2),
+    marginTop:'auto',
     color: '#000',
     fontWeight: '600',
   },
 
   addProductButon: {
-    height: hp(5),
-    width: wp(16),
+    height: hp(3.5),
+    width: wp(15),
+    marginTop:-15,
     borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
   },
 
   optionView: {
-    width: 72,
+    width: 66,
     height: 20,
     backgroundColor: Colors.PRIMARY[600],
     borderBottomLeftRadius: 50,

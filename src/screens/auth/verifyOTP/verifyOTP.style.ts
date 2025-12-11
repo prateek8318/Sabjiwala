@@ -72,16 +72,15 @@ const styles = StyleSheet.create({
     ...Typography.BodyRegular14,
   },
   bottomView: {
-    top: hp(3),
     alignSelf: 'center',
   },
   timerText: {
     color: Colors.PRIMARY[300],
     marginTop: hp(1),
-    ...Typography.BodyRegular14,
+    ...Typography.BodyRegular8,
   },
   secText: {
-    ...Typography.H6Semibold13,
+    ...Typography.H6Semibold10,
     color: Colors.SECONDARY[100],
     textDecorationLine: 'underline',
   },

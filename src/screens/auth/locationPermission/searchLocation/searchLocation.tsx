@@ -39,6 +39,35 @@ type SearchLocationScreenNavigationType = NativeStackNavigationProp<
   'SearchLocation'
 >;
 
+// Keep address text concise for list display
+const formatAddressText = (address: any) => {
+  const sanitize = (value: any) =>
+    typeof value === 'string'
+      ? value.replace(/\s+/g, ' ').replace(/,+/g, ',').trim()
+      : value;
+
+  const parts = [
+    sanitize(address.houseNoOrFlatNo),
+    sanitize(address.floor),
+    sanitize(address.landmark),
+    sanitize(address.city),
+    sanitize(address.pincode),
+  ].filter(Boolean);
+
+  const condensed = parts
+    .join(', ')
+    .replace(/\s+,/g, ',')
+    .replace(/,\s+/g, ', ')
+    .replace(/,{2,}/g, ',')
+    .trim();
+
+  if (condensed.length > 60) {
+    return `${condensed.slice(0, 57)}...`;
+  }
+
+  return condensed;
+};
+
 const SearchLocation: FC = () => {
   const navigation = useNavigation<SearchLocationScreenNavigationType>();
   const [searchQuery, setSearchQuery] = useState('');
@@ -295,7 +324,7 @@ const SearchLocation: FC = () => {
   };
 
   const renderAddressItem = ({ item }: { item: any }) => {
-    const addressText = `${item.houseNoOrFlatNo || ''} ${item.floor || ''}, ${item.landmark || ''}, ${item.city || ''} - ${item.pincode || ''}`.trim();
+    const addressText = formatAddressText(item);
     
     return (
       <Pressable
@@ -309,7 +338,7 @@ const SearchLocation: FC = () => {
         ]}
         onPress={() => handleSelectAddress(item)}
       >
-        <View style={styles.iconView}>
+        <View style={{ marginLeft: wp(0) }}>
           <Icon
             family={'Entypo'}
             name={'location-pin'}
@@ -320,7 +349,7 @@ const SearchLocation: FC = () => {
         <View style={styles.addressTextContainer}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <TextView style={styles.txtLocation}>
-              {item.landmark || item.city || 'Address'}
+              {item.city || item.landmark || 'Address'}
             </TextView>
             {item.addressType && (
               <View style={styles.addressTypeBadge}>
@@ -330,7 +359,7 @@ const SearchLocation: FC = () => {
               </View>
             )}
           </View>
-          <TextView style={styles.addressFullText} numberOfLines={2}>
+          <TextView style={styles.addressFullText} numberOfLines={1}>
             {addressText}
           </TextView>
         </View>

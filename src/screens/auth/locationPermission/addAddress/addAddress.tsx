@@ -186,7 +186,7 @@ const AddAddress: FC = () => {
               })}
             </View>
 
-            <View style={{ marginTop: 24, gap: 16 }}>
+            <View style={{ marginTop: 2, gap: 8 }}>
               <InputText
                 placeholder="Floor *"
                 value={floor}
@@ -194,27 +194,27 @@ const AddAddress: FC = () => {
                 placeHolderTextStyle={placeholderColor}
                 inputStyle={styles.inputView}
                 inputContainer={styles.inputContainer}
-        maxLength={30}
+                maxLength={30}
               />
 
               <InputText
                 placeholder="Flat / House No *"
                 value={houseNoOrFlatNo}
-        onChangeText={(txt) => setHouseNoOrFlatNo(sanitizeText(txt, 60))}
+                onChangeText={(txt) => setHouseNoOrFlatNo(sanitizeText(txt, 60))}
                 placeHolderTextStyle={placeholderColor}
                 inputStyle={styles.inputView}
                 inputContainer={styles.inputContainer}
-        maxLength={60}
+                maxLength={60}
               />
 
               <InputText
                 placeholder="Landmark *"
                 value={landmark}
-        onChangeText={(txt) => setLandmark(sanitizeText(txt, 80))}
+                onChangeText={(txt) => setLandmark(sanitizeText(txt, 80))}
                 placeHolderTextStyle={placeholderColor}
                 inputStyle={styles.inputView}
                 inputContainer={styles.inputContainer}
-        maxLength={80}
+                maxLength={80}
               />
 
               <InputText
@@ -238,7 +238,7 @@ const AddAddress: FC = () => {
               />
 
               <InputText
-                placeholder="Receiver Name (Optional)"
+                placeholder="Receiver Name"
                 value={receiverName}
                 onChangeText={setReceiverName}
                 placeHolderTextStyle={placeholderColor}
@@ -247,10 +247,11 @@ const AddAddress: FC = () => {
               />
 
               <InputText
-                placeholder="Receiver Phone (Optional)"
+                placeholder="Receiver Phone"
                 value={receiverNo}
-                onChangeText={setReceiverNo}
+                onChangeText={(txt) => setReceiverNo(txt.replace(/[^0-9]/g, '').slice(0, 10))}
                 keyboardType="phone-pad"
+                maxLength={10}
                 placeHolderTextStyle={placeholderColor}
                 inputStyle={styles.inputView}
                 inputContainer={styles.inputContainer}

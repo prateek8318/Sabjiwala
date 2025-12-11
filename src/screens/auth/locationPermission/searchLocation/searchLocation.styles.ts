@@ -34,9 +34,10 @@ const styles = StyleSheet.create({
   },
   iconView: {
     height: hp(5),
+    width: hp(4.5),
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: hp(2),
+    marginLeft: hp(1),
   },
   txtLocation: {
     ...Typography.H5Medium16,

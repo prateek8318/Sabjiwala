@@ -59,8 +59,8 @@ const styles = StyleSheet.create({
   txtProduct: {
     ...Typography.H5Medium16,
     color: Colors.PRIMARY[400],
-    paddingHorizontal: wp(3),
-    marginTop: hp(0.5),
+    paddingHorizontal: wp(1.5),
+    
     numberOfLines: 2,
   },
   quantityView: {

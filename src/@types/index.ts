@@ -11,6 +11,7 @@ export type HomeStackProps = {
   Catogaries:undefined;
   Products:any;
   ProductDetail:undefined;
+  ExploreListing: { exploreSectionId: string; exploreSectionName?: string };
   Search: undefined;
   Profile: undefined;
   EditProfile:undefined;

@@ -15,6 +15,7 @@ const styles = StyleSheet.create({
   },
 
   imgView: {
+    marginTop: hp(12),
     width: wp(80),
     height: wp(80),
     resizeMode: 'contain',
@@ -24,18 +25,22 @@ const styles = StyleSheet.create({
     color: Colors.PRIMARY[100],
     ...Typography.H4Semibold20,
     textAlign: 'center',
-    marginHorizontal: wp(8),
-    marginTop: hp(4),
+    fontSize: 18,      // 👈 text size chhota
+  lineHeight: 18,
+    
+    marginTop: hp(3),
   },
 
   buttonView: {
     width: wp(80),
-    marginTop: hp(4),
+    marginTop: hp(2),
   },
 
   buttonTitle: {
     color: Colors.PRIMARY[200],
     ...Typography.H4Semibold20,
+    fontSize: 16,      // 👈 text size chhota
+
     includeFontPadding: false,        
     textAlignVertical: 'center',     
   },

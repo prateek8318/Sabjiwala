@@ -14,12 +14,12 @@ import {
 import { Header, TextView } from "../../../../components";
 import ApiService from "../../../../service/apiService";
 import { Colors, Icon } from "../../../../constant";
-import { widthPercentageToDP as wp } from "../../../../constant/dimentions";
+import { widthPercentageToDP as wp,heightPercentageToDP as hp } from "../../../../constant/dimentions";
 import styles from "../SubCategoryList/SubCategoryListStyles";
 import ProductCard from "../../dashboard/components/ProductCard/productCard";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
-const LEFT_PANE_WIDTH = 79;
+const LEFT_PANE_WIDTH = 74;
 const RIGHT_PANE_PADDING = 12;
 const CARD_GAP = 1; // Space between cards
 const CONTAINER_PADDING = 0; // No padding to maximize space for cards
@@ -28,7 +28,7 @@ const CONTAINER_PADDING = 0; // No padding to maximize space for cards
 const getCardWidthPercent = () => {
   // rightPane has paddingLeft: 8, paddingHorizontal: 6
   // So: left = 8, right = 6
-  const rightPaneLeftPadding = 6;
+  const rightPaneLeftPadding = 4;
   const rightPaneRightPadding = 2;
   const availableWidth = SCREEN_WIDTH - LEFT_PANE_WIDTH - rightPaneLeftPadding;
   const totalPadding = CONTAINER_PADDING * 1; // Left and right padding from columnWrapperStyle
@@ -40,7 +40,7 @@ const getCardWidthPercent = () => {
 // Calculate card width percentage for full screen (search mode)
 const getFullScreenCardWidthPercent = () => {
   const availableWidth = SCREEN_WIDTH;
-  const totalPadding = CONTAINER_PADDING * 2; // Left and right padding
+  const totalPadding = CONTAINER_PADDING * 1; // Left and right padding
   const usableWidth = availableWidth - totalPadding - CARD_GAP;
   // Return as percentage - each card gets slightly less than 50% to ensure spacing
   return (usableWidth / 2 / availableWidth) * 100;
@@ -233,12 +233,14 @@ const SubCategoryList = ({ route }: any) => {
           <View style={styles.actionRow}>
             <View style={styles.sortFilterRow}>
               <Pressable style={styles.sortButton} onPress={() => setShowSortFilter(true)}>
-                <Icon name="swap-vertical" family="MaterialCommunityIcons" size={16} color="#000" />
+                
                 <TextView style={styles.actionText}>Sort</TextView>
+                <Icon name="swap-vertical" family="MaterialCommunityIcons" size={16} color="#228B22" />
               </Pressable>
               <Pressable style={styles.filterButton} onPress={() => setShowSortFilter(true)}>
-                <Icon name="filter-variant" family="MaterialCommunityIcons" size={18} color="#000" />
+               
                 <TextView style={styles.actionText}>Filter</TextView>
+                <Icon name="filter-variant" family="MaterialCommunityIcons" size={18} color="#228B22" />
               </Pressable>
             </View>
 
@@ -283,8 +285,8 @@ const SubCategoryList = ({ route }: any) => {
                 <FlatList
                   data={products}
                   numColumns={2}
-                  columnWrapperStyle={{ 
-                    justifyContent: "space-between", 
+                  columnWrapperStyle={{
+                    justifyContent: "space-between",
                     paddingHorizontal: CONTAINER_PADDING,
                   }}
                   contentContainerStyle={{ paddingVertical: 16 }}
@@ -297,7 +299,13 @@ const SubCategoryList = ({ route }: any) => {
                           marginBottom: 10,
                         }}
                       >
-                        <ProductCard cardArray={[item]} horizontal={false} numOfColumn={1} onAddPress={handleAddPress} />
+                        <ProductCard
+                          cardArray={[item]}
+                          horizontal={false}
+                          numOfColumn={1}
+                          variant="subcategory"
+                          onAddPress={handleAddPress}
+                        />
                       </View>
                     );
                   }}
@@ -311,34 +319,22 @@ const SubCategoryList = ({ route }: any) => {
               </View>
 
               <View style={styles.rightPane}>
-                {productLoading ? (
-                  <ActivityIndicator size="large" color="#4CAF50" />
-                ) : products.length === 0 ? (
-                  <TextView style={{ textAlign: "center", marginTop: 50, color: "#999" }}>No products found</TextView>
-                ) : (
-                  <FlatList
-                    data={products}
-                    numColumns={2}
-                    columnWrapperStyle={{ 
-                      justifyContent: "space-between", 
-                      paddingHorizontal: CONTAINER_PADDING,
-                    }}
-                    contentContainerStyle={{ paddingBottom: 40 }}
-                    keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => {
-                      return (
-                        <View
-                          style={{
-                            width: "49%",
-                            marginBottom: 10,
-                          }}
-                        >
-                          <ProductCard cardArray={[item]} horizontal={false} numOfColumn={1} onAddPress={handleAddPress} />
-                        </View>
-                      );
-                    }}
-                  />
-                )}
+                <FlatList
+                  data={products}
+                  numColumns={2}
+                  columnWrapperStyle={{ justifyContent: "space-between" }}
+                  contentContainerStyle={{ paddingBottom: hp(5) }}
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item }) => (
+                    <View style={styles.productCardWrapper}>
+                      <ProductCard
+                        cardArray={[item]}
+                        horizontal={false}
+                        numOfColumn={2}
+                      />
+                    </View>
+                  )}
+                />
               </View>
             </View>
           )}

@@ -9,8 +9,8 @@ import { storage } from './storage';
 
 // -------------------------------------------------
 // 1. Base URL (your live dev server)
-// const BASE_URL = 'http://159.89.146.245:5010/api/';
- const BASE_URL = 'http://192.168.1.26:5002/api/';
+const BASE_URL = 'http://159.89.146.245:5010/api/';
+//  const BASE_URL = 'http://192.168.1.26:5002/api/';
 export const IMAGE_BASE_URL = 'http://159.89.146.245:5010/';
 //  export const IMAGE_BASE_URL = 'http://192.168.1.12:5002/';
 
@@ -220,6 +220,10 @@ export const ApiService = {
     return await api.get(`user/product/productdetail/${productId}`);
   },
 
+  getExploreSection: async (exploreSectionId: string) => {
+    return await api.get(`user/explore/${exploreSectionId}`);
+  },
+
 
 
 getHomeProductContent: async () => {
@@ -296,6 +300,10 @@ getHomeProductContent: async () => {
 
   submitOrderRating: async (ratingData: any) => {
     return await api.post('user/product/rating', ratingData);
+  },
+
+  createReturnRequest: async (orderId: string, payload: any) => {
+    return await api.post(`user/order/${orderId}/return`, payload);
   },
 
   // ---- Wallet History ----

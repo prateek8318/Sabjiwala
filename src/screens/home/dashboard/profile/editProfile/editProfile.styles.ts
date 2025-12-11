@@ -13,7 +13,7 @@ const styles = StyleSheet.create({
   cardView: {
     width: wp(90),
     alignSelf: 'center',
-    paddingVertical: hp(4),
+    paddingVertical: hp(0.5),
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.PRIMARY[100],
@@ -49,8 +49,8 @@ const styles = StyleSheet.create({
     paddingLeft: hp(2),
   },
   profileImage: {
-    width: 110,
-    height: 110,
+    width: 90,
+    height: 90,
     borderRadius: 60,
     borderWidth: 2,
     borderColor: "#fff",

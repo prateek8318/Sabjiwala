@@ -40,7 +40,7 @@ const ProductCard: FC<ProductCardProps> = ({
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
   const [showVariantModal, setShowVariantModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  
+
   const [cartMap, setCartMap] = useState<{ [key: string]: number }>({});
   // Wishlist is the single source of truth for favorites
 
@@ -50,9 +50,25 @@ const ProductCard: FC<ProductCardProps> = ({
       try {
         const res = await ApiService.getCart();
         const map: any = {};
-        res?.data?.items?.forEach((i: any) => {
-          map[i.productId] = i.quantity;
+
+        const cartItems =
+          res?.data?.cart?.products ||
+          res?.data?.products ||
+          res?.data?.items ||
+          [];
+
+        cartItems.forEach((i: any) => {
+          const pid =
+            i?.productId?._id ||
+            i?.productId ||
+            i?._id ||
+            i?.id ||
+            '';
+          if (pid) {
+            map[pid.toString()] = i.quantity || 0;
+          }
         });
+
         setCartMap(map);
       } catch (e) { }
     };
@@ -64,7 +80,7 @@ const ProductCard: FC<ProductCardProps> = ({
       try {
         const res = await ApiService.getWishlist();
         console.log('Dashboard ProductCard - Wishlist response:', res?.data);
-        
+
         // Handle different response structures
         let items = [];
         if (res?.data?.wishlist?.items) {
@@ -76,7 +92,7 @@ const ProductCard: FC<ProductCardProps> = ({
         } else if (res?.data?.data?.items) {
           items = res.data.data.items;
         }
-        
+
         const ids = items.map((i: any) => i.productId?.toString()).filter(Boolean);
         console.log('Dashboard ProductCard - Loaded wishlist IDs:', ids);
         setWishlist(new Set(ids));
@@ -92,7 +108,7 @@ const ProductCard: FC<ProductCardProps> = ({
     try {
       const productIdStr = productId.toString();
       console.log('Toggle wishlist - productId:', productIdStr);
-      
+
       const newList = new Set(wishlist);
       const isFavorite = newList.has(productIdStr);
 
@@ -109,7 +125,7 @@ const ProductCard: FC<ProductCardProps> = ({
       }
 
       setWishlist(newList);
-      
+
       // Reload wishlist from server to ensure sync
       setTimeout(async () => {
         try {
@@ -157,23 +173,46 @@ const ProductCard: FC<ProductCardProps> = ({
     qty: number,
   ) => {
     try {
+      const pid = productId?.toString();
+      const vid = variantId?.toString();
+      if (!pid || !vid) return;
+
       if (qty > 0) {
-        await ApiService.addToCart(productId, variantId, qty.toString());
+        await ApiService.addToCart(pid, vid, qty.toString());
+        setCartMap(prev => ({ ...prev, [pid]: qty }));
       } else {
-        await ApiService.removeCartItem(productId, variantId);
+        await ApiService.removeCartItem(pid, vid);
+        setCartMap(prev => {
+          const next = { ...prev };
+          delete next[pid];
+          return next;
+        });
       }
-      setCartMap(prev => ({ ...prev, [productId]: qty }));
     } catch (e) { }
   };
 
   const getProductId = useCallback(
-    (item: any) => (item?.id ?? item?._id)?.toString(),
+    (item: any) =>
+      (
+        item?.id ??
+        item?._id ??
+        item?.productId?._id ??
+        item?.productId
+      )?.toString(),
     [],
   );
 
   const renderProductItem = ({ item }: { item: any }) => {
     const productId = getProductId(item);
     const isFavorite = productId ? wishlist.has(productId) : false;
+    const cartQty = productId ? cartMap[productId] || 0 : 0;
+    const hasVariants =
+      (item?.variants?.length || 0) > 1 ||
+      (item?.ProductVarient?.length || 0) > 1;
+    const firstVariantId =
+      item?.ProductVarient?.[0]?._id ||
+      item?.variants?.[0]?._id ||
+      productId;
 
     return (
       <Pressable
@@ -201,12 +240,12 @@ const ProductCard: FC<ProductCardProps> = ({
               toggleWishlist(productId);
             }}
             style={styles.imgHeart}
-            hitSlop={10}
+            hitSlop={8}
           >
             <Icon
               name={isFavorite ? 'heart' : 'hearto'}
               family="AntDesign"
-              size={26}
+              size={18}
               color={isFavorite ? '#E53935' : '#888'}
             />
           </Pressable>
@@ -218,32 +257,34 @@ const ProductCard: FC<ProductCardProps> = ({
         </View>
 
         {/* ====== PRICE SECTION - FINAL CLEAN VERSION ====== */}
-<View style={styles.cardProductPriceView}>
-  <TextView style={styles.cardProductPriceText}>₹{item.price}</TextView>
+        <View style={styles.cardProductPriceView}>
+          <View style={styles.priceMainRow}>
+            <TextView style={styles.cardProductPriceText}>₹{item.price}</TextView>
 
-  {(item.oldPrice > item.price || item.discount) && (
-    <View style={styles.priceRowBelow}>
-      {item.oldPrice > item.price && (
-        <TextView style={styles.cardProductPriceDiscount}>
-          ₹{item.oldPrice}
-        </TextView>
-      )}
-      {item.discount && (
-        <View style={styles.offerView}>
-          <TextView style={styles.offerTxt}>{item.discount}</TextView>
+            {(item.oldPrice > item.price || item.discount) && (
+              <>
+                {item.oldPrice > item.price && (
+                  <TextView style={styles.cardProductPriceDiscount}>
+                    ₹{item.oldPrice}
+                  </TextView>
+                )}
+                {item.discount && (
+                  <View style={styles.offerView}>
+                    <TextView style={styles.offerTxt}>{item.discount}</TextView>
+                  </View>
+                )}
+              </>
+            )}
+          </View>
         </View>
-      )}
-    </View>
-  )}
-</View>
 
         <Text style={styles.txtProduct}>{item.name}</Text>
 
         <View style={styles.quantityView}>
           <View>
-            <TextView style={{ ...Typography.BodyRegular13 }}>
+            {/* <TextView style={{ ...Typography.BodyRegular13 }}>
               {item.weight}
-            </TextView>
+            </TextView> */}
             <View style={styles.ratingView}>
               <Icon
                 family="AntDesign"
@@ -276,7 +317,7 @@ const ProductCard: FC<ProductCardProps> = ({
             </View>
           ) : (
             <View style={{ marginTop: 8, alignItems: 'flex-end', borderRadius: 12, borderColor: "#F5F5F5" }}>
-              {cartMap[item.id] > 0 ? (
+              {cartQty > 0 ? (
                 <View
                   style={{
                     flexDirection: 'row',
@@ -293,8 +334,8 @@ const ProductCard: FC<ProductCardProps> = ({
                       if (!pid) return;
                       updateCartQty(
                         pid,
-                        item.variants?.[0]?._id || pid,
-                        (cartMap as any)[pid] - 1,
+                        firstVariantId,
+                        cartQty - 1,
                       );
                     }}
                     style={{
@@ -331,7 +372,7 @@ const ProductCard: FC<ProductCardProps> = ({
                       textAlign: 'center',
                     }}
                   >
-                    {(cartMap as any)[productId]}
+                    {cartQty}
                   </Text>
 
                   {/* --- Plus Button --- */}
@@ -342,8 +383,8 @@ const ProductCard: FC<ProductCardProps> = ({
                       if (!pid) return;
                       updateCartQty(
                         pid,
-                        item.variants?.[0]?._id || pid,
-                        (cartMap as any)[pid] + 1,
+                        firstVariantId,
+                        cartQty + 1,
                       );
                     }}
                     style={{
@@ -375,7 +416,7 @@ const ProductCard: FC<ProductCardProps> = ({
                   onPress={e => {
                     e.stopPropagation();
 
-                    if (item?.variants?.length > 1) {
+                    if (hasVariants) {
                       setSelectedProduct(item);
                       setShowVariantModal(true);
                     } else {
@@ -383,7 +424,7 @@ const ProductCard: FC<ProductCardProps> = ({
                       if (!pid) return;
                       updateCartQty(
                         pid,
-                        item.variants?.[0]?._id || pid,
+                        firstVariantId,
                         1
                       );
                     }
@@ -414,7 +455,7 @@ const ProductCard: FC<ProductCardProps> = ({
 
 
 
-  
+
   return (
     <View style={styles.listProduct}>
       {horizontal ? (
@@ -465,7 +506,7 @@ const ProductCard: FC<ProductCardProps> = ({
               justifyContent: 'center',
               flex: 1,
             }}
-            
+
           >
             <View style={{
               height: 40,
@@ -489,7 +530,7 @@ const ProductCard: FC<ProductCardProps> = ({
             maxHeight: hp(80),        // ← responsive max height
             paddingBottom: hp(4),
           }}>
-            {selectedProduct?.variants?.map((v: any, index: number) => (
+            {[...(selectedProduct?.ProductVarient || []), ...(selectedProduct?.variants || [])].map((v: any, index: number) => (
               <View
                 key={index}
                 style={{
@@ -532,7 +573,10 @@ const ProductCard: FC<ProductCardProps> = ({
                 {/* Add Button */}
                 <Pressable
                   onPress={() => {
-                    updateCartQty(selectedProduct.id, v._id, 1);
+                    const pid = getProductId(selectedProduct);
+                    const vid = v?._id || pid;
+                    if (!pid || !vid) return;
+                    updateCartQty(pid, vid, 1);
                     setShowVariantModal(false);
                   }}
                   style={{

@@ -35,13 +35,13 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     justifyContent: 'center',   
     alignItems: 'center',
-    marginTop: hp(5),
+    marginTop: hp(3),
     marginBottom: hp(2),
   },
   
   addressTypeButton: {
     flex: 1,
-    paddingVertical: hp(1),   
+    paddingVertical: hp(0.5),   
     marginHorizontal: wp(1),
     borderWidth: 2,
     borderRadius: 30,
@@ -49,13 +49,14 @@ const styles = StyleSheet.create({
   },
   
   addressTypeText: {
-    ...Typography.H5Medium16,
+    ...Typography.H5Bold16,
+    fontSize: 18,      // 👈 text size chhota
   },
   inputContainer: {
     flexDirection: 'row',
     width: wp(85),
     borderRadius: 12,
-    marginTop: hp(2),
+    marginTop: hp(1),
     borderWidth: 1,
     color: Colors.PRIMARY[400],
     height: hp(6),

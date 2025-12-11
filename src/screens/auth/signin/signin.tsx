@@ -132,7 +132,7 @@ const Signin: FC = () => {
                 source={require('../../../assets/images/peas.png')}
                 style={{
                   position: 'absolute',
-                  top: hp(15),
+                  top: hp(11),
                   right: wp(5),
                   width: wp(28),
                   height: wp(18),

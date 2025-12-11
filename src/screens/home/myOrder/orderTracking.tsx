@@ -10,7 +10,7 @@ interface Props {
   navigation: any;
 }
 
-const statusSteps = ['pending', 'accepted', 'packed', 'on the way', 'delivered'];
+const statusSteps = ['pending', 'accepted', 'packed', 'on the way', 'delivered', 'returned_requested'];
 
 const OrderTracking: React.FC<Props> = ({ route, navigation }) => {
   const { orderId, order: passedOrder } = route.params || {};

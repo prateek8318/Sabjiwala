@@ -186,7 +186,7 @@ const LocationPermission: FC = () => {
                 borderColor: '#1B5E20',
                 borderRadius: 30,
                 height: 54,
-                paddingHorizontal: 36,
+                paddingHorizontal: 24,
                 elevation: 12,
                 shadowColor: '#000',
                 shadowOffset: { width: 0, height: 6 },

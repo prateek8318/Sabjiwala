@@ -21,28 +21,30 @@ const styles = StyleSheet.create({
   headerView: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: hp(2.1),
+    marginTop: hp(1),
   },
   profilePicView: {
-    width: 55,
-    height: 55,
+    width: 40,
+    height: 40,
     borderColor: Colors.PRIMARY[300],
     borderWidth: 1,
     borderRadius: 50,
-    marginTop: hp(2),
+    marginTop: hp(4),
+    marginLeft: hp(1),
     overflow: 'hidden', // keep image clipped inside the circle
     alignItems: 'center',
     justifyContent: 'center',
   },
   profilePic: {
-    width: 55,
-    height: 55,
+    width: 40,
+    height: 40,
     resizeMode: 'cover',
     borderRadius: 50,
   },
   txtDelivery: {
     ...Typography.H5Medium16,
     color: Colors.PRIMARY[300],
+    marginTop: hp(2),
     marginLeft: hp(1),
   },
   addressView: {
@@ -52,12 +54,13 @@ const styles = StyleSheet.create({
   },
   txtAddress: {
     ...Typography.BodyRegular13,
-    maxWidth: wp(40),
+    maxWidth: wp(45),
+    marginLeft: hp(0.5),
     color: Colors.PRIMARY[300],
   },
   actionButtonView: {
     flexDirection: 'row',
-    marginTop: hp(2),
+    marginTop: hp(4),
   },
   actionButton: {
     width: 40,
@@ -67,7 +70,7 @@ const styles = StyleSheet.create({
     ...Typography.BodyRegular14,
     color: Colors.PRIMARY[100],
     width: wp(30),
-    top: hp(0.5),
+    
     paddingLeft: hp(1),
   },
   searchBox: {
@@ -115,6 +118,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.SECONDARY[200],
     paddingBottom: hp(2),
     fontWeight: '700',
+    
   },
   cardMainView: {
     flexDirection: 'row',
@@ -130,6 +134,8 @@ const styles = StyleSheet.create({
     maxWidth: wp(50),
     marginLeft: hp(2),
     ...Typography.H4Semibold20,
+    fontSize: 28,
+    lineHeight: 38,
   },
   imgCode: {
     width: 150,
