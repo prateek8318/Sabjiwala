@@ -28,6 +28,22 @@ const styles = StyleSheet.create({
     lineHeight: hp(3),            // text की height responsive
     ...Typography.BodyRegular14,  // बाकी typography styles
   },
+  numberRow: {
+    marginTop: hp(1),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  numberText: {
+    color: Colors.PRIMARY[300],
+    ...Typography.BodyRegular14,
+  },
+  editText: {
+    marginLeft: wp(2),
+    color: Colors.SECONDARY[100],
+    textDecorationLine: 'underline',
+    ...Typography.BodyRegular12,
+  },
   
   loginImage: {
     width: wp(100),

@@ -10,6 +10,7 @@ import {
   EditProfile,
   ExploreListing,
   InviteFriend,
+  Notifications,
   PrivacyPolicy,
   ProductDetail,
   Products,
@@ -67,6 +68,11 @@ const HomeStackNavigator: FC = () => {
         <HomeStack.Screen
           name="Wallet"
           component={Wallet}
+          options={{ headerShown: false }}
+        />
+        <HomeStack.Screen
+          name="Notifications"
+          component={Notifications}
           options={{ headerShown: false }}
         />
         <HomeStack.Screen

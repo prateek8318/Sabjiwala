@@ -275,6 +275,14 @@ const Dashboard: FC = () => {
         const normalizedImage = rawImage ? rawImage.replace(/\\/g, '/') : '';
         const fullImageUrl = normalizedImage ? IMAGE_BASE_URL + normalizedImage : '';
 
+        const weightValue =
+          variant?.weight ??
+          product?.weight ??
+          variant?.stock ??
+          product?.stock ??
+          1;
+        const unitValue = variant?.unit ?? product?.unit ?? '';
+
         return {
           id: product?._id || '',
           name: product?.productName || product?.name || 'Product',
@@ -282,9 +290,15 @@ const Dashboard: FC = () => {
           price: variant?.price || product?.price || 0,
           oldPrice: variant?.originalPrice || product?.mrp || 0,
           discount: variant?.discount ? `₹${variant.discount} OFF` : '',
-          weight: `${variant?.stock || product?.stock || 1} ${variant?.unit || product?.unit || ''}`,
+          weight: `${weightValue} ${unitValue}`.trim(),
           rating: product?.rating || 4.5,
           options: `${(product?.ProductVarient || product?.variants || []).length} Option${((product?.ProductVarient || product?.variants || []).length || 0) > 1 ? 's' : ''}`,
+          variantId:
+            variant?._id ||
+            product?.ProductVarient?.[0]?._id ||
+            product?.variants?.[0]?._id ||
+            '',
+          ProductVarient: product?.ProductVarient || product?.variants || [],
         };
       };
 
@@ -403,11 +417,17 @@ const Dashboard: FC = () => {
   };
 
 
-  // 🔹 Render Deal Cards
-  const renderDealProduct = ({ item }: { item: ProductCardItem }) => {
-    // Get explore section ID - use first explore section or fallback to the one from API
-    const exploreSectionId = exploreSections?.[0]?._id || '68b3d1d421325e626fcd0ae7';
-    const exploreSectionName = exploreSections?.[0]?.name || 'Deals of the Day';
+  // 🔹 Render Explore Section Cards
+  const renderDealProduct = ({ item }: { item: any }) => {
+    const exploreSectionId = item._id;
+    const exploreSectionName = item.name;
+    const discountValue = item.discountValue || 0;
+    const discountType = item.discountType || 'percentage';
+    
+    // Build image URL - match existing pattern
+    const rawImage = item.image || '';
+    const normalizedImage = rawImage ? rawImage.replace('public\\', '').replace(/\\/g, '/') : '';
+    const fullImageUrl = normalizedImage ? IMAGE_BASE_URL + normalizedImage : '';
 
     return (
       <Pressable
@@ -423,12 +443,14 @@ const Dashboard: FC = () => {
       >
         <View style={styles.cardDealView}>
           <View style={styles.cardDealOfferView}>
-            <TextView style={styles.cardDealTxtOffer}>{item.discount || 'Deal'}</TextView>
+            <TextView style={styles.cardDealTxtOffer}>
+              {discountType === 'percentage' ? `UP TO ${discountValue}% OFF` : `UP TO ₹${discountValue} OFF`}
+            </TextView>
           </View>
           <View style={styles.cardDealImageWrapper}>
-            {item.image ? (
+            {fullImageUrl ? (
               <Image
-                source={{ uri: item.image }}
+                source={{ uri: fullImageUrl }}
                 style={styles.cardDealImage}
                 resizeMode="contain"
               />
@@ -444,7 +466,7 @@ const Dashboard: FC = () => {
             )}
           </View>
         </View>
-        <TextView style={styles.cardDealTxtProduct}>{item.name}</TextView>
+        <TextView style={styles.cardDealTxtProduct}>{exploreSectionName}</TextView>
       </Pressable>
     );
   };
@@ -488,7 +510,13 @@ const Dashboard: FC = () => {
             key={item.id}
             style={{ alignItems: 'center' }}
             onPress={() =>
-              navigation.navigate('CategoryDetail', { categoryId: item.id })
+              navigation.navigate('Catogaries', {
+                screen: 'subCategoryList',
+                params: {
+                  categoryId: item.id,
+                  categoryName: item.name,
+                },
+              })
             }
           >
             <View style={styles.groceryCard1}>
@@ -512,7 +540,13 @@ const Dashboard: FC = () => {
             key={item.id}
             style={{ alignItems: 'center' }}
             onPress={() =>
-              navigation.navigate('CategoryDetail', { categoryId: item.id })
+              navigation.navigate('Catogaries', {
+                screen: 'subCategoryList',
+                params: {
+                  categoryId: item.id,
+                  categoryName: item.name,
+                },
+              })
             }
           >
             <View style={styles.commonGroceryCard}>
@@ -571,10 +605,12 @@ const Dashboard: FC = () => {
                     style={[styles.actionButton, { marginRight: hp(0.8) }]}
                   />
                 </Pressable>
-                <Image
-                  source={Images.ic_notificaiton}
-                  style={[styles.actionButton, { marginLeft: hp(0.5),marginRight: hp(0.5) }]}
-                />
+                <Pressable onPress={() => navigation.navigate('Notifications')}>
+                  <Image
+                    source={Images.ic_notificaiton}
+                    style={[styles.actionButton, { marginLeft: hp(0.5),marginRight: hp(0.5) }]}
+                  />
+                </Pressable>
               </View>
             </View>
           </View>
@@ -588,7 +624,7 @@ const Dashboard: FC = () => {
               <Icon
                 family="EvilIcons"
                 name="search"
-                color={Colors.PRIMARY[200]}
+                color={Colors.PRIMARY[300]}
                 size={34}
                 style={{ marginTop: hp(-1) }}
               />
@@ -596,7 +632,7 @@ const Dashboard: FC = () => {
                 value={''}
                 inputStyle={styles.inputView}
                 editable={false}
-                placeHolderTextStyle={Colors.PRIMARY[200]}
+                placeHolderTextStyle={Colors.PRIMARY[300]}
                 placeholder="Search"
               />
             </Pressable>
@@ -667,7 +703,7 @@ const Dashboard: FC = () => {
               borderColor: '#1B5E20',
               borderRadius: 30,
               height: 54,
-              paddingHorizontal: 36,
+              paddingHorizontal: 20,
               elevation: 12,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 6 },
@@ -678,9 +714,10 @@ const Dashboard: FC = () => {
             <TextView
               style={{
                 color: '#FFFFFF',
-                fontSize: 14,  // screen width के हिसाब से font size
+                fontSize: 20,  // screen width के हिसाब से font size
+                
                 fontWeight: '400',
-                marginRight: wp(1),  // horizontal spacing responsive
+                  marginLeft: wp(1),// horizontal spacing responsive
                 top: -hp(0.2),       // vertical alignment responsive
               }}
             >
@@ -693,7 +730,7 @@ const Dashboard: FC = () => {
               size={26}
               color="#ffffff"
               family="MaterialCommunityIcons"
-              style={{ marginLeft: "auto" }}
+              style={{ marginRight: "auto" }}
             />
           </TouchableOpacity>
         </View>
@@ -707,13 +744,18 @@ const Dashboard: FC = () => {
             <View style={styles.productHeadingHeadingView}>
               <TextView style={styles.txtProductHeading}>Frequently Bought</TextView>
               <Pressable
-                onPress={() => navigation.navigate('BottomStackNavigator', { screen: 'Catogaries' })}
+                onPress={() =>
+                  navigation.navigate('TypeProductList', {
+                    type: 'frequentlyBought',
+                    title: 'Frequently Bought',
+                  })
+                }
                 style={{
                   backgroundColor: "#1B5E20",
                   paddingHorizontal: 6, // chhota size
                   paddingVertical: 4,    // chhota height
                   borderRadius: 25,
-                  marginTop: hp(-3),
+                  marginTop: hp(0),
                   flexDirection: "row",
                   alignItems: "center",
                   justifyContent: "center",
@@ -740,15 +782,15 @@ const Dashboard: FC = () => {
         </View>
 
 
-        {/* 🔹 Deal Of The Day */}
+        {/* 🔹 Deal Of The Day - Explore Sections */}
         <View>
           <Image source={Images.img_deal} style={styles.imgDeal} />
           <FlatList
-            data={dealOfTheDay}                    // ← Real API data
+            data={exploreSections.slice(0, 6)}                    // ← Max 6 explore sections
             renderItem={renderDealProduct}
             contentContainerStyle={{ alignSelf: 'center', marginTop: hp(2) }}
             numColumns={3}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item._id}
           />
         </View>
 
@@ -765,13 +807,18 @@ const Dashboard: FC = () => {
             <View style={styles.productHeadingHeadingView}>
               <TextView style={styles.txtProductHeading}>Popular Products</TextView>
               <Pressable
-                onPress={() => navigation.navigate('BottomStackNavigator', { screen: 'Catogaries' })}
+                onPress={() =>
+                  navigation.navigate('TypeProductList', {
+                    type: 'popularProduct',
+                    title: 'Popular Products',
+                  })
+                }
                 style={{
                   backgroundColor: "#1B5E20",
                   paddingHorizontal: 6, // chhota size
                   paddingVertical: 4,    // chhota height
                   borderRadius: 25,
-                  marginTop: hp(-3),
+                  marginTop: hp(0),
                   flexDirection: "row",
                   alignItems: "center",
                   justifyContent: "center",
@@ -799,13 +846,18 @@ const Dashboard: FC = () => {
             <View style={styles.productHeadingHeadingView}>
               <TextView style={styles.txtProductHeading}>Fresh Fruits</TextView>
               <Pressable
-                onPress={() => navigation.navigate('BottomStackNavigator', { screen: 'Catogaries' })}
+                onPress={() =>
+                  navigation.navigate('TypeProductList', {
+                    type: 'freshFruits',
+                    title: 'Fresh Fruits',
+                  })
+                }
                 style={{
                   backgroundColor: "#1B5E20",
                   paddingHorizontal: 6, // chhota size
                   paddingVertical: 4,    // chhota height
                   borderRadius: 25,
-                  marginTop: hp(-3),
+                  marginTop: hp(0),
                   flexDirection: "row",
                   alignItems: "center",
                   justifyContent: "center",
@@ -843,32 +895,32 @@ const Dashboard: FC = () => {
               onPress={() => navigation.navigate('BottomStackNavigator', { screen: 'Catogaries' })}
 
               style={{
-                marginTop: hp(-4),
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#1B5E20',
-                borderWidth: 3,
-                borderColor: '#1B5E20',
-                borderRadius: 30,
-                height: 54,
-                paddingHorizontal: 36,
-                elevation: 12,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.2,
-                shadowRadius: 10,
-
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#1B5E20',
+              borderWidth: 3,
+              marginTop: hp(-3),
+              borderColor: '#1B5E20',
+              borderRadius: 30,
+              height: 54,
+              paddingHorizontal: 20,
+              elevation: 12,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.2,
+              shadowRadius: 10,
+            }}
+          >
+            <TextView
+              style={{
+                color: '#FFFFFF',
+                fontSize: 20,  // screen width के हिसाब से font size
+                
+                fontWeight: '400',
+                  marginLeft: wp(1),// horizontal spacing responsive
+                top: -hp(0.2),       // vertical alignment responsive
               }}
-            >
-              <TextView
-                style={{
-                  color: '#FFFFFF',
-                  fontSize: 16,
-                  fontWeight: '500',
-                  marginRight: 0,
-                  top: -1,
-                }}
               >
                 Explore
               </TextView>
@@ -892,13 +944,18 @@ const Dashboard: FC = () => {
                 Limited Time deals
               </TextView>
               <Pressable
-                onPress={() => navigation.navigate('BottomStackNavigator', { screen: 'Catogaries' })}
+                onPress={() =>
+                  navigation.navigate('TypeProductList', {
+                    type: 'limitedDeals',
+                    title: 'Limited Time Deals',
+                  })
+                }
                 style={{
                   backgroundColor: "#1B5E20",
                   paddingHorizontal: 6, // chhota size
                   paddingVertical: 4,    // chhota height
                   borderRadius: 25,
-                  marginTop: hp(-3),
+                    marginTop: hp(0),
                   flexDirection: "row",
                   alignItems: "center",
                   justifyContent: "center",
@@ -1022,15 +1079,29 @@ export default Dashboard;
     const normalizedImage = imageUrl ? imageUrl.replace(/\\/g, '/') : '';
     const fullImageUrl = normalizedImage ? IMAGE_BASE_URL + normalizedImage : '';
 
+  const weightValue =
+    variant?.weight ??
+    (product as any)?.weight ??
+    variant?.stock ??
+    (product as any)?.stock ??
+    1;
+  const unitValue = variant?.unit ?? (product as any)?.unit ?? '';
+
   return {
     id: (product as any)?._id || '',
     name: (product as any)?.productName || (product as any)?.name || 'Product',
-      image: fullImageUrl,
+    image: fullImageUrl,
     price: variant?.price || (product as any)?.price || 0,
     oldPrice: variant?.originalPrice || (product as any)?.mrp || 0,
     discount: variant?.discount ? `₹${variant.discount} OFF` : '',
-    weight: `${variant?.stock || 1} ${variant?.unit || ''}`,
+    weight: `${weightValue} ${unitValue}`.trim(),
     rating: 4.5,
     options: `${((product as any)?.ProductVarient || (product as any)?.variants || []).length} Option${(((product as any)?.ProductVarient || (product as any)?.variants || []).length || 0) > 1 ? 's' : ''}`,
+    variantId:
+      variant?._id ||
+      (product as any)?.ProductVarient?.[0]?._id ||
+      (product as any)?.variants?.[0]?._id ||
+      '',
+    ProductVarient: (product as any)?.ProductVarient || (product as any)?.variants || [],
   };
 };

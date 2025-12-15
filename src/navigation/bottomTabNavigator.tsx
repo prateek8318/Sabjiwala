@@ -1,13 +1,14 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Dashboard, Catogaries, Favorites, MyOrder, Cart, RateOrder, Reorder, OrderTracking, ReturnOrder } from '../screens';
-import { Colors, Fonts, Images } from '../constant';
+import { Dashboard, Catogaries, Favorites, MyOrder, Cart, RateOrder, Reorder, OrderTracking, ReturnOrder, TypeProductList } from '../screens';
+import { Colors, Fonts } from '../constant';
 import LinearGradient from 'react-native-linear-gradient';
-import { Image, View, Text } from 'react-native';
+import { View, Text } from 'react-native';
 import { useCart } from '../context/CartContext';
 import SubCategoryList from '../screens/home/catogaries/SubCategoryList';
 import ProductList from '../screens/home/catogaries/ProductList';
+import Icon from '../constant/Icon';
 
 
 const Stack = createNativeStackNavigator();
@@ -15,6 +16,7 @@ const Stack = createNativeStackNavigator();
 const HomePageStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Dashboard" component={Dashboard} />
+    <Stack.Screen name="TypeProductList" component={TypeProductList} />
   </Stack.Navigator>
 );
 const CatogariesPageStack = () => (
@@ -78,13 +80,11 @@ const BottomStackNavigator = () => {
       <Tab.Screen name="Home" component={HomePageStack}
         options={{
           tabBarIcon: ({ focused }) => (
-            <Image
-              source={Images.ic_home}
-              style={{
-                width: 30,
-                height: 30,
-                tintColor: focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100],
-              }}
+            <Icon
+              family="Ionicons"
+              name={focused ? 'home' : 'home-outline'}
+              size={28}
+              color={focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100]}
             />
           ),
         }}
@@ -92,29 +92,31 @@ const BottomStackNavigator = () => {
 
       <Tab.Screen name="Catogaries" component={CatogariesPageStack}
         options={{
+          unmountOnBlur: true,
           tabBarIcon: ({ focused }) => (
-            <Image
-              source={Images.ic_catogary}
-              style={{
-                width: 30,
-                height: 30,
-                tintColor: focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100],
-              }}
+            <Icon
+              family="Ionicons"
+              name={focused ? 'grid' : 'grid-outline'}
+              size={28}
+              color={focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100]}
             />
           ),
         }}
+        listeners={({ navigation }) => ({
+          tabPress: () => {
+            navigation.navigate('Catogaries', { screen: 'Catogaries' });
+          },
+        })}
       />
 
       <Tab.Screen name="Favorites" component={FavoritesPageStack}
         options={{
           tabBarIcon: ({ focused }) => (
-            <Image
-              source={Images.ic_heart}
-              style={{
-                width: 30,
-                height: 30,
-                tintColor: focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100],
-              }}
+            <Icon
+              family="Ionicons"
+              name={focused ? 'heart' : 'heart-outline'}
+              size={28}
+              color={focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100]}
             />
           ),
         }}
@@ -123,13 +125,11 @@ const BottomStackNavigator = () => {
       <Tab.Screen name="MyOrder" component={MyOrderPageStack}
         options={{
           tabBarIcon: ({ focused }) => (
-            <Image
-              source={Images.ic_order}
-              style={{
-                width: 30,
-                height: 30,
-                tintColor: focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100],
-              }}
+            <Icon
+              family="Ionicons"
+              name={focused ? 'bag' : 'bag-outline'}
+              size={28}
+              color={focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100]}
             />
           ),
         }}
@@ -142,13 +142,11 @@ const BottomStackNavigator = () => {
           tabBarLabel: 'Cart',
           tabBarIcon: ({ focused }) => (
             <View>
-              <Image
-                source={Images.ic_cart}
-                style={{
-                  width: 30,
-                  height: 30,
-                  tintColor: focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100],
-                }}
+              <Icon
+                family="Ionicons"
+                name={focused ? 'cart' : 'cart-outline'}
+                size={28}
+                color={focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100]}
               />
 
               {totalItems > 0 && (

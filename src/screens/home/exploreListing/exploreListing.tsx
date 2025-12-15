@@ -47,6 +47,14 @@ const ExploreListing = () => {
     const normalizedImage = rawImage ? rawImage.replace(/\\/g, '/') : '';
     const fullImageUrl = normalizedImage ? IMAGE_BASE_URL + normalizedImage : '';
 
+    const weightValue =
+      variant?.weight ??
+      product?.weight ??
+      variant?.stock ??
+      product?.stock ??
+      1;
+    const unitValue = variant?.unit ?? product?.unit ?? "kg";
+
     return {
       id: product?._id || '',
       name: product?.productName || product?.name || 'Product',
@@ -54,7 +62,7 @@ const ExploreListing = () => {
       price: variant?.price || product?.price || 0,
       oldPrice: variant?.originalPrice || product?.mrp || 0,
       discount: variant?.discount ? `₹${variant.discount} OFF` : '',
-      weight: `${variant?.stock || product?.stock || 1} ${variant?.unit || product?.unit || ''}`,
+      weight: `${weightValue} ${unitValue}`.trim(),
       rating: product?.rating || 4.5,
       options: `${(product?.ProductVarient || product?.variants || []).length} Option${((product?.ProductVarient || product?.variants || []).length || 0) > 1 ? 's' : ''}`,
     };
@@ -101,15 +109,8 @@ const ExploreListing = () => {
         </View>
       ) : (
         <>
-          <View style={styles.searchBar}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search in products"
-              placeholderTextColor="#9E9E9E"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
+          
+          
 
           {products.length === 0 ? (
             <View style={styles.emptyState}>

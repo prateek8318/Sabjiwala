@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
   buttonTitle: {
     color: Colors.PRIMARY[200],
     ...Typography.H4Semibold20,
-    fontSize: 16,      // 👈 text size chhota
+    fontSize: 12,      // 👈 text size chhota
 
     includeFontPadding: false,        
     textAlignVertical: 'center',     

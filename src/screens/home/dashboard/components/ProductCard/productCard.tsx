@@ -75,6 +75,21 @@ const ProductCard: FC<ProductCardProps> = ({
     loadCart();
   }, []);
 
+  const extractWishlistIds = useCallback((items: any[] = []) => {
+    return items
+      .map((i: any) =>
+        (
+          i?.productId?._id ||
+          i?.productId ||
+          i?.product?.id ||
+          i?.product?._id ||
+          i?._id ||
+          i?.id
+        )?.toString(),
+      )
+      .filter(Boolean);
+  }, []);
+
   useEffect(() => {
     const loadWishlist = async () => {
       try {
@@ -93,7 +108,7 @@ const ProductCard: FC<ProductCardProps> = ({
           items = res.data.data.items;
         }
 
-        const ids = items.map((i: any) => i.productId?.toString()).filter(Boolean);
+        const ids = extractWishlistIds(items);
         console.log('Dashboard ProductCard - Loaded wishlist IDs:', ids);
         setWishlist(new Set(ids));
       } catch (e) {
@@ -101,7 +116,7 @@ const ProductCard: FC<ProductCardProps> = ({
       }
     };
     loadWishlist();
-  }, []);
+  }, [extractWishlistIds]);
 
   // Toggle favorite
   const toggleWishlist = async (productId: string) => {
@@ -126,25 +141,6 @@ const ProductCard: FC<ProductCardProps> = ({
 
       setWishlist(newList);
 
-      // Reload wishlist from server to ensure sync
-      setTimeout(async () => {
-        try {
-          const res = await ApiService.getWishlist();
-          let items = [];
-          if (res?.data?.wishlist?.items) {
-            items = res.data.wishlist.items;
-          } else if (res?.data?.wishlist && Array.isArray(res.data.wishlist)) {
-            items = res.data.wishlist;
-          } else if (res?.data?.items) {
-            items = res.data.items;
-          }
-          const ids = items.map((i: any) => i.productId?.toString()).filter(Boolean);
-          console.log('Dashboard ProductCard - Reloaded wishlist IDs:', ids);
-          setWishlist(new Set(ids));
-        } catch (e) {
-          console.log("Error reloading wishlist", e);
-        }
-      }, 500);
     } catch (err) {
       console.log("wishlist toggle error", err);
       // On error, reload wishlist to sync with server
@@ -158,7 +154,7 @@ const ProductCard: FC<ProductCardProps> = ({
         } else if (res?.data?.items) {
           items = res.data.items;
         }
-        const ids = items.map((i: any) => i.productId?.toString()).filter(Boolean);
+        const ids = extractWishlistIds(items);
         setWishlist(new Set(ids));
       } catch (e) {
         console.log("Error reloading wishlist", e);
@@ -210,15 +206,35 @@ const ProductCard: FC<ProductCardProps> = ({
       (item?.variants?.length || 0) > 1 ||
       (item?.ProductVarient?.length || 0) > 1;
     const firstVariantId =
+      item?.variantId ||
       item?.ProductVarient?.[0]?._id ||
       item?.variants?.[0]?._id ||
       productId;
+
+    // Ensure weight always shows (even if API missed it for some cards)
+    const weightText = (() => {
+      // Prefer explicit weight if present
+      if (item?.weight) return item.weight;
+
+      const variant = item?.ProductVarient?.[0] || item?.variants?.[0] || {};
+      const weightValue =
+        variant?.weight ??
+        variant?.stock ??
+        item?.stock ??
+        1;
+      const unitValue =
+        variant?.unit ??
+        item?.unit ??
+        'kg'; // default unit so UI never shows blank
+
+      return `${weightValue} ${unitValue}`.trim();
+    })();
 
     return (
       <Pressable
         style={styles.cardProduct}
         onPress={() =>
-          navigation.navigate('ProductDetail', { productId: item.id })
+          navigation.navigate('ProductDetail', { productId })
         }
       >
         <View style={{ position: 'relative' }}>
@@ -282,9 +298,9 @@ const ProductCard: FC<ProductCardProps> = ({
 
         <View style={styles.quantityView}>
           <View>
-            {/* <TextView style={{ ...Typography.BodyRegular13 }}>
-              {item.weight}
-            </TextView> */}
+            <TextView style={{ ...Typography.BodyRegular13, fontSize: 12,fontWeight: '700' }}>
+              {weightText}
+            </TextView>
             <View style={styles.ratingView}>
               <Icon
                 family="AntDesign"
@@ -299,21 +315,45 @@ const ProductCard: FC<ProductCardProps> = ({
           {/* ===== FIXED BLOCK START ===== */}
           {type === 'OFFER' ? (
             <View>
-              <LinearGradient
-                colors={[Colors.PRIMARY[200], Colors.PRIMARY[100]]}
-                style={[
-                  styles.addButtonView,
-                  { borderTopLeftRadius: 50, borderTopRightRadius: 50 },
-                ]}
-                start={{ x: 0, y: 0.5 }}
-                end={{ x: 1, y: 0 }}
+              <Pressable
+                onPress={e => {
+                  e.stopPropagation();
+                  if (hasVariants) {
+                    setSelectedProduct(item);
+                    setShowVariantModal(true);
+                  } else {
+                    if (!productId) return;
+                    updateCartQty(productId, firstVariantId, 1);
+                  }
+                }}
               >
-                <TextView style={styles.txtAdd}>Add</TextView>
-              </LinearGradient>
+                <LinearGradient
+                  colors={[Colors.PRIMARY[200], Colors.PRIMARY[100]]}
+                  style={[
+                    styles.addButtonView,
+                    { borderTopLeftRadius: 50, borderTopRightRadius: 50 },
+                  ]}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <TextView style={styles.txtAdd}>Add</TextView>
+                </LinearGradient>
+              </Pressable>
 
-              <View style={styles.optionView}>
+              <Pressable
+                onPress={e => {
+                  e.stopPropagation();
+                  if (hasVariants) {
+                    setSelectedProduct(item);
+                    setShowVariantModal(true);
+                  } else if (productId) {
+                    updateCartQty(productId, firstVariantId, 1);
+                  }
+                }}
+                style={styles.optionView}
+              >
                 <TextView style={styles.txtOption}>{item.options}</TextView>
-              </View>
+              </Pressable>
             </View>
           ) : (
             <View style={{ marginTop: 8, alignItems: 'flex-end', borderRadius: 12, borderColor: "#F5F5F5" }}>
@@ -525,8 +565,9 @@ const ProductCard: FC<ProductCardProps> = ({
           {/* Variant List */}
           <View style={{
             backgroundColor: '#fff',
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
+            // Modal container should stay squared; radius moved to actions
+            borderTopLeftRadius: 0,
+            borderTopRightRadius: 0,
             maxHeight: hp(80),        // ← responsive max height
             paddingBottom: hp(4),
           }}>
@@ -583,7 +624,7 @@ const ProductCard: FC<ProductCardProps> = ({
                     paddingHorizontal: 18,
                     paddingVertical: 6,
                     backgroundColor: 'green',
-                    borderRadius: 10
+                    borderRadius: 20,
                   }}
                 >
                   <TextView style={{ color: '#fff' }}>Add</TextView>

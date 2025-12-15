@@ -6,6 +6,8 @@ import {
   LocationPermission,
   SearchLocation,
   AddAddress,
+  TermsCondition,
+  PrivacyPolicy,
 } from '../screens';
 import { AuthStackProps } from '../@types';
 
@@ -23,6 +25,8 @@ const AuthStackNavigator: FC = () => {
         />
         <AuthStack.Screen name="SearchLocation" component={SearchLocation} />
         <AuthStack.Screen name="AddAddress" component={AddAddress} />
+        <AuthStack.Screen name="TermsCondition" component={TermsCondition} />
+        <AuthStack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
       </AuthStack.Navigator>
     </>
   );

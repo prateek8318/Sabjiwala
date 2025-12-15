@@ -4,6 +4,8 @@ export type AuthStackProps = {
   LocationPermission:undefined
   SearchLocation:undefined;
   AddAddress:undefined;
+  TermsCondition: undefined;
+  PrivacyPolicy: undefined;
 };
 
 export type HomeStackProps = {
@@ -16,6 +18,7 @@ export type HomeStackProps = {
   Profile: undefined;
   EditProfile:undefined;
   Wallet:undefined;
+  Notifications:undefined;
   Address:undefined;
   EditAddress:undefined;
   ReferEarn:undefined;
@@ -88,4 +91,6 @@ export interface ProductCardItem {
   weight: string;
   rating: number;
   options: string;
+  variantId?: string;
+  ProductVarient?: any[];
 }

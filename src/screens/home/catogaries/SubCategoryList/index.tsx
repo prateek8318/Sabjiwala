@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   FlatList,
@@ -10,7 +10,11 @@ import {
   TextInput,
   ScrollView,
   Dimensions,
+  Animated,
+  StyleSheet,
+  TouchableWithoutFeedback,
 } from "react-native";
+import LinearGradient from "react-native-linear-gradient";
 import { Header, TextView } from "../../../../components";
 import ApiService from "../../../../service/apiService";
 import { Colors, Icon } from "../../../../constant";
@@ -64,8 +68,74 @@ const SubCategoryList = ({ route }: any) => {
   const [sortBy, setSortBy] = useState("relevance");
   const [filterTypes, setFilterTypes] = useState<string[]>([]);
 
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
   const [showVariantModal, setShowVariantModal] = useState(false);
+
+  const ShimmerPlaceholder = ({ style }: { style?: any }) => {
+    const shimmerValue = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(shimmerValue, {
+            toValue: 1,
+            duration: 1200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shimmerValue, {
+            toValue: 0,
+            duration: 0,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      loop.start();
+      return () => loop.stop();
+    }, [shimmerValue]);
+
+    const translateX = shimmerValue.interpolate({
+      inputRange: [0, 1],
+      outputRange: [-120, 120],
+    });
+
+    return (
+      <View style={[styles.shimmerBase, style]}>
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              transform: [{ translateX }],
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={["#f0f0f0", "#e2e2e2", "#f0f0f0"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+      </View>
+    );
+  };
+
+  const renderShimmerGrid = () => (
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.shimmerGrid}>
+      {Array.from({ length: 6 }).map((_, idx) => (
+        <View key={idx} style={styles.shimmerCardWrapper}>
+          <ShimmerPlaceholder style={styles.shimmerImage} />
+          <View style={styles.shimmerInfo}>
+            <ShimmerPlaceholder style={styles.shimmerLinePrimary} />
+            <ShimmerPlaceholder style={styles.shimmerLineSecondary} />
+            <View style={styles.shimmerRow}>
+              <ShimmerPlaceholder style={styles.shimmerChip} />
+              <ShimmerPlaceholder style={styles.shimmerChipSmall} />
+            </View>
+          </View>
+        </View>
+      ))}
+    </ScrollView>
+  );
 
   const transformToCardItem = (product: any) => {
     const variant = product.ProductVarient?.[0] || product.variants?.[0] || product.variant;
@@ -90,6 +160,8 @@ const SubCategoryList = ({ route }: any) => {
   const loadProductsForSub = async (subId: string) => {
     try {
       setProductLoading(true);
+      setAllProducts([]);
+      setProducts([]);
       const res = await ApiService.getSubCategoryProducts(subId);
       if (res?.status === 200 && res?.data) {
         const apiData = (res.data as any).paginateData || (res.data as any).products || [];
@@ -195,10 +267,15 @@ const SubCategoryList = ({ route }: any) => {
         }}
         style={[styles.subItem, isSelected && styles.subItemActive]}
       >
-        <Image source={{ uri: img }} style={styles.subImage} resizeMode="cover" />
+        <Image
+          source={{ uri: img }}
+          style={[styles.subImage, isSelected && styles.subImageActive]}
+          resizeMode="cover"
+        />
         <TextView style={[styles.subTitle, isSelected && styles.subTitleActive]} numberOfLines={2}>
           {item.name || "Unnamed"}
         </TextView>
+        {isSelected && <View style={styles.activeUnderline} />}
       </Pressable>
     );
   };
@@ -218,7 +295,17 @@ const SubCategoryList = ({ route }: any) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header title={categoryName || "Sub Categories"} />
+      <Header 
+        title={categoryName || "Sub Categories"}
+        isBack={false}
+        rightIcon={true}
+        rightIconPress={() => { setIsSearching(true); setSearchQuery(""); }}
+        rightIconComponent={
+          <View style={styles.searchIconButton}>
+            <Icon name="search" family="Feather" size={22} color="#000" />
+          </View>
+        }
+      />
 
       {loading ? (
         <View style={styles.loaderContainer}>
@@ -230,24 +317,6 @@ const SubCategoryList = ({ route }: any) => {
         </View>
       ) : (
         <>
-          <View style={styles.actionRow}>
-            <View style={styles.sortFilterRow}>
-              <Pressable style={styles.sortButton} onPress={() => setShowSortFilter(true)}>
-                
-                <TextView style={styles.actionText}>Sort</TextView>
-                <Icon name="swap-vertical" family="MaterialCommunityIcons" size={16} color="#228B22" />
-              </Pressable>
-              <Pressable style={styles.filterButton} onPress={() => setShowSortFilter(true)}>
-               
-                <TextView style={styles.actionText}>Filter</TextView>
-                <Icon name="filter-variant" family="MaterialCommunityIcons" size={18} color="#228B22" />
-              </Pressable>
-            </View>
-
-            <Pressable style={styles.searchIconButton} onPress={() => { setIsSearching(true); setSearchQuery(""); }}>
-              <Icon name="search" size={22} color="#000" />
-            </Pressable>
-          </View>
 
           {/* SEARCH MODE */}
           {isSearching ? (
@@ -266,7 +335,7 @@ const SubCategoryList = ({ route }: any) => {
                 />
                 {searchQuery ? (
                   <Pressable onPress={() => setSearchQuery("")} style={{ padding: 10 }}>
-                    <Icon name="close" size={20} color="#000" />
+                    <Icon name="close" family="Feather" size={20} color="#000" />
                   </Pressable>
                 ) : null}
               </View>
@@ -276,6 +345,8 @@ const SubCategoryList = ({ route }: any) => {
                   <Image source={require("../../../../assets/images/search.png")} style={{ width: 300, height: 400 }} resizeMode="contain" />
                   <TextView style={{ marginTop: 20, fontSize: 16, color: "#999" }}>Start typing to search products</TextView>
                 </View>
+              ) : productLoading ? (
+                renderShimmerGrid()
               ) : products.length === 0 ? (
                 <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
                   <Image source={require("../../../../assets/images/search.png")} style={{ width: 140, height: 140, opacity: 0.5 }} resizeMode="contain" />
@@ -303,8 +374,6 @@ const SubCategoryList = ({ route }: any) => {
                           cardArray={[item]}
                           horizontal={false}
                           numOfColumn={1}
-                          variant="subcategory"
-                          onAddPress={handleAddPress}
                         />
                       </View>
                     );
@@ -319,22 +388,32 @@ const SubCategoryList = ({ route }: any) => {
               </View>
 
               <View style={styles.rightPane}>
-                <FlatList
-                  data={products}
-                  numColumns={2}
-                  columnWrapperStyle={{ justifyContent: "space-between" }}
-                  contentContainerStyle={{ paddingBottom: hp(5) }}
-                  keyExtractor={(item) => item.id}
-                  renderItem={({ item }) => (
-                    <View style={styles.productCardWrapper}>
-                      <ProductCard
-                        cardArray={[item]}
-                        horizontal={false}
-                        numOfColumn={2}
-                      />
-                    </View>
-                  )}
-                />
+                <View style={styles.sortFilterContainer}>
+                  <Pressable style={styles.sortButton} onPress={() => setShowSortFilter(true)}>
+                    <TextView style={styles.actionText}>Sort</TextView>
+                    <Icon name="swap-vertical" family="MaterialCommunityIcons" size={14} color="#228B22" />
+                  </Pressable>
+                </View>
+                {productLoading ? (
+                  renderShimmerGrid()
+                ) : (
+                  <FlatList
+                    data={products}
+                    numColumns={2}
+                    columnWrapperStyle={{ justifyContent: "space-between" }}
+                    contentContainerStyle={{ paddingBottom: hp(5) }}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                      <View style={styles.productCardWrapper}>
+                        <ProductCard
+                          cardArray={[item]}
+                          horizontal={false}
+                          numOfColumn={2}
+                        />
+                      </View>
+                    )}
+                  />
+                )}
               </View>
             </View>
           )}
@@ -342,41 +421,21 @@ const SubCategoryList = ({ route }: any) => {
       )}
 
       <Modal visible={showSortFilter} transparent animationType="slide">
-        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" }}>
-          <View style={{ backgroundColor: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: "90%" }}>
+        <TouchableWithoutFeedback onPress={() => setShowSortFilter(false)}>
+          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" }}>
+            <TouchableWithoutFeedback>
+              <View style={{ backgroundColor: "#fff", borderTopLeftRadius: 0, borderTopRightRadius: 0, maxHeight: "90%" }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16, borderBottomWidth: 1, borderColor: "#eee" }}>
               <Pressable onPress={() => setShowSortFilter(false)}>
-                <Icon name="close" size={26} color="#000" />
+                {/* <Icon name="close" family="Feather" size={26} color="#000" /> */}
               </Pressable>
-              <TextView style={{ fontSize: 18, fontWeight: "700", color: "#000" }}>Sort & Filter</TextView>
+              <TextView style={{ fontSize: 18, fontWeight: "700", color: "#000" }}>Sort</TextView>
               <Pressable onPress={clearAllFilters}>
-                <TextView style={{ color: "#4CAF50", fontWeight: "600" }}>Clear All</TextView>
+                <TextView style={{ color: "#4CAF50", fontWeight: "600" }}>Reset</TextView>
               </Pressable>
             </View>
 
             <ScrollView>
-              <View style={{ padding: 16 }}>
-                <TextView style={{ fontSize: 16, fontWeight: "600", marginBottom: 12, color: "#000" }}>Type</TextView>
-                {filterTypes.length > 0 ? (
-                  filterTypes.map((item) => (
-                    <Pressable key={item} onPress={() => toggleFilter(item)} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 12 }}>
-                      <View style={{
-                        width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: "#4CAF50",
-                        marginRight: 12, justifyContent: "center", alignItems: "center",
-                        backgroundColor: selectedTypes.includes(item) ? "#4CAF50" : "#fff"
-                      }}>
-                        {selectedTypes.includes(item) && <Icon name="checkmark" size={16} color="#fff" />}
-                      </View>
-                      <TextView style={{ color: "#000" }}>{item.charAt(0).toUpperCase() + item.slice(1)} ({Math.floor(Math.random() * 15) + 5})</TextView>
-                    </Pressable>
-                  ))
-                ) : (
-                  <TextView style={{ fontSize: 14, color: "#999", textAlign: "center", paddingVertical: 20 }}>No types available</TextView>
-                )}
-              </View>
-
-              <View style={{ height: 8, backgroundColor: "#f5f5f5" }} />
-
               <View style={{ padding: 16 }}>
                 <TextView style={{ fontSize: 16, fontWeight: "600", marginBottom: 12, color: "#000" }}>Sort by</TextView>
                 {[
@@ -401,7 +460,7 @@ const SubCategoryList = ({ route }: any) => {
 
             <View style={{ flexDirection: "row", padding: 16, borderTopWidth: 1, borderColor: "#eee" }}>
               <Pressable onPress={clearAllFilters} style={{ flex: 1, paddingVertical: 14 }}>
-                <TextView style={{ textAlign: "center", color: "#4CAF50", fontWeight: "600" }}>Clear Filters</TextView>
+                <TextView style={{ textAlign: "center", color: "#4CAF50", fontWeight: "600" }}>Reset</TextView>
               </Pressable>
               <Pressable
                 onPress={() => setShowSortFilter(false)}
@@ -411,13 +470,17 @@ const SubCategoryList = ({ route }: any) => {
               </Pressable>
             </View>
           </View>
-        </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
       </Modal>
 
       {/* Variant Modal */}
       <Modal visible={showVariantModal} transparent animationType="slide">
-        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <View style={{ backgroundColor: "white", padding: 20, borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
+        <TouchableWithoutFeedback onPress={() => setShowVariantModal(false)}>
+          <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" }}>
+            <TouchableWithoutFeedback>
+              <View style={{ backgroundColor: "white", padding: 20, borderTopLeftRadius: 0, borderTopRightRadius: 0 }}>
             <Pressable onPress={() => setShowVariantModal(false)} style={{ alignSelf: "center", marginBottom: 10 }}>
               <TextView style={{ fontSize: 26 }}>×</TextView>
             </Pressable>
@@ -438,7 +501,9 @@ const SubCategoryList = ({ route }: any) => {
               </View>
             ))}
           </View>
-        </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </SafeAreaView>
   );

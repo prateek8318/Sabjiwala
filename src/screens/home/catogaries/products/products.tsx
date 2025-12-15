@@ -1,16 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { FlatList, Image, Pressable, SafeAreaView, TouchableOpacity, View, Text } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
-// import ApiService, { IMAGE_BASE_URL } from '../../../service/apiService';// ✅ import your API
+import ApiService, { IMAGE_BASE_URL } from '../../../../service/apiService';
 import styles from './products.styles';
-// import ApiService from '../../../../service/apiService';
 import { Colors, Images } from '../../../../constant';
 import { Header, TextView } from '../../../../components';
 import ProductCard from './components/ProductCard/productCard';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import LinearGradient from 'react-native-linear-gradient';
 import CustomBlurView from '../../../../components/BlurView/blurView';
+import { ProductCardItem } from '../../../../@types';
 
 const Products = () => {
   const navigation = useNavigation();
@@ -18,11 +18,80 @@ const Products = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [subCategories, setSubCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [productLoading, setProductLoading] = useState(false);
+  const [products, setProducts] = useState<ProductCardItem[]>([]);
 
   const addProductBottomSheet = useRef<any>(null);
   const searchProductBottomSheet = useRef<any>(null);
   const sortProductBottomSheet = useRef<any>(null);
   const [isBlur, setIsBlur] = useState(false);
+
+  const transformProductToCard = useCallback((product: any): ProductCardItem => {
+    const variant =
+      product?.ProductVarient?.[0] ||
+      product?.variants?.[0] ||
+      {};
+
+    const preferredImages =
+      (Array.isArray(variant?.images) && variant.images.length > 0
+        ? variant.images
+        : null) ||
+      (Array.isArray(product?.primary_image) && product.primary_image.length > 0
+        ? product.primary_image
+        : null) ||
+      (Array.isArray(product?.images) && product.images.length > 0
+        ? product.images
+        : []);
+
+    const rawImage = preferredImages?.[0] || '';
+    const normalizedImage = rawImage ? rawImage.replace(/\\/g, '/') : '';
+    const fullImageUrl = normalizedImage ? IMAGE_BASE_URL + normalizedImage : '';
+
+    const weightValue =
+      variant?.weight ??
+      product?.weight ??
+      variant?.stock ??
+      product?.stock ??
+      1;
+    const unitValue = variant?.unit ?? product?.unit ?? '';
+
+    return {
+      id: product?._id || '',
+      name: product?.productName || product?.name || 'Product',
+      image: fullImageUrl,
+      price: variant?.price || product?.price || 0,
+      oldPrice: variant?.originalPrice || product?.mrp || 0,
+      discount: variant?.discount ? `₹${variant.discount} OFF` : '',
+      weight: `${weightValue} ${unitValue}`.trim(),
+      rating: product?.rating || 4.5,
+      options: `${(product?.ProductVarient || product?.variants || []).length} Option${((product?.ProductVarient || product?.variants || []).length || 0) > 1 ? 's' : ''}`,
+      variantId:
+        variant?._id ||
+        product?.ProductVarient?.[0]?._id ||
+        product?.variants?.[0]?._id ||
+        '',
+      ProductVarient: product?.ProductVarient || product?.variants || [],
+    };
+  }, []);
+
+  const fetchProducts = useCallback(async (subCategoryId: string | null) => {
+    if (!subCategoryId) return;
+    try {
+      setProductLoading(true);
+      const res = await ApiService.getSubCategoryProducts(subCategoryId);
+      if (res?.status === 200 && res?.data?.paginateData) {
+        const apiProducts = res.data.paginateData;
+        setProducts(apiProducts.map((p: any) => transformProductToCard(p)));
+      } else {
+        setProducts([]);
+      }
+    } catch (err) {
+      setProducts([]);
+      console.log('Error fetching products for subcategory:', err);
+    } finally {
+      setProductLoading(false);
+    }
+  }, [transformProductToCard]);
 
   // ✅ Fetch subcategories dynamically from API
   useEffect(() => {
@@ -32,7 +101,16 @@ const Products = () => {
         const categoryId = route?.params?.catId; // ← get categoryId from navigation params
         const response = await ApiService.getSubCategoryList(categoryId);
         if (response.data?.success) {
-          setSubCategories(response.data.subCategoryData || []);
+          const list = response.data.subCategoryData || [];
+          setSubCategories(list);
+          if (list.length > 0) {
+            const firstId = list[0]?._id;
+            setSelectedId(firstId);
+            fetchProducts(firstId);
+          } else {
+            setSelectedId(null);
+            setProducts([]);
+          }
         }
       } catch (error) {
         console.log('Error fetching subcategories:', error);
@@ -42,16 +120,21 @@ const Products = () => {
     };
 
     fetchSubCategories();
-  }, [route?.params?.catId]);
+  }, [route?.params?.catId, fetchProducts]);
 
   // ✅ Render each subcategory item
   const renderProductType = ({ item }: any) => {
     const isSelected = selectedId === item._id;
-    const imageUri = `${IMAGE_BASE_URL}${item.image}`.replace(/\\/g, '/');
+    const imageUri = item?.image
+      ? `${IMAGE_BASE_URL}${item.image}`.replace(/\\/g, '/')
+      : '';
     return (
       <TouchableOpacity
         activeOpacity={0.7}
-        onPress={() => setSelectedId(item._id)}
+        onPress={() => {
+          setSelectedId(item._id);
+          fetchProducts(item._id);
+        }}
         style={[
           styles.itemCatView,
           {
@@ -60,7 +143,13 @@ const Products = () => {
           },
         ]}
       >
-        <Image source={{ uri: imageUri }} style={styles.imgCat} />
+        {imageUri ? (
+          <Image source={{ uri: imageUri }} style={styles.imgCat} />
+        ) : (
+          <View style={[styles.imgCat, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#f5f5f5' }]}>
+            <TextView style={{ fontSize: 11, color: '#888' }}>No image</TextView>
+          </View>
+        )}
         <TextView style={styles.txtCat}>{item.name}</TextView>
       </TouchableOpacity>
     );
@@ -98,13 +187,16 @@ const Products = () => {
 
           {/* Product grid placeholder — your existing component */}
           <View style={{ flex: 1 }}>
-            <ProductCard
-              cardArray={[]} // later replace this with API-based products for selected subcategory
-              type="OFFER"
-              onAddAction={() => {}}
-              horizontal={false}
-              numOfColumn={2}
-            />
+            {productLoading ? (
+              <TextView style={{ textAlign: 'center', marginTop: 20 }}>Loading products...</TextView>
+            ) : (
+              <ProductCard
+                cardArray={products}
+                type="OFFER"
+                horizontal={false}
+                numOfColumn={2}
+              />
+            )}
           </View>
         </View>
       </View>

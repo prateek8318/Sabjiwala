@@ -4,14 +4,14 @@ import {widthPercentageToDP as wp} from '../../constant/dimentions';
 
 const styles = StyleSheet.create({
   buttonContainer: {
-    borderRadius: 8,
+    borderRadius: 30,
     paddingVertical: 10,
     width: '90%',
     alignSelf: 'center',
     backgroundColor: Colors.SECONDARY[100],
   },
   disabledButtonContainer: {
-    borderRadius: 10,
+    borderRadius: 30,
     paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -51,7 +51,7 @@ alignItems: 'center',
     width: '100%',
   },
   gradientButton: {
-    borderRadius: 50,
+    borderRadius: 30,
     paddingVertical: 15,
     alignItems: 'center',
     justifyContent: 'center',

@@ -1,47 +1,41 @@
-import React, { FC, useContext, useState } from 'react';
-import {
-  SafeAreaView,
-  KeyboardAvoidingView,
-  Platform,
-  View,
-  Image,
-  TouchableOpacity,
-  FlatList,
-  ScrollView,
-  Pressable,
-  Modal,
-  Alert,
-  Text,
-} from 'react-native';
+import React, { FC } from 'react';
+import { Linking, SafeAreaView, ScrollView, Share, View } from 'react-native';
 import styles from './inviteFriend.styles';
-import { HomeStackProps } from '../../../../../../@types';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import {
-  widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from '../../../../../../constant/dimentions';
 import {
   Colors,
-  Fonts,
-  Icon,
-  Images,
-  Typography,
 } from '../../../../../../constant';
 import {
-  BorderButton,
   Header,
   LinearButton,
   TextView,
 } from '../../../../../../components';
 
-type InviteFriendScreenNavigationType = NativeStackNavigationProp<
-  HomeStackProps,
-  'InviteFriend'
->;
-
 const InviteFriend: FC = () => {
-  const navigation = useNavigation<InviteFriendScreenNavigationType>();
+  const referralCode = 'XYZ562639';
+  const shareMessage = `Hey! Use my SabjiWala referral code ${referralCode} to sign up and we both earn rewards.`;
+
+  const handleShareWhatsApp = async () => {
+    const url = `whatsapp://send?text=${encodeURIComponent(shareMessage)}`;
+    try {
+      const isSupported = await Linking.canOpenURL(url);
+      if (isSupported) {
+        await Linking.openURL(url);
+        return;
+      }
+    } catch (error) {
+      console.log('WhatsApp share failed, falling back to system share', error);
+    }
+
+    await Share.share({ message: shareMessage });
+  };
+
+  const handleShareGeneric = async () => {
+    try {
+      await Share.share({ message: shareMessage });
+    } catch (error) {
+      console.log('Share error:', error);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -57,7 +51,7 @@ const InviteFriend: FC = () => {
         <View style={styles.viewContainer}>
           <TextView style={styles.txtInvite}>Invite Your Friends</TextView>
           <View style={styles.inviteView}>
-            <TextView style={styles.inviteCode}>XYZ562639</TextView>
+            <TextView style={styles.inviteCode}>{referralCode}</TextView>
           </View>
           <View style={styles.actionButtonView}>
             <LinearButton
@@ -65,12 +59,14 @@ const InviteFriend: FC = () => {
               //@ts-ignore
               titleStyle={[styles.buttonTitle, { color: Colors.PRIMARY[300] }]}
               style={styles.btnView}
+              onPress={handleShareWhatsApp}
             />
             <LinearButton
               title="Others"
               //@ts-ignore
               titleStyle={[styles.buttonTitle, { color: Colors.PRIMARY[300] }]}
               style={styles.btnView}
+              onPress={handleShareGeneric}
             />
           </View>
         </View>

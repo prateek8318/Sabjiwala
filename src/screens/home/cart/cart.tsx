@@ -11,8 +11,9 @@ import {
   ActivityIndicator,
   Modal,
   TextInput,
-  Alert,
   StyleSheet,
+  Alert,
+  Pressable,
 } from "react-native";
 import CustomBlurView from "../../../components/BlurView/blurView";
 import ApiService from "../../../service/apiService";
@@ -20,9 +21,9 @@ import Icon from "react-native-vector-icons/Ionicons";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { useIsFocused } from "@react-navigation/native";
 import cartStyles from "../cart/cart.styles";
-import RazorpayCheckout from "react-native-razorpay";
 import ConfettiCannon from 'react-native-confetti-cannon';
-import { Images, RazorpayConfig } from "../../../constant";
+import Toast from 'react-native-toast-message';
+import { Images } from "../../../constant";
 const styles: any = cartStyles;
 
 const Cart = ({ navigation }: any) => {
@@ -33,9 +34,11 @@ const Cart = ({ navigation }: any) => {
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [showAppliedDialog, setShowAppliedDialog] = useState(false);
   const [manualCoupon, setManualCoupon] = useState("");
-  const [selectedPayment, setSelectedPayment] = useState<"cod" | "wallet" | "razorpay">("razorpay");
+  // Razorpay temporarily disabled; default to COD/wallet only
+  const [selectedPayment, setSelectedPayment] = useState<"cod" | "wallet">("cod");
   const [placingOrder, setPlacingOrder] = useState(false);
   const [showOrderPlaced, setShowOrderPlaced] = useState(false);
+  const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [showAddAddressModal, setShowAddAddressModal] = useState(false);
@@ -68,6 +71,9 @@ const Cart = ({ navigation }: any) => {
   const [remarkText, setRemarkText] = useState("");
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponError, setCouponError] = useState<string | null>(null);
+  const [showAddressSelectionModal, setShowAddressSelectionModal] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{ variantId: string; productId: string; name?: string } | null>(null);
   const isFocused = useIsFocused();
 
   const effectiveGrandTotal = Math.max(0, (totals.grandTotal || 0) - couponDiscount);
@@ -260,16 +266,27 @@ const Cart = ({ navigation }: any) => {
     const trimmed = code.trim();
     if (!trimmed) return;
     const { discount, error } = validateCoupon(trimmed);
+    // If coupon is invalid, do NOT apply it
+    if (error || discount <= 0) {
+      setAppliedCoupon("");
+      setCouponDiscount(0);
+      setCouponError(error || "Invalid coupon");
+      setCouponSheetVisible(false);
+      setManualCoupon("");
+      Toast.show({
+        type: "error",
+        text1: "Coupon Error",
+        text2: error || "Invalid coupon",
+      });
+      return;
+    }
+
     setAppliedCoupon(trimmed);
     setCouponSheetVisible(false);
     setManualCoupon("");
     setCouponDiscount(discount);
-    setCouponError(error);
-    if (!error && discount > 0) {
-      setShowAppliedDialog(true);
-    } else if (error) {
-      Alert.alert("Coupon", error);
-    }
+    setCouponError(null);
+    setShowAppliedDialog(true);
   };
 
   useEffect(() => {
@@ -286,13 +303,18 @@ const Cart = ({ navigation }: any) => {
   // ADD ADDRESS
   const handleAddAddress = async () => {
     if (!addressForm.houseNoOrFlatNo || !addressForm.city || !addressForm.pincode || !addressForm.receiverName || !addressForm.receiverNo) {
-      Alert.alert("Error", "Please fill all required fields");
+      Toast.show({
+        type: "error",
+        text1: "Validation Error",
+        text2: "Please fill all required fields",
+      });
       return;
     }
     try {
       setAddingAddress(true);
       await ApiService.addAddress(addressForm);
       setShowAddAddressModal(false);
+      setShowAddressSelectionModal(false);
       setAddressForm({
         addressType: "home",
         floor: "",
@@ -304,12 +326,51 @@ const Cart = ({ navigation }: any) => {
         receiverNo: "",
       });
       await fetchAddresses();
+      Toast.show({
+        type: "success",
+        text1: "Address Added",
+        text2: "Address has been added successfully!",
+      });
     } catch (err: any) {
       console.log("Add address error:", err);
       const errorMessage = err?.response?.data?.message || err?.message || "Failed to add address";
-      Alert.alert("Error", errorMessage);
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: errorMessage,
+      });
     } finally {
       setAddingAddress(false);
+    }
+  };
+
+  // DELETE ADDRESS
+  const handleDeleteAddress = async (addressId: string) => {
+    try {
+      await ApiService.deleteAddress(addressId);
+      await fetchAddresses();
+      // If deleted address was selected, select first available or clear selection
+      if (selectedAddressId === addressId) {
+        const remainingAddresses = addresses.filter(addr => addr._id !== addressId);
+        if (remainingAddresses.length > 0) {
+          setSelectedAddressId(remainingAddresses[0]._id);
+        } else {
+          setSelectedAddressId(null);
+        }
+      }
+      Toast.show({
+        type: "success",
+        text1: "Address Deleted",
+        text2: "Address has been deleted successfully",
+      });
+    } catch (err: any) {
+      console.log("Delete address error:", err);
+      const errorMessage = err?.response?.data?.message || err?.message || "Failed to delete address";
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: errorMessage,
+      });
     }
   };
 
@@ -336,6 +397,19 @@ const Cart = ({ navigation }: any) => {
     }
   };
 
+  const confirmRemoveItem = (variantId: string, productId: string, name?: string) => {
+    setPendingDelete({ variantId, productId, name });
+    setDeleteModalVisible(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (pendingDelete) {
+      removeItem(pendingDelete.variantId, pendingDelete.productId);
+    }
+    setDeleteModalVisible(false);
+    setPendingDelete(null);
+  };
+
   // UPDATE QUANTITY
   const updateQuantity = async (item: any, delta: number) => {
     const newQuantity = (item.quantity || 0) + delta;
@@ -344,11 +418,32 @@ const Cart = ({ navigation }: any) => {
       return removeItem(item.variantId?._id || "", item.productId._id);
     }
 
+    // Optimistically update UI and totals so price changes immediately
+    const unitPrice = Number(item.price || item.variantId?.price || 0);
+    const unitMrp = Number(item.mrp || item.variantId?.mrp || unitPrice);
+    const deltaPrice = unitPrice * delta;
+    const deltaMrp = unitMrp * delta;
+
     setItems((prev) =>
       prev.map((i) =>
         i._id === item._id ? { ...i, quantity: newQuantity } : i
       )
     );
+
+    setTotals((prev) => {
+      const nextItemPriceTotal = Math.max(0, Number(prev.itemPriceTotal || 0) + deltaPrice);
+      const nextItemMrpTotal = Math.max(0, Number(prev.itemMrpTotal || 0) + deltaMrp);
+      const grand =
+        nextItemPriceTotal +
+        Number(prev.handlingCharge || 0) +
+        Number(prev.deliveryCharge || 0);
+      return {
+        ...prev,
+        itemPriceTotal: nextItemPriceTotal,
+        itemMrpTotal: nextItemMrpTotal,
+        grandTotal: grand,
+      };
+    });
 
     try {
       await ApiService.addToCart(
@@ -374,63 +469,27 @@ const Cart = ({ navigation }: any) => {
     setSelectedTip(0);
   };
 
-  const startRazorpayPayment = async (amountInRupees: number) => {
-    if (!amountInRupees || amountInRupees <= 0) {
-      throw new Error("Invalid amount");
-    }
-    const selectedAddress = addresses.find((addr) => addr._id === selectedAddressId);
-    const orderRes = await ApiService.createRazorpayOrder(amountInRupees);
-    const orderData = orderRes?.data || {};
-    const orderId =
-      orderData.orderId ||
-      orderData.id ||
-      orderData?.data?.orderId ||
-      orderData?.data?.id;
-    const amountInPaise =
-      orderData.amount ||
-      orderData?.data?.amount ||
-      Math.round(Number(amountInRupees || 0) * 100);
-    const currency =
-      orderData.currency ||
-      orderData?.data?.currency ||
-      RazorpayConfig.currency ||
-      "INR";
-
-    const options: any = {
-      key: RazorpayConfig.keyId,
-      name: RazorpayConfig.displayName || "SabjiWala",
-      description: "Order Payment",
-      order_id: orderId,
-      currency,
-      amount: amountInPaise,
-      prefill: {
-        contact: selectedAddress?.receiverNo || "",
-        name: selectedAddress?.receiverName || "",
-      },
-      notes: {
-        cart_total_rupees: amountInRupees.toString(),
-      },
-      theme: { color: "#4CAF50" },
-    };
-
-    const paymentData = await RazorpayCheckout.open(options);
-    return {
-      paymentId: paymentData.razorpay_payment_id,
-      orderId: paymentData.razorpay_order_id || orderId,
-      signature: paymentData.razorpay_signature,
-    };
-  };
+  // Razorpay checkout temporarily disabled until client key is provided
+  // const startRazorpayPayment = async (amountInRupees: number) => { ... };
 
   const placeOrder = async () => {
     if (placingOrder) return;
     if (!selectedAddressId) {
-      Alert.alert("Error", "Please select an address");
+      Toast.show({
+        type: "error",
+        text1: "Address Required",
+        text2: "Please select an address",
+      });
       return;
     }
 
     const selectedAddress = addresses.find((addr) => addr._id === selectedAddressId);
     if (!selectedAddress) {
-      Alert.alert("Error", "Selected address could not be found. Please reselect.");
+      Toast.show({
+        type: "error",
+        text1: "Address Error",
+        text2: "Selected address could not be found. Please reselect.",
+      });
       return;
     }
 
@@ -440,10 +499,13 @@ const Cart = ({ navigation }: any) => {
 
     const totalAmount = payableAmount;
     const isWallet = selectedPayment === "wallet";
-    const isRazorpay = selectedPayment === "razorpay";
 
     if (!totalAmount || totalAmount <= 0) {
-      Alert.alert("Payment", "Amount must be greater than zero");
+      Toast.show({
+        type: "error",
+        text1: "Payment Error",
+        text2: "Amount must be greater than zero",
+      });
       return;
     }
 
@@ -457,25 +519,8 @@ const Cart = ({ navigation }: any) => {
 
     try {
       setPlacingOrder(true);
-      let razorpayPayment: { paymentId?: string; orderId?: string; signature?: string } | null = null;
 
-      // If Razorpay, open checkout and capture payment details
-      if (isRazorpay) {
-        try {
-          razorpayPayment = await startRazorpayPayment(totalAmount);
-        } catch (err: any) {
-          console.log("Razorpay payment failed:", err);
-          const errorMessage =
-            err?.description ||
-            err?.error?.description ||
-            err?.message ||
-            "Payment was cancelled or failed. Please try again.";
-          Alert.alert("Payment", errorMessage);
-          return;
-        }
-      }
-
-      // If wallet, debit balance after Razorpay block (no razorpay IDs needed)
+      // If wallet, debit balance before creating the order
       if (isWallet) {
         try {
           await ApiService.createWalletHistory({
@@ -489,7 +534,11 @@ const Cart = ({ navigation }: any) => {
         } catch (err: any) {
           console.log("Wallet debit failed:", err);
           const msg = err?.response?.data?.message || err?.message || "Wallet debit failed. Please try another method.";
-          Alert.alert("Error", msg);
+          Toast.show({
+            type: "error",
+            text1: "Wallet Error",
+            text2: msg,
+          });
           return;
         }
       }
@@ -506,28 +555,32 @@ const Cart = ({ navigation }: any) => {
         pincode: selectedAddress?.pincode,
         lat: latFromAddr || undefined,
         long: longFromAddr || undefined,
-        // online only when Razorpay is used; wallet uses dedicated flags
-        paymentMethod: isRazorpay ? "online" : selectedPayment,
+        paymentMethod: selectedPayment,
         couponCode: appliedCoupon || undefined,
         discountAmount: couponDiscount || 0,
         remark: remarkText ? remarkText : appliedCoupon ? "Applied coupon" : "",
         walletPayment: isWallet ? true : undefined,
         walletAmount: isWallet ? totalAmount : undefined,
-        razorpayPaymentId: isRazorpay ? razorpayPayment?.paymentId : undefined,
-        razorpayOrderId: isRazorpay ? razorpayPayment?.orderId : undefined,
-        razorpaySignature: isRazorpay ? razorpayPayment?.signature : undefined,
         tipAmount: selectedTip || undefined,
       };
 
       // Tag remark to indicate wallet or online usage
       if (isWallet) {
         payload.remark = `${payload.remark || ""} Wallet payment`.trim();
-      } else if (isRazorpay) {
-        payload.remark = `${payload.remark || ""} Paid via Razorpay`.trim();
       }
 
-      await ApiService.placeOrder(payload);
+      const orderResponse = await ApiService.placeOrder(payload);
       
+      // Extract order ID from response
+      const orderId = 
+        orderResponse?.data?.order?._id ||
+        orderResponse?.data?.orderId ||
+        orderResponse?.data?.data?.order?._id ||
+        orderResponse?.data?.data?.orderId ||
+        orderResponse?.data?._id ||
+        null;
+      
+      setPlacedOrderId(orderId);
       resetCartState();
       setShowOrderPlaced(true);
       // Refresh wallet balance after order placement
@@ -537,7 +590,11 @@ const Cart = ({ navigation }: any) => {
     } catch (err: any) {
       console.log("Place order failed:", err);
       const errorMessage = err?.response?.data?.message || err?.message || "Failed to place order. Please try again.";
-      Alert.alert("Error", errorMessage);
+      Toast.show({
+        type: "error",
+        text1: "Order Failed",
+        text2: errorMessage,
+      });
     } finally {
       setPlacingOrder(false);
     }
@@ -565,12 +622,101 @@ const Cart = ({ navigation }: any) => {
 
         {/* FREE DELIVERY BANNER */}
         {items.length > 0 && (
-          <View style={[styles.freeDeliveryBanner, { borderColor: "#8BC34A" }]}>
-            <Text style={[styles.freeDeliveryText, { color: "#2E7D32" }]}>
-              You're almost there! Add ₹60 and unlock free delivery!
-            </Text>
+          <View style={styles.freeDeliveryContainer}>
+
+            <View style={styles.freeDeliveryLeft}>
+              <Text style={styles.freeDeliveryText}>
+                You're almost there! Add ₹60 and unlock free delivery!
+              </Text>
+            </View>
+
+            {/* Delete confirmation modal */}
+            <Modal
+              transparent
+              visible={deleteModalVisible}
+              animationType="fade"
+              onRequestClose={() => setDeleteModalVisible(false)}
+            >
+              <Pressable
+                style={{
+                  flex: 1,
+                  backgroundColor: "rgba(0,0,0,0.45)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: 24,
+                }}
+                onPress={() => setDeleteModalVisible(false)}
+              >
+                <Pressable
+                  onPress={(e) => e.stopPropagation()}
+                  style={{
+                    width: "100%",
+                    maxWidth: 380,
+                    backgroundColor: "#fff",
+                    borderRadius: 18,
+                    paddingVertical: 22,
+                    paddingHorizontal: 20,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 8 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 12,
+                    elevation: 10,
+                  }}
+                >
+                  <View style={{ alignItems: "center", marginBottom: 14 }}>
+                    <MaterialIcons name="warning-amber" size={42} color="#E53935" />
+                    <Text style={{ marginTop: 10, fontSize: 18, fontWeight: "700", color: "#000" }}>
+                      Remove item?
+                    </Text>
+                    <Text
+                      style={{ marginTop: 6, fontSize: 14, color: "#444", textAlign: "center" }}
+                      numberOfLines={2}
+                    >
+                      {pendingDelete?.name
+                        ? `Remove "${pendingDelete.name}" from your cart?`
+                        : "Remove this item from your cart?"}
+                    </Text>
+                  </View>
+
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        paddingVertical: 12,
+                        borderRadius: 12,
+                        borderWidth: 1,
+                        borderColor: "#E0E0E0",
+                        backgroundColor: "#fff",
+                        alignItems: "center",
+                      }}
+                      onPress={() => {
+                        setDeleteModalVisible(false);
+                        setPendingDelete(null);
+                      }}
+                    >
+                      <Text style={{ fontSize: 15, fontWeight: "700", color: "#424242" }}>Keep</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        paddingVertical: 12,
+                        borderRadius: 12,
+                        backgroundColor: "#E53935",
+                        alignItems: "center",
+                      }}
+                      onPress={handleConfirmDelete}
+                    >
+                      <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff" }}>Remove</Text>
+                    </TouchableOpacity>
+                  </View>
+                </Pressable>
+              </Pressable>
+            </Modal>
+
+
           </View>
         )}
+
 
         {/* EMPTY CART */}
         {items.length === 0 ? (
@@ -608,7 +754,9 @@ const Cart = ({ navigation }: any) => {
 
               return (
                 <View key={item._id} style={styles.itemCard}>
-                  <Image source={{ uri: img }} style={styles.itemImage} />
+                  <Pressable onPress={() => navigation.navigate("ProductDetail", { productId: product._id })}>
+                    <Image source={{ uri: img }} style={styles.itemImage} />
+                  </Pressable>
 
                   <View style={styles.itemInfo}>
                     <Text style={styles.itemName} numberOfLines={2}>
@@ -624,7 +772,7 @@ const Cart = ({ navigation }: any) => {
 
                   <View style={{ alignItems: "center", }}>
                     <TouchableOpacity
-                      onPress={() => removeItem(variant?._id || "", product._id)}
+                      onPress={() => confirmRemoveItem(variant?._id || "", product._id, product?.name)}
                       style={{ padding: 8 }}
                     >
                       <MaterialIcons name="delete-outline" size={22} color="#999" />
@@ -717,55 +865,6 @@ const Cart = ({ navigation }: any) => {
                 )}
               </View>
             )}
-
-            <View style={{ marginHorizontal: 16, marginTop: 18 }}>
-              <Text style={{ fontSize: 18, fontWeight: "700", marginBottom: 12 }}>
-                Delivery Instructions
-              </Text>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", flexWrap: "wrap", rowGap: 12 }}>
-                {[
-                  { id: 1, icon: "call-outline", text: "Avoid calling" },
-                  { id: 2, icon: "home-outline", text: "Leave at door" },
-                  { id: 3, icon: "shield-checkmark-outline", text: "Leave with guard" },
-                  { id: 4, icon: "notifications-off-outline", text: "Don't ring bell" },
-                ].map((opt) => {
-                  const isSelected = selectedDeliveryOptions.includes(opt.id);
-                  return (
-                    <TouchableOpacity
-                      key={opt.id}
-                      onPress={() => toggleDeliveryOption(opt.id)}
-                      style={{
-                        width: "22%",
-                        minWidth: 88,
-                        alignItems: "center",
-                        paddingVertical: 12,
-                        paddingHorizontal: 10,
-                        borderRadius: 10,
-                        backgroundColor: isSelected ? "#C8E6C9" : "#F4F4F4",
-                        borderWidth: isSelected ? 1 : 0,
-                        borderColor: isSelected ? "#2E7D32" : "transparent",
-                      }}
-                    >
-                      <Icon
-                        name={isSelected ? "checkbox-outline" : "square-outline"}
-                        size={22}
-                        color={isSelected ? "#2E7D32" : "#555"}
-                      />
-                      <Icon
-                        name={opt.icon}
-                        size={20}
-                        color={isSelected ? "#2E7D32" : "#555"}
-                        style={{ marginTop: 6 }}
-                      />
-                      <Text style={{ marginTop: 6, fontSize: 12, fontWeight: "600", textAlign: "center", color: "#444" }}>
-                        {opt.text}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
             <View style={styles.paymentBox}>
               <Text style={styles.paymentLabel}>Payment Details</Text>
               <Row label="Items Total" value={`₹${Number(totals.itemPriceTotal || 0).toFixed(2)}`} />
@@ -778,19 +877,95 @@ const Cart = ({ navigation }: any) => {
                 <Row label="Tip" value={`₹${selectedTip.toFixed(2)}`} />
               )}
               <View style={styles.grandTotalRow}>
-                <Row bold label="To Pay" value={`₹${payableAmount.toFixed(2)}`} />
+                <Row
+                  bold
+                  fontSize={20}
+                  label="Grand Total"
+                  value={`₹${payableAmount.toFixed(2)}`}
+                />
+
+                {/* Including GST - small text below */}
+                <Text style={{ fontSize: 10, color: '#555', marginTop: -12, textAlign: 'left' }}>
+                  (Including GST)
+                </Text>
               </View>
+
             </View>
 
             <View style={styles.savingsBox}>
               <Text style={styles.savingsText}>Your Total Saving</Text>
               <Text style={styles.savingsText}>
-                ₹{totals.itemMrpTotal - totals.itemPriceTotal}
+                ₹{Math.max(0, Number(totals.itemMrpTotal || 0) - Number(totals.itemPriceTotal || 0))}
               </Text>
             </View>
+            <View style={{ marginHorizontal: 16, marginTop: 18 }}>
+              <Text style={{ fontSize: 18, fontWeight: "700", marginBottom: 12, color: "#000" }}>
+                Delivery Instructions
+              </Text>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", flexWrap: "wrap" }}>
+                {[
+                  { id: 1, icon: "call-outline", text: "Avoid calling" },
+                  { id: 2, icon: "home-outline", text: "Leave at door" },
+                  { id: 3, icon: "shield-checkmark-outline", text: "Leave with guard" },
+                  { id: 4, icon: "notifications-off-outline", text: "Don't ring bell" },
+                ].map((opt, index) => {
+                  const isSelected = selectedDeliveryOptions.includes(opt.id);
+                  return (
+                    <TouchableOpacity
+                      key={opt.id}
+                      onPress={() => toggleDeliveryOption(opt.id)}
+                      style={{
+                        width: "22%",
+                        minWidth: 88,
+                        maxWidth: 120,
+                        alignItems: "center",
+                        paddingVertical: 6,
+                        paddingHorizontal: 2,
+                        borderRadius: 10,
+                        backgroundColor: isSelected ? "#C8E6C9" : "#fff",
+                        borderWidth: 1,
+                        borderColor: isSelected ? "#2E7D32" : "#E0E0E0",
+                        marginBottom: 12,
+                        marginRight: index % 4 !== 3 ? "2%" : 0,
+                      }}
+                    >
+                      {/* Icon and Checkbox on same line */}
+                      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
+                        <Icon
+                          name={opt.icon}
+                          size={20}
+                          color={isSelected ? "#2E7D32" : "#555"}
+                        />
+                        <Icon
+                          name={isSelected ? "checkbox-outline" : "square-outline"}
+                          size={22}
+                          color={isSelected ? "#2E7D32" : "#555"}
+                          style={{ marginLeft: 12 }}
+                        />
+                      </View>
+                      {/* Text below */}
+                      <Text style={{ fontSize: 14, fontWeight: "600", textAlign: "center", color: "#444" }}>
+                        {opt.text}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+
 
             <View style={styles.tipBox}>
-              <Text style={styles.tipTitle}>Tip Your Delivery Partner</Text>
+
+              <Text style={styles.tipTitle}>Tip Your Delivery partner</Text>
+
+              {/* Description */}
+              <Text style={styles.tipDescription}>
+                It is a long established fact that a reader will be distracted by the readable content
+                of a page when looking at its layout.
+              </Text>
+
+              {/* Tip Buttons */}
               <View style={styles.tipButtonsRow}>
                 {[10, 20, 30, 50].map((v) => (
                   <TouchableOpacity
@@ -802,100 +977,115 @@ const Cart = ({ navigation }: any) => {
                   </TouchableOpacity>
                 ))}
               </View>
+
             </View>
+
 
             {/* Address Section */}
             <View style={{ marginHorizontal: 16, marginTop: 18 }}>
               <Text style={{ fontSize: 18, fontWeight: "700", marginBottom: 12, color: "#000" }}>
                 Delivery Address
               </Text>
-              
-              {addresses.length > 0 ? (
-                addresses.map((address) => {
-                  const isSelected = selectedAddressId === address._id;
+
+              {addresses.length > 0 && selectedAddressId ? (
+                (() => {
+                  const selectedAddress = addresses.find(addr => addr._id === selectedAddressId);
+                  if (!selectedAddress) return null;
                   return (
-                    <TouchableOpacity
-                      key={address._id}
-                      onPress={() => setSelectedAddressId(address._id)}
-                      style={{
-                        backgroundColor: "#fff",
-                        borderRadius: 12,
-                        borderWidth: isSelected ? 2 : 1,
-                        borderColor: isSelected ? "#4CAF50" : "#E2E2E2",
-                        padding: 12,
-                        marginBottom: 12,
-                      }}
-                    >
-                      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                        <View style={{ flexDirection: "row", alignItems: "center" }}>
-                          <View style={{ backgroundColor: "#E8F5E9", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: "#8BC34A" }}>
-                            <Text style={{ color: "#2E7D32", fontWeight: "700", fontSize: 12, textTransform: "capitalize" }}>
-                              {address.addressType}
-                            </Text>
-                          </View>
-                          {isSelected && (
-                            <View style={{ marginLeft: 8, width: 20, height: 20, borderRadius: 10, backgroundColor: "#4CAF50", alignItems: "center", justifyContent: "center" }}>
-                              <Icon name="checkmark" size={14} color="#fff" />
-                            </View>
-                          )}
+                    <View style={{
+                      backgroundColor: "#fff",
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: "#E2E2E2",
+                      padding: 12,
+                      marginBottom: 12,
+                    }}>
+                      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                        <View style={{ backgroundColor: "#E8F5E9", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: "#8BC34A" }}>
+                          <Text style={{ color: "#2E7D32", fontWeight: "700", fontSize: 12, textTransform: "capitalize" }}>
+                            {selectedAddress.addressType}
+                          </Text>
                         </View>
+                        <TouchableOpacity
+                          onPress={() => handleDeleteAddress(selectedAddress._id)}
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 16,
+                            backgroundColor: "#E8F5E9",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <MaterialIcons name="delete-outline" size={18} color="#2E7D32" />
+                        </TouchableOpacity>
                       </View>
-                      <Text style={{ marginTop: 8, fontSize: 14, color: "#000", fontWeight: "600" }}>
-                        {address.receiverName} - {address.receiverNo}
+                      <Text style={{ fontSize: 14, color: "#000", fontWeight: "600", marginBottom: 4 }}>
+                        {formatAddress(selectedAddress)}
                       </Text>
-                      <Text style={{ marginTop: 4, fontSize: 14, color: "#666" }}>
-                        {address.houseNoOrFlatNo}, {address.floor && `Floor ${address.floor}, `}
-                        {address.landmark && `${address.landmark}, `}
-                        {address.city} - {address.pincode}
-                      </Text>
-                    </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => setShowAddressSelectionModal(true)}
+                        style={{
+                          backgroundColor: '#1B5E20',
+                          borderRadius: 25,
+                          paddingVertical: 8,
+                          paddingHorizontal: 16,
+                          alignSelf: "flex-end",
+                          marginTop: 8,
+                        }}
+                      >
+                        <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>
+                          Changes
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   );
-                })
+                })()
               ) : (
                 <View style={{ backgroundColor: "#fff", borderRadius: 12, borderWidth: 1, borderColor: "#E2E2E2", padding: 16, alignItems: "center" }}>
                   <Text style={{ fontSize: 14, color: "#666", marginBottom: 12 }}>
                     No address added yet
                   </Text>
+                  <TouchableOpacity
+                    onPress={() => setShowAddAddressModal(true)}
+                    style={{
+                      backgroundColor: '#1B5E20',
+                      borderRadius: 25,
+                      padding: 14,
+                      alignItems: "center",
+                      minWidth: 150,
+                    }}
+                  >
+                    <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>
+                      + Add Address
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               )}
-
-              <TouchableOpacity
-                onPress={() => setShowAddAddressModal(true)}
-                style={{
-                  backgroundColor: "#4CAF50",
-                  borderRadius: 12,
-                  padding: 14,
-                  alignItems: "center",
-                  marginTop: 8,
-                }}
-              >
-                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>
-                  + Add Address
-                </Text>
-              </TouchableOpacity>
             </View>
 
             {/* Additional detail input */}
             <View style={{ marginHorizontal: 16, marginTop: 12, backgroundColor: "#D6E8FF", borderRadius: 10, padding: 12 }}>
-              <Text style={{ color: "#000", fontSize: 14, marginBottom: 8 }}>
-                Add your remark
-              </Text>
-              <TouchableOpacity
-                onPress={() => setShowRemarkModal(true)}
-                style={{
-                  backgroundColor: "#4CAF50",
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  borderRadius: 10,
-                  alignItems: "center",
-                  alignSelf: "flex-start",
-                  minWidth: 120,
-                }}
-              >
-                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>
-                  {remarkText ? "Edit remark" : "Add remark"}
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: remarkText ? 8 : 0 }}>
+                <Text style={{ color: "#000", fontSize: 14, flex: 1 }}>
+                  Add any other detail for shop
                 </Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setShowRemarkModal(true)}
+                  style={{
+                    backgroundColor: '#1B5E20',
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderRadius: 25,
+                    alignItems: "center",
+                    minWidth: 80,
+                  }}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>
+                    Add
+                  </Text>
+                </TouchableOpacity>
+              </View>
               {remarkText ? (
                 <Text style={{ marginTop: 8, color: "#333", fontSize: 13 }}>
                   {remarkText}
@@ -909,37 +1099,13 @@ const Cart = ({ navigation }: any) => {
                 <Text style={{ fontSize: 16, fontWeight: "700", color: "#000" }}>Choose Payment Method</Text>
                 <MaterialIcons name="chevron-right" size={20} color="#000" />
               </View>
-              
-              {/* Razorpay Online Payment */}
-              <TouchableOpacity
-                onPress={() => setSelectedPayment("razorpay")}
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  paddingVertical: 12,
-                }}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-                  <Text style={{ fontSize: 14, color: "#000" }}>Pay Online (Razorpay)</Text>
-                  <Text style={{ fontSize: 12, color: "#666", marginLeft: 8 }}>
-                    Cards / UPI / Netbanking
-                  </Text>
-                </View>
-                <View style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: 10,
-                  borderWidth: 2,
-                  borderColor: "#4CAF50",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}>
-                  {selectedPayment === "razorpay" && (
-                    <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#4CAF50" }} />
-                  )}
-                </View>
-              </TouchableOpacity>
+
+              {/* Online payment (Razorpay) temporarily disabled until client key is available */}
+              <View style={{ paddingVertical: 12 }}>
+                <Text style={{ fontSize: 14, color: "#999" }}>
+                  Online payment currently unavailable.
+                </Text>
+              </View>
 
               {/* Wallet Payment Option */}
               <TouchableOpacity
@@ -952,10 +1118,10 @@ const Cart = ({ navigation }: any) => {
                   }
                 }}
                 disabled={walletBalance < payableAmount}
-                style={{ 
-                  flexDirection: "row", 
-                  justifyContent: "space-between", 
-                  alignItems: "center", 
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
                   paddingVertical: 12,
                   opacity: walletBalance < payableAmount ? 0.5 : 1
                 }}
@@ -1064,8 +1230,8 @@ const Cart = ({ navigation }: any) => {
                   handleApplyCoupon(manualCoupon.trim());
                 }}
                 style={{
-                  backgroundColor: "#4CAF50",
-                  borderRadius: 8,
+                  backgroundColor: "#1B5E20",
+                  borderRadius: 25,
                   paddingHorizontal: 18,
                   paddingVertical: 10,
                   marginLeft: 10,
@@ -1214,10 +1380,10 @@ const Cart = ({ navigation }: any) => {
                           }}
                           style={{
                             marginTop: 10,
-                            backgroundColor: "#4CAF50",
+                            backgroundColor: "#1B5E20",
                             paddingHorizontal: 14,
                             paddingVertical: 8,
-                            borderRadius: 8,
+                            borderRadius: 25,
                             alignSelf: "flex-start",
                           }}
                         >
@@ -1238,37 +1404,37 @@ const Cart = ({ navigation }: any) => {
       </Modal>
 
       <Modal
-  visible={showAppliedDialog}
-  transparent
-  animationType="fade"
-  onRequestClose={() => setShowAppliedDialog(false)}
->
-  <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", alignItems: "center", justifyContent: "center" }}>
-    
-    {/* Left side party popper */}
-    <ConfettiCannon count={80} origin={{x: -40, y: 0}} autoStart={true} fadeOut={true} />
-    
-    {/* Right side party popper */}
-    <ConfettiCannon count={80} origin={{x: 400, y: 0}} autoStart={true} fadeOut={true} />
-
-    <View style={{ backgroundColor: "#fff", width: "78%", borderRadius: 12, padding: 18, alignItems: "center" }}>
-      <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: "#4CAF50", alignItems: "center", justifyContent: "center" }}>
-        <Icon name="checkmark" size={30} color="#fff" />
-      </View>
-      <Text style={{ marginTop: 12, fontSize: 16, fontWeight: "800", color: "#000" }}>
-        {appliedCoupon || "COUPON"}
-      </Text>
-      <Text style={{ marginTop: 6, fontSize: 14, fontWeight: "700", color: "#000" }}>Wohooo!</Text>
-      <Text style={{ marginTop: 4, fontSize: 13, color: "#555" }}>Applied Successfully</Text>
-      <TouchableOpacity
-        onPress={() => setShowAppliedDialog(false)}
-        style={{ marginTop: 16, backgroundColor: "#4CAF50", paddingHorizontal: 18, paddingVertical: 10, borderRadius: 10 }}
+        visible={showAppliedDialog}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAppliedDialog(false)}
       >
-        <Text style={{ color: "#fff", fontWeight: "700" }}>OK</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-</Modal>
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", alignItems: "center", justifyContent: "center" }}>
+
+          {/* Left side party popper */}
+          <ConfettiCannon count={80} origin={{ x: -40, y: 0 }} autoStart={true} fadeOut={true} />
+
+          {/* Right side party popper */}
+          <ConfettiCannon count={80} origin={{ x: 400, y: 0 }} autoStart={true} fadeOut={true} />
+
+          <View style={{ backgroundColor: "#fff", width: "78%", borderRadius: 12, padding: 18, alignItems: "center" }}>
+            <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: "#4CAF50", alignItems: "center", justifyContent: "center" }}>
+              <Icon name="checkmark" size={30} color="#fff" />
+            </View>
+            <Text style={{ marginTop: 12, fontSize: 16, fontWeight: "800", color: "#000" }}>
+              {appliedCoupon || "COUPON"}
+            </Text>
+            <Text style={{ marginTop: 6, fontSize: 14, fontWeight: "700", color: "#000" }}>Wohooo!</Text>
+            <Text style={{ marginTop: 4, fontSize: 13, color: "#555" }}>Applied Successfully</Text>
+            <TouchableOpacity
+              onPress={() => setShowAppliedDialog(false)}
+              style={{ marginTop: 16, backgroundColor: "#1B5E20", paddingHorizontal: 18, paddingVertical: 10, borderRadius: 25 }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "700" }}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Order Placed Dialog */}
       <Modal
@@ -1277,29 +1443,81 @@ const Cart = ({ navigation }: any) => {
         animationType="fade"
         onRequestClose={() => {
           setShowOrderPlaced(false);
-          navigation.navigate("MyOrder");
+          navigation.navigate("Home", { screen: "Dashboard" });
         }}
       >
-        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", alignItems: "center", justifyContent: "center" }}>
-          <View style={{ backgroundColor: "#fff", width: "80%", borderRadius: 14, padding: 20, alignItems: "center" }}>
-            <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: "#4CAF50", alignItems: "center", justifyContent: "center" }}>
-              <Icon name="checkmark" size={30} color="#fff" />
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" }}>
+          <View style={{ backgroundColor: "#fff", width: "90%", maxWidth: 400, borderRadius: 20, padding: 24, alignItems: "center" }}>
+            {/* Success Image */}
+            <Image 
+              source={Images.success} 
+              style={{ width: 200, height: 200, resizeMode: "contain", marginBottom: 20 }}
+            />
+            
+            {/* Title */}
+            <Text style={{ fontSize: 24, fontWeight: "800", color: "#000", marginBottom: 8 }}>
+              Payment Successful!
+            </Text>
+            
+            {/* Subtitle */}
+            <Text style={{ fontSize: 16, color: "#666", textAlign: "center", marginBottom: 16 }}>
+              Your order has been placed
+            </Text>
+            
+            {/* Order ID */}
+            {placedOrderId && (
+              <Text style={{ fontSize: 18, fontWeight: "700", color: "#000", marginBottom: 24 }}>
+                Order ID #{placedOrderId}
+              </Text>
+            )}
+            
+            {/* Buttons */}
+            <View style={{ width: "100%" }}>
+              {/* Track Order Button */}
+              <TouchableOpacity
+                onPress={() => {
+                  setShowOrderPlaced(false);
+                  if (placedOrderId) {
+                    // Navigate to MyOrder tab first, then to OrderTracking
+                    navigation.navigate("MyOrder");
+                    setTimeout(() => {
+                      navigation.navigate("OrderTracking", { orderId: placedOrderId });
+                    }, 100);
+                  } else {
+                    navigation.navigate("MyOrder");
+                  }
+                }}
+                style={{ 
+                  backgroundColor: '#1B5E20', 
+                  paddingVertical: 14, 
+                  paddingHorizontal: 24, 
+                  borderRadius: 30,
+                  width: "100%",
+                  alignItems: "center",
+                  marginBottom: 12,
+                }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>Track Order</Text>
+              </TouchableOpacity>
+              
+              {/* Home Page Button */}
+              <TouchableOpacity
+                onPress={() => {
+                  setShowOrderPlaced(false);
+                  navigation.navigate("Home", { screen: "Dashboard" });
+                }}
+                style={{ 
+                  backgroundColor: '#1B5E20', 
+                  paddingVertical: 14, 
+                  paddingHorizontal: 24, 
+                  borderRadius: 30,
+                  width: "100%",
+                  alignItems: "center",
+                }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>Home Page</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={{ marginTop: 12, fontSize: 18, fontWeight: "800", color: "#000" }}>
-              Order Placed!
-            </Text>
-            <Text style={{ marginTop: 6, fontSize: 14, color: "#555", textAlign: "center" }}>
-              Your order has been placed successfully.
-            </Text>
-            <TouchableOpacity
-              onPress={() => {
-                setShowOrderPlaced(false);
-                navigation.navigate("MyOrder");
-              }}
-              style={{ marginTop: 16, backgroundColor: "#4CAF50", paddingHorizontal: 18, paddingVertical: 10, borderRadius: 10 }}
-            >
-              <Text style={{ color: "#fff", fontWeight: "700" }}>Go to My Orders</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -1330,7 +1548,7 @@ const Cart = ({ navigation }: any) => {
                 setShowInsufficientFundsDialog(false);
                 setSelectedPayment("cod");
               }}
-              style={{ marginTop: 16, backgroundColor: "#4CAF50", paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10, width: "100%" }}
+              style={{ marginTop: 16, backgroundColor: "#1B5E20", paddingHorizontal: 24, paddingVertical: 12, borderRadius: 25, width: "100%" }}
             >
               <Text style={{ color: "#fff", fontWeight: "700", textAlign: "center" }}>Choose COD</Text>
             </TouchableOpacity>
@@ -1391,8 +1609,8 @@ const Cart = ({ navigation }: any) => {
                     activeOpacity={0.8}
                     style={{
                       marginTop: 16,
-                      backgroundColor: "#1B743E",
-                      borderRadius: 14,
+                      backgroundColor: "#1B5E20",
+                      borderRadius: 25,
                       paddingVertical: 12,
                       alignItems: "center",
                     }}
@@ -1605,8 +1823,8 @@ const Cart = ({ navigation }: any) => {
                 onPress={handleAddAddress}
                 disabled={addingAddress}
                 style={{
-                  backgroundColor: addingAddress ? "#ccc" : "#4CAF50",
-                  borderRadius: 12,
+                  backgroundColor: addingAddress ? "#ccc" : "#1B5E20",
+                  borderRadius: 25,
                   padding: 16,
                   alignItems: "center",
                   marginBottom: 20,
@@ -1617,6 +1835,104 @@ const Cart = ({ navigation }: any) => {
                 ) : (
                   <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>Save Address</Text>
                 )}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Address Selection Modal */}
+      <Modal
+        visible={showAddressSelectionModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAddressSelectionModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" }}>
+          <View
+            style={{
+              backgroundColor: "#fff",
+              height: "80%",
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              padding: 16,
+            }}
+          >
+            {/* Header */}
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 20 }}>
+              <TouchableOpacity onPress={() => setShowAddressSelectionModal(false)} style={{ paddingRight: 10 }}>
+                <Icon name="arrow-back" size={24} color="#000" />
+              </TouchableOpacity>
+              <Text style={{ fontSize: 18, fontWeight: "700", color: "#000" }}>Select Address</Text>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+              {addresses.length > 0 ? (
+                addresses.map((address) => {
+                  const isSelected = selectedAddressId === address._id;
+                  return (
+                    <TouchableOpacity
+                      key={address._id}
+                      onPress={() => {
+                        setSelectedAddressId(address._id);
+                        setShowAddressSelectionModal(false);
+                      }}
+                      style={{
+                        backgroundColor: "#fff",
+                        borderRadius: 12,
+                        borderWidth: isSelected ? 2 : 1,
+                        borderColor: isSelected ? "#4CAF50" : "#E2E2E2",
+                        padding: 12,
+                        marginBottom: 12,
+                      }}
+                    >
+                      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                        <View style={{ flexDirection: "row", alignItems: "center" }}>
+                          <View style={{ backgroundColor: "#E8F5E9", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: "#8BC34A" }}>
+                            <Text style={{ color: "#2E7D32", fontWeight: "700", fontSize: 12, textTransform: "capitalize" }}>
+                              {address.addressType}
+                            </Text>
+                          </View>
+                          {isSelected && (
+                            <View style={{ marginLeft: 8, width: 20, height: 20, borderRadius: 10, backgroundColor: "#4CAF50", alignItems: "center", justifyContent: "center" }}>
+                              <Icon name="checkmark" size={14} color="#fff" />
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                      <Text style={{ marginTop: 8, fontSize: 14, color: "#000", fontWeight: "600" }}>
+                        {address.receiverName} - {address.receiverNo}
+                      </Text>
+                      <Text style={{ marginTop: 4, fontSize: 14, color: "#666" }}>
+                        {formatAddress(address)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })
+              ) : (
+                <View style={{ alignItems: "center", paddingVertical: 24 }}>
+                  <Text style={{ color: "#555", marginBottom: 16 }}>No saved addresses</Text>
+                </View>
+              )}
+
+              {/* Add New Address Button */}
+              <TouchableOpacity
+                onPress={() => {
+                  setShowAddressSelectionModal(false);
+                  setShowAddAddressModal(true);
+                }}
+                style={{
+                  backgroundColor: '#1B5E20',
+                  borderRadius: 25,
+                  padding: 14,
+                  alignItems: "center",
+                  marginTop: 8,
+                  marginBottom: 20,
+                }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>
+                  + Add New Address
+                </Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -1647,10 +1963,10 @@ const Cart = ({ navigation }: any) => {
             disabled={placingOrder}
             onPress={placeOrder}
             style={{
-              backgroundColor: "#4CAF50",
+              backgroundColor: '#1B5E20',
               paddingVertical: 14,
               paddingHorizontal: 32,
-              borderRadius: 12,
+              borderRadius: 25,
               opacity: placingOrder ? 0.7 : 1,
             }}
           >
@@ -1664,13 +1980,13 @@ const Cart = ({ navigation }: any) => {
   );
 };
 
-type RowProps = { label: string; value: string; bold?: boolean };
-const Row = ({ label, value, bold }: RowProps) => (
+type RowProps = { label: string; value: string; bold?: boolean; fontSize?: number };
+const Row = ({ label, value, bold, fontSize }: RowProps) => (
   <View style={styles.paymentRow}>
-    <Text style={{ fontSize: 16, fontWeight: bold ? "700" : "500", color: "#000" }}>
+    <Text style={{ fontSize: fontSize || (bold ? 18 : 16), fontWeight: bold ? "700" : "500", color: "#000" }}>
       {label}
     </Text>
-    <Text style={{ fontSize: bold ? 18 : 16, fontWeight: bold ? "700" : "500", color: bold ? "#2E7D32" : "#000" }}>
+    <Text style={{ fontSize: fontSize ? fontSize + 2 : (bold ? 20 : 16), fontWeight: bold ? "700" : "500", color: bold ? "#2E7D32" : "#000" }}>
       {value}
     </Text>
   </View>

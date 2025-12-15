@@ -47,5 +47,8 @@ const Images = {
 
   //Empty State
   empty_cart: require('../assets/images/empty-cart.png'),
+  
+  //Success
+  success: require('../assets/images/success.png'),
 };
 export default Images;

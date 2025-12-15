@@ -10,9 +10,9 @@ import { storage } from './storage';
 // -------------------------------------------------
 // 1. Base URL (your live dev server)
 const BASE_URL = 'http://159.89.146.245:5010/api/';
-//  const BASE_URL = 'http://192.168.1.26:5002/api/';
+ //const BASE_URL = 'http://192.168.1.28:5002/api/';
 export const IMAGE_BASE_URL = 'http://159.89.146.245:5010/';
-//  export const IMAGE_BASE_URL = 'http://192.168.1.12:5002/';
+//  export const IMAGE_BASE_URL = 'http://192.168.1.28:5002/';
 
 // 1. Base URL (your local dev server)
 // const BASE_URL = 'http://192.168.1.21:5002/api/';
@@ -207,6 +207,10 @@ export const ApiService = {
   getHomeContent: async () => {
     return await api.get('user/homeProductContent');
   },
+  getTypeBasedProduct: async (type: string) => {
+    const endpoint = `user/home/typeBasedProduct/${type}`;
+    return await api.get(endpoint);
+  },
   placeOrder: async (payload = {}) => {
     return await api.post('user/order', payload);
   },
@@ -249,20 +253,22 @@ getHomeProductContent: async () => {
   },
 
   removeCartItem: async (productId: string, variantId?: string) => {
-    // Include variantId so only the targeted variant is removed
-    const response = await api.delete('user/cart', {
-      data: { productId, variantId }
-    });
+    // Only send variantId when we actually have one
+    const payload: any = { productId };
+    if (variantId) payload.variantId = variantId;
+
+    const response = await api.delete('user/cart', { data: payload });
     return response;
   },
 
+  addToCart: async (productId: string, variantId: string | undefined, quantity: string) => {
+    const payload: any = {
+      productId,
+      quantity,
+    };
+    if (variantId) payload.variantId = variantId;
 
-  addToCart: async (productId: string, varientId: string, quantity: string) => {
-    const response = await api.post('user/cart', {
-      "productId": productId,
-      "variantId": varientId,
-      "quantity": quantity
-    });
+    const response = await api.post('user/cart', payload);
     return response;
   },
 

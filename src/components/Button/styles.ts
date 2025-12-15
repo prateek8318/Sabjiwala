@@ -4,7 +4,7 @@ import { widthPercentageToDP as wp } from '../../constant/dimentions';
 
 const styles = StyleSheet.create({
   buttonContainer: {
-    borderRadius: 25,
+    borderRadius: 30,
 //     paddingVertical: 15,
     paddingVertical: 10,
     width: wp(80),
@@ -14,7 +14,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.PRIMARY[300],
   },
   disabledButtonContainer: {
-    borderRadius: 10,
+    borderRadius: 30,
     paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',

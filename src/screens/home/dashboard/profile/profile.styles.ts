@@ -21,8 +21,8 @@ const styles = StyleSheet.create({
     marginTop: hp(1),
   },
   profilePicView: {
-    width: 55,
-    height: 55,
+    width: 75,
+    height: 75,
     borderColor: Colors.PRIMARY[300],
     borderWidth: 1,
     borderRadius: 50,
@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
   },
   profilePicContainer: {
     position: 'relative',
-    marginBottom: hp(1.5),
+    
   },
   cameraIconView: {
     position: 'absolute',
@@ -55,8 +55,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   profilePic: {
-    width: 55,
-    height: 55,
+    width: 85,
+    height: 85,
     resizeMode: 'cover',
     borderRadius: 50,
   },
@@ -76,6 +76,7 @@ const styles = StyleSheet.create({
     color: Colors.PRIMARY[300],
     ...Typography.H5Medium16,
     marginTop: hp(-0.5),
+    lineHeight: hp(3),
   },
   otherCardView: {
     flexDirection: 'row',

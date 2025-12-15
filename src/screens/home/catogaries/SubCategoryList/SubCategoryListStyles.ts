@@ -28,13 +28,14 @@ export default StyleSheet.create({
   sortButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 24,
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 20,
     backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: "#E0E0E0",
+    alignSelf: "flex-start",
   },
 
   // Filter Button (with border + icon)
@@ -51,7 +52,7 @@ export default StyleSheet.create({
   },
 
   actionText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "700",
     color: "#228B22",
   },
@@ -89,7 +90,7 @@ export default StyleSheet.create({
 
   leftPane: {
     width: 75,
-    backgroundColor: "#F7F7F7",
+    backgroundColor: "#fff",
     paddingTop: 12,
   },
 
@@ -100,19 +101,18 @@ export default StyleSheet.create({
   },
   subItemActive: {
     backgroundColor: "#fff",
-    borderTopRightRadius: 24,
-    borderBottomRightRadius: 24,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 2, height: 0 },
-    shadowRadius: 6,
+    
   },
   subImage: {
     width: 44,
     height: 44,
     borderRadius: 22,
     backgroundColor: "#e0e0e0",
+  },
+  subImageActive: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
   },
   subTitle: {
     marginTop: 8,
@@ -124,6 +124,13 @@ export default StyleSheet.create({
     color: "#228B22",
     fontWeight: "700",
   },
+  activeUnderline: {
+    marginTop: 6,
+    width: 50,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "#1B5E20",
+  },
 
   rightPane: {
     flex: 1,
@@ -131,6 +138,11 @@ export default StyleSheet.create({
     paddingHorizontal: -4, 
     marginLeft:-7,
     
+  },
+  sortFilterContainer: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 4,
   },
   productCardWrapper: {
     width: "50%",           // 2 cards perfect fit
@@ -174,5 +186,60 @@ noResultContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  shimmerGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    paddingHorizontal: 12,
+    paddingBottom: hp(5),
+  },
+  shimmerCardWrapper: {
+    width: "50%",
+    paddingHorizontal: 4,
+    marginBottom: hp(1.2),
+  },
+  shimmerImage: {
+    height: hp(14),
+    borderRadius: 12,
+    backgroundColor: "#e6e6e6",
+  },
+  shimmerInfo: {
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    gap: 6,
+  },
+  shimmerLinePrimary: {
+    height: 12,
+    borderRadius: 8,
+    backgroundColor: "#e6e6e6",
+    width: "78%",
+  },
+  shimmerLineSecondary: {
+    height: 10,
+    borderRadius: 8,
+    backgroundColor: "#e6e6e6",
+    width: "62%",
+  },
+  shimmerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 4,
+  },
+  shimmerChip: {
+    flex: 1,
+    height: 12,
+    borderRadius: 20,
+    backgroundColor: "#e6e6e6",
+  },
+  shimmerChipSmall: {
+    width: 50,
+    height: 12,
+    borderRadius: 20,
+    backgroundColor: "#e6e6e6",
+  },
+  shimmerBase: {
+    overflow: "hidden",
+    backgroundColor: "#e6e6e6",
   },
 });

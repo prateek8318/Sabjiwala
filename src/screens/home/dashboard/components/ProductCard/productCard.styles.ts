@@ -8,7 +8,6 @@ import {
 const styles = StyleSheet.create({
   cardProduct: {
     width: wp(38),
-    minHeight: hp(32),
     marginBottom: hp(1),
     marginHorizontal: wp(1),
     backgroundColor: Colors.PRIMARY[300],
@@ -97,7 +96,8 @@ const styles = StyleSheet.create({
     color: Colors.PRIMARY[400],
     paddingHorizontal: wp(1.5),       // pehle 0.8 tha
     numberOfLines: 2,
-    top:-5,
+    top:2,
+    bottom:4,
     fontSize:16,
     fontWeight: '700',
     lineHeight: 14,           // pehle 20 tha
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    paddingHorizontal: wp(2),
+    paddingHorizontal: wp(1.5),
     marginTop:0,
     paddingBottom: hp(1.2),   // thoda kam kiya
           // pehle 1 tha
@@ -127,28 +127,36 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
+  weightText: {
+    ...Typography.BodyRegular13,
+    color: '#000',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
   addProductButon: {
     height: hp(3.5),
     width: wp(15),
     marginTop:-15,
+    paddingRight: 'auto',
     borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
   },
 
   optionView: {
-    width: 66,
-    height: 20,
+    width: 75,
+    height: 17,
     backgroundColor: Colors.PRIMARY[600],
-    borderBottomLeftRadius: 50,
-    borderBottomRightRadius: 50,
+    borderBottomLeftRadius: 45,
+    borderBottomRightRadius: 45,
     justifyContent: 'center',
     alignItems: 'center',
   },
 
   txtOption: {
     color: Colors.PRIMARY[400],
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
   },
 

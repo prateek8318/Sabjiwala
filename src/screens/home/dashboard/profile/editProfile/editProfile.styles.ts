@@ -13,7 +13,7 @@ const styles = StyleSheet.create({
   cardView: {
     width: wp(90),
     alignSelf: 'center',
-    paddingVertical: hp(0.5),
+    paddingVertical: hp(2),
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.PRIMARY[100],
@@ -28,8 +28,9 @@ const styles = StyleSheet.create({
   },
   txtEditProfile: {
     color: Colors.PRIMARY[300],
-    marginTop: hp(5),
+    marginTop: hp(0),
     ...Typography.BodyRegular13,
+    alignSelf: 'center',
   },
   inputContainer: {
     flexDirection: 'row',

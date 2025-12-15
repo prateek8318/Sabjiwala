@@ -37,6 +37,7 @@ const ProductDetail = () => {
   const [cartQty, setCartQty] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [expandedSections, setExpandedSections] = useState({ highlights: true, info: true });
 
   useEffect(() => {
     (async () => {
@@ -46,13 +47,30 @@ const ProductDetail = () => {
           const productData = res.data.productData;
           setProduct(productData);
 
-          const options = productData.variants?.map((v: any, index: number) => ({
-            id: index,
-            label: `${v.weight || v.stock || 1} ${v.unit || 'kg'}`,
-            price: v.price || 0,
-            mrp: v.mrp || v.originalPrice || v.price || 0,
-            variantId: v._id,
-          })) || [];
+          const rawVariants =
+            productData.variants?.length
+              ? productData.variants
+              : productData.ProductVarient || [];
+
+          // If no variants, create a single default option so Add to Cart stays enabled
+          const fallbackOption = {
+            id: 0,
+            label: `${productData.stock || 1} ${productData.unit || 'kg'}`,
+            price: productData.price || productData.mrp || 0,
+            mrp: productData.mrp || productData.price || 0,
+            // No variantId for option-less products; send only productId to API
+            variantId: undefined,
+          };
+
+          const options = rawVariants.length
+            ? rawVariants.map((v: any, index: number) => ({
+                id: index,
+                label: `${v.weight || v.stock || 1} ${v.unit || 'kg'}`,
+                price: v.price || 0,
+                mrp: v.mrp || v.originalPrice || v.price || 0,
+                variantId: v._id,
+              }))
+            : [fallbackOption];
 
           setQtyOptions(options);
           if (options.length > 0) setSelectedQty(0); // Auto select first
@@ -64,6 +82,64 @@ const ProductDetail = () => {
       }
     })();
   }, [productId]);
+
+  const loadCartQuantity = React.useCallback(
+    async (variantIndex: number) => {
+      try {
+        if (!product) return;
+        const pid = (
+          product?._id ||
+          product?.id ||
+          productId
+        )?.toString();
+          const selected = qtyOptions[variantIndex] || qtyOptions[0];
+          const vid =
+            selected?.variantId ||
+            product?.variants?.[variantIndex]?._id ||
+            product?.variants?.[0]?._id ||
+            product?.ProductVarient?.[variantIndex]?._id ||
+            product?.ProductVarient?.[0]?._id ||
+            product?.variantId ||
+            undefined;
+        if (!pid) return;
+
+        const res = await ApiService.getCart();
+        const cartItems =
+          res?.data?.cart?.products ||
+          res?.data?.products ||
+          res?.data?.items ||
+          [];
+
+        const vidStr = vid?.toString();
+
+        const match = cartItems.find((i: any) => {
+          const itemPid =
+            i?.productId?._id?.toString() ||
+            i?.productId?.toString() ||
+            i?._id?.toString() ||
+            i?.id?.toString();
+          const itemVid =
+            i?.variantId?._id?.toString() ||
+            i?.variantId?.toString() ||
+            i?.ProductVarient?._id?.toString();
+
+          if (vidStr) {
+            return itemPid === pid && itemVid === vidStr;
+          }
+          return itemPid === pid;
+        });
+
+        setCartQty(match?.quantity || 0);
+      } catch (e) {
+        console.log('loadCartQuantity error', e);
+      }
+    },
+    [product, qtyOptions]
+  );
+
+  useEffect(() => {
+    loadCartQuantity(selectedQty);
+  }, [selectedQty, loadCartQuantity]);
 
   // Load wishlist status
   useEffect(() => {
@@ -137,13 +213,61 @@ const ProductDetail = () => {
       : [];
 
   const info = product.info || {};
+  const details = product.details || {};
+
+  const highlightRows = [
+    { label: 'Unit', value: weight },
+    { label: 'Storage Tips', value: info.storageTips || details.storageTips },
+    { label: 'Nutrient Value & Benefits', value: details.nutrientValue || info.nutrientValue },
+    { label: 'About', value: details.about || product.about },
+    { label: 'Description', value: details.description || product.description },
+    { label: 'Health Benefits', value: details.healthBenefits || product.healthBenefits },
+  ];
+
+  const infoRows = [
+    { label: 'Shelf Life', value: info.shelfLife || details.shelfLife },
+    { label: 'Return Policy', value: info.returnPolicy || details.returnPolicy },
+    { label: 'Storage Tips', value: info.storageTips || details.storageTips },
+    { label: 'Country of origin', value: info.country || details.country },
+    { label: 'Customer Care Details', value: info.help || details.help },
+    { label: 'Disclaimer', value: info.disclaimer || details.disclaimer },
+    { label: 'Seller', value: info.seller || details.seller },
+    { label: 'Seller FSSAI', value: info.fssai || details.fssai },
+  ];
+
+  const filterRows = (rows: { label: string; value: any }[]) =>
+    rows.filter(({ value }) => value !== undefined && value !== null && String(value).trim().length > 0);
+
+  const filteredHighlights = filterRows(highlightRows);
+  const filteredInfo = filterRows(infoRows);
+
+  const toggleSection = (key: 'highlights' | 'info') =>
+    setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const updateCart = async (newQty: number) => {
     try {
+      const productIdentifier = (
+        product?._id ||
+        product?.id ||
+        productId
+      )?.toString();
+
+      const variantId =
+        selectedVariant.variantId ||
+        product?.variants?.[selectedQty]?._id ||
+        product?.variants?.[0]?._id ||
+        product?.ProductVarient?.[selectedQty]?._id ||
+        product?.ProductVarient?.[0]?._id ||
+        product?.variantId ||
+        undefined;
+
+      const finalVariantId = variantId?.toString();
+
+      if (!productIdentifier) return;
       if (newQty > 0) {
-        await ApiService.addToCart(product._id, selectedVariant.variantId, newQty.toString());
+        await ApiService.addToCart(productIdentifier, finalVariantId, newQty.toString());
       } else {
-        await ApiService.removeCartItem(product._id, selectedVariant.variantId);
+        await ApiService.removeCartItem(productIdentifier, finalVariantId);
       }
       setCartQty(newQty);
     } catch (error) {
@@ -316,40 +440,80 @@ const ProductDetail = () => {
           contentContainerStyle={{ paddingHorizontal: wp(4), marginTop: hp(2) }}
         />
 
-        {/* Additional Info */}
-        {info && typeof info === 'object' && Object.keys(info).length > 0 ? (
-          <View style={styles.infoSection}>
-            <Text style={styles.infoTitle}>Additional Info</Text>
-            <View style={styles.infoTable}>
-              <View style={styles.infoHeaderRow}>
-                <Text style={styles.infoHeaderCell}>Key</Text>
-                <Text style={styles.infoHeaderCell}>Details</Text>
-              </View>
-              {Object.keys(info).map((key, index) => {
-                const value = info[key];
-                const displayValue = value !== null && value !== undefined
-                  ? (typeof value === 'object' ? JSON.stringify(value) : String(value))
-                  : '';
-                const rowStyle = [styles.infoRow, index % 2 === 1 && styles.infoRowAlt];
-                return (
-                  <View key={key} style={rowStyle}>
-                    <Text style={styles.infoKey}>{String(key || '')}</Text>
-                    <Text style={styles.infoValue}>{displayValue}</Text>
+        {/* Product Detail Accordion Cards */}
+        {(filteredHighlights.length > 0 || filteredInfo.length > 0) ? (
+          <View style={styles.productDetailWrapper}>
+            <Text style={styles.productDetailTitle}>Product Detail</Text>
+
+            {filteredHighlights.length > 0 ? (
+              <View style={styles.sectionContainer}>
+                <Pressable style={styles.sectionHeader} onPress={() => toggleSection('highlights')}>
+                  <Text style={styles.sectionTitle}>Highlights</Text>
+                  <Icon
+                    family="Feather"
+                    name={expandedSections.highlights ? 'chevron-up' : 'chevron-down'}
+                    size={22}
+                    color="#000"
+                  />
+                </Pressable>
+
+                {expandedSections.highlights && (
+                  <View style={styles.sectionCard}>
+                    {filteredHighlights.map(({ label, value }, index) => {
+                      const isLast = index === filteredHighlights.length - 1;
+                      return (
+                        <View key={`${label}-${index}`} style={[styles.sectionRow, isLast && styles.sectionRowLast]}>
+                          <Text style={styles.sectionLabel}>{label}</Text>
+                          <Text style={styles.sectionValue}>{String(value)}</Text>
+                        </View>
+                      );
+                    })}
                   </View>
-                );
-              })}
-            </View>
+                )}
+              </View>
+            ) : null}
+
+            {filteredInfo.length > 0 ? (
+              <View style={styles.sectionContainer}>
+                <Pressable style={styles.sectionHeader} onPress={() => toggleSection('info')}>
+                  <Text style={styles.sectionTitle}>Info</Text>
+                  <Icon
+                    family="Feather"
+                    name={expandedSections.info ? 'chevron-up' : 'chevron-down'}
+                    size={22}
+                    color="#000"
+                  />
+                </Pressable>
+
+                {expandedSections.info && (
+                  <View style={styles.sectionCard}>
+                    {filteredInfo.map(({ label, value }, index) => {
+                      const isLast = index === filteredInfo.length - 1;
+                      return (
+                        <View key={`${label}-${index}`} style={[styles.sectionRow, isLast && styles.sectionRowLast]}>
+                          <Text style={styles.sectionLabel}>{label}</Text>
+                          <Text style={styles.sectionValue}>{String(value)}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+            ) : null}
           </View>
         ) : null}
       </ScrollView>
 
       {/* Bottom Add to Cart Bar – Untouched */}
       <View style={styles.bottomCartBar}>
-        <LinearGradient colors={['#E8F5E8', '#C8E6C9']} style={styles.cartGradient}>
+        <LinearGradient colors={['#FFFFFF', '#FFFFFF']} style={styles.cartGradient}>
           {cartQty === 0 ? (
-            <Pressable onPress={handleAddToCart} style={[styles.addToCartBtn, { flex: 1 }]}>
-              <Text style={styles.addToCartText}>Add to Cart</Text>
-              <Icon name="chevron-right" family="Entypo" size={26} color="#000" />
+            <Pressable
+              onPress={handleAddToCart}
+              style={[styles.addToCartBtn, { flex: 1, backgroundColor: '#1B5E20' }]}
+            >
+              <Text style={[styles.addToCartText, { color: '#fff' }]}>Add to Cart</Text>
+              <Icon name="chevron-right" family="Entypo" size={26} color="#fff" />
             </Pressable>
           ) : (
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1, padding: 10 }}>

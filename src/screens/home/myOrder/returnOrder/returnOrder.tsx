@@ -5,17 +5,20 @@ import {
   Image,
   SafeAreaView,
   ScrollView,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { TextView } from '../../../../components';
 import { Colors } from '../../../../constant';
+import {
+  heightPercentageToDP as hp,
+  widthPercentageToDP as wp,
+} from 'react-native-responsive-screen';
+
 import ApiService from '../../../../service/apiService';
 import styles from './returnOrder.styles';
 
 const RETURN_WINDOW_HOURS = 72; // show return button for 3 days after delivery
-const mapUri = 'https://i.ibb.co/0FyWQhL/delhi-ncr-map.png';
 
 interface Props {
   route: any;
@@ -29,8 +32,22 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
   const [order, setOrder] = useState<any>(passedOrder || null);
   const [loading, setLoading] = useState(!passedOrder);
   const [submitting, setSubmitting] = useState(false);
-  const [comment, setComment] = useState('');
   const [selectedItems, setSelectedItems] = useState<Record<string, { quantity: number; reason: string; description: string }>>({});
+  const [deliveryAddress, setDeliveryAddress] = useState<string>('Loading address...');
+
+  const formatAddress = (addrObj: any) => {
+    if (!addrObj) return '';
+    if (typeof addrObj === 'string') return addrObj;
+
+    const parts = [
+      addrObj.houseNoOrFlatNo,
+      addrObj.floor ? `Floor ${addrObj.floor}` : '',
+      addrObj.landmark,
+      addrObj.city,
+      addrObj.pincode,
+    ].filter(Boolean);
+    return parts.join(', ');
+  };
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -47,6 +64,45 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
     };
     if (!passedOrder) fetchOrder();
   }, [orderId, passedOrder]);
+
+  useEffect(() => {
+    const resolveAddress = async () => {
+      const o = order || passedOrder;
+      if (!o) return;
+
+      const directAddr =
+        formatAddress(o.address) ||
+        formatAddress(o.deliveryAddress) ||
+        formatAddress(o.shippingAddress) ||
+        formatAddress(o.addressLine) ||
+        (typeof o.addressText === 'string' ? o.addressText : '') ||
+        (typeof o.deliveryAddressText === 'string' ? o.deliveryAddressText : '');
+
+      if (directAddr) {
+        setDeliveryAddress(directAddr);
+        return;
+      }
+
+      if (o.addressId) {
+        try {
+          const res = await ApiService.getAddresses();
+          const list = res?.data?.address?.[0]?.addresses || res?.data?.addresses || res?.data?.data?.addresses || [];
+          const found = list.find((addr: any) => addr?._id === o.addressId);
+          if (found) {
+            const text = formatAddress(found);
+            setDeliveryAddress(text || 'Address available');
+            return;
+          }
+        } catch (err: any) {
+          console.log('Address lookup failed:', err?.response?.data || err?.message);
+        }
+      }
+
+      setDeliveryAddress('Address not available');
+    };
+
+    resolveAddress();
+  }, [order, passedOrder]);
 
   const products = useMemo(() => order?.products || order?.items || [], [order]);
 
@@ -100,7 +156,17 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
     return `${productId || ''}|${variantId}`;
   };
 
-  const formatCurrency = (val: number) => `₹${Number(val || 0).toFixed(2)}`;
+  const formatCurrency = (val: number) => `₹${Number(val || 0).toFixed(0)}`;
+  
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
 
   const onSubmit = async () => {
     if (!deliveredState.isDelivered) {
@@ -135,7 +201,6 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
     try {
       const res = await ApiService.createReturnRequest(orderId, {
         products: payloadProducts,
-        comment,
       });
       const message = res?.data?.message || 'Return request created successfully.';
       Alert.alert('Success', message, [
@@ -181,10 +246,6 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-        <View style={styles.mapWrapper}>
-          <Image source={{ uri: mapUri }} style={styles.mapImage} resizeMode="cover" />
-        </View>
-
         <View style={styles.section}>
           <TextView style={styles.sectionTitle}>{products.length} Items in order</TextView>
           {products.map((product: any, idx: number) => {
@@ -213,6 +274,7 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
             const price = Number(product.price || product.amount || productObj?.price || 0);
             const mrp = Number(product.mrp || productObj?.mrp || price);
             const maxQty = product.quantity || 1;
+            const variantText = variantObj?.title || variantObj?.name || variantObj?.weight || variantObj?.size || '500gm';
             return (
               <View key={`${orderId}-${idx}`} style={styles.productRow}>
                 <TouchableOpacity style={styles.checkbox} onPress={() => toggleSelect(key, maxQty)}>
@@ -224,68 +286,12 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
                     {productObj?.name || 'Item'}
                   </TextView>
                   <TextView style={styles.variantText}>
-                    {variantObj?.title || variantObj?.name || variantObj?.weight || variantObj?.size || 'Qty x1'}
+                    {variantText} X {maxQty} Unit
                   </TextView>
                   <View style={styles.priceRow}>
                     <TextView style={styles.price}>{formatCurrency(price)}</TextView>
                     {mrp > price ? <TextView style={styles.oldPrice}>{formatCurrency(mrp)}</TextView> : null}
                   </View>
-                  <View style={styles.qtyBadge}>
-                    <TextView style={styles.qtyText}>Qty {maxQty}</TextView>
-                  </View>
-                  {selected ? (
-                    <>
-                      <View style={styles.inlineRow}>
-                        <TouchableOpacity
-                          style={styles.tag}
-                          onPress={() =>
-                            updateItem(key, (curr) => ({
-                              ...curr,
-                              quantity: Math.max(1, Math.min(maxQty, curr.quantity + 1)),
-                            }))
-                          }
-                        >
-                          <TextView style={styles.tagText}>+ Qty</TextView>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.tag}
-                          onPress={() =>
-                            updateItem(key, (curr) => ({
-                              ...curr,
-                              quantity: Math.max(1, curr.quantity - 1),
-                            }))
-                          }
-                        >
-                          <TextView style={styles.tagText}>- Qty</TextView>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.tag}
-                          onPress={() =>
-                            updateItem(key, (curr) => ({
-                              ...curr,
-                              reason:
-                                reasonOptions[(reasonOptions.indexOf(curr.reason) + 1) % reasonOptions.length],
-                            }))
-                          }
-                        >
-                          <TextView style={styles.tagText}>{selectedItems[key]?.reason || 'Reason'}</TextView>
-                        </TouchableOpacity>
-                      </View>
-                      <TextInput
-                        placeholder="Describe the issue (optional)"
-                        placeholderTextColor="#879487"
-                        style={styles.textInput}
-                        value={selectedItems[key]?.description}
-                        onChangeText={(text) =>
-                          updateItem(key, (curr) => ({
-                            ...curr,
-                            description: text,
-                          }))
-                        }
-                        multiline
-                      />
-                    </>
-                  ) : null}
                 </View>
               </View>
             );
@@ -295,16 +301,16 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.section}>
           <TextView style={styles.sectionTitle}>Bill Summary</TextView>
           <View style={styles.billRow}>
-            <TextView>Item total</TextView>
-            <TextView>{formatCurrency(itemTotal)}</TextView>
+            <TextView style={{ color: '#000' }}>Item total & GST</TextView>
+            <TextView style={{ color: '#000' }}>{formatCurrency(itemTotal)}</TextView>
           </View>
           <View style={styles.billRow}>
-            <TextView>Delivery Fee</TextView>
-            <TextView>{formatCurrency(deliveryCharge)}</TextView>
+            <TextView style={{ color: '#000' }}>Delivery Fee</TextView>
+            <TextView style={{ color: '#000' }}>{formatCurrency(deliveryCharge)}</TextView>
           </View>
           <View style={styles.billRow}>
-            <TextView>Handling Charge</TextView>
-            <TextView>{formatCurrency(handlingCharge)}</TextView>
+            <TextView style={{ color: '#000' }}>Handling Charge</TextView>
+            <TextView style={{ color: '#000' }}>{formatCurrency(handlingCharge)}</TextView>
           </View>
           <View style={styles.divider} />
           <View style={styles.billRow}>
@@ -316,48 +322,21 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.section}>
           <TextView style={styles.sectionTitle}>Order Details</TextView>
           <TextView style={styles.tinyLabel}>Order ID</TextView>
-          <TextView style={{ color: '#000', marginBottom: 8 }}>{order?._id || orderId}</TextView>
-          <TextView style={styles.tinyLabel}>Delivery address</TextView>
-          <View style={styles.addressBlock}>
-            <TextView style={styles.addressText}>
-              {order?.address?.houseNoOrFlatNo || order?.deliveryAddressText || order?.addressText || 'Address not available'}
-            </TextView>
-          </View>
-          <View style={styles.inlineRow}>
-            <TextView style={styles.tinyLabel}>Order placed</TextView>
-            <TextView style={styles.tinyLabel}>Payment</TextView>
-          </View>
-          <View style={styles.inlineRow}>
-            <TextView style={{ color: '#000' }}>{order?.orderDate || order?.createdAt?.slice(0, 10)}</TextView>
-            <TextView style={{ color: '#000' }}>{(order?.paymentMethod || '').toUpperCase() || 'PAID'}</TextView>
-          </View>
-          <View style={styles.badgeInfo}>
-            <TextView style={{ color: '#000', fontWeight: '700' }}>Return window</TextView>
-            <TextView style={{ color: '#444', marginTop: 4 }}>
-              {deliveredState.isReturnRequested
-                ? 'Return requested, awaiting processing'
-                : deliveredState.isDelivered
-                ? deliveredState.windowOpen
-                  ? `Return available for next ${deliveredState.hoursLeft} hour(s)`
-                  : 'Return window closed'
-                : 'Return available after delivery'}
-            </TextView>
-            {!deliveredState.windowOpen && deliveredState.isDelivered && !deliveredState.isReturnRequested ? (
-              <TextView style={styles.warning}>Return window has expired</TextView>
-            ) : null}
-          </View>
-        </View>
-
-        <View style={[styles.section, { marginBottom: hp(1) }]}>
-          <TextView style={styles.sectionTitle}>Comment</TextView>
-          <TextInput
-            placeholder="Add any note for the delivery team"
-            placeholderTextColor="#879487"
-            style={styles.textInput}
-            multiline
-            value={comment}
-            onChangeText={setComment}
-          />
+          <TextView style={{ color: '#000', marginBottom: 8 }}>#{order?._id || orderId}</TextView>
+          <TextView style={styles.tinyLabel}>Delivery Address</TextView>
+          <TextView style={{ color: '#000', marginBottom: 8 }}>{deliveryAddress}</TextView>
+          <TextView style={styles.tinyLabel}>Order Placed</TextView>
+          <TextView style={{ color: '#000', marginBottom: 8 }}>{formatDate(order?.createdAt || order?.orderDate)}</TextView>
+          <TextView style={styles.tinyLabel}>Order Delivered on</TextView>
+          <TextView style={{ color: '#000' }}>
+            {formatDate(
+              order?.deliveredAt ||
+              order?.delivered_on ||
+              order?.deliveryDate ||
+              order?.completedAt ||
+              order?.updatedAt
+            )}
+          </TextView>
         </View>
       </ScrollView>
 

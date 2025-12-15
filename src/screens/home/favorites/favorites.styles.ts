@@ -5,6 +5,11 @@ import {
   heightPercentageToDP as hp,
 } from '../../../constant/dimentions';
 
+// Clamp card sizing so it stays consistent on small and large screens
+const CARD_WIDTH = Math.min(wp(42), 180);
+const CARD_HEIGHT = Math.min(hp(32), 240);
+const CARD_IMAGE_HEIGHT = Math.min(CARD_WIDTH * 1.1, CARD_HEIGHT * 0.6);
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -53,8 +58,8 @@ const styles = StyleSheet.create({
     paddingTop: hp(1),
   },
   cardProduct: {
-    width: wp(42),
-    minHeight: hp(32),                    // ← Sab cards ki height same
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,                    // consistent height across devices
     marginHorizontal: wp(2),
     marginBottom: hp(1),
     backgroundColor: Colors.PRIMARY[300],
@@ -74,7 +79,7 @@ const styles = StyleSheet.create({
   
   cardProductImage: {
     width: '100%',
-    height: wp(28) * 1.5,
+    height: CARD_IMAGE_HEIGHT,
     resizeMode: 'cover',
     borderWidth: 1,
     borderColor: 'darkgreen',
@@ -89,10 +94,15 @@ const styles = StyleSheet.create({
   imgTradeMark: { width: 18, height: 18 },
   cardProductPriceView: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     paddingHorizontal: wp(1.5),
-    paddingTop: hp(1),
+    
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: wp(2),
   },
   cardProductPriceText: {
     ...Typography.H5Medium16,
@@ -106,6 +116,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
     fontSize: 14,
     fontWeight: '700',
+    marginLeft: 6,
   },
   offerView: {
     // backgroundColor: '#E53935',        
@@ -128,11 +139,10 @@ const styles = StyleSheet.create({
     color: Colors.PRIMARY[400],
     paddingHorizontal: wp(1.5),       // pehle 0.8 tha
     numberOfLines: 2,
-    top:3,
-    bottom:4,
+    
     fontSize:16,
     fontWeight: '700',
-    lineHeight: 17,           // pehle 20 tha
+    lineHeight: 16,           // pehle 20 tha
   },
 
   quantityView: {
@@ -147,6 +157,7 @@ const styles = StyleSheet.create({
   txtWeight: {
     ...Typography.BodyRegular13,
     color: Colors.PRIMARY[400],
+    top:0,
   },
   ratingView: {
     flexDirection: 'row',
@@ -162,7 +173,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   addProductButon: {
-    height: hp(4.5),
+    height: hp(3.5),
     width: wp(15),
     borderRadius: 50,
     justifyContent: 'center',

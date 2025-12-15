@@ -16,6 +16,7 @@ import InviteFriend from './home/dashboard/profile/referEarn/inviteFriend/invite
 import Wallet from './home/dashboard/profile/wallet/wallet';
 import Address from './home/dashboard/profile/address/address';
 import EditAddress from './home/dashboard/profile/address/editAddress/editAddress';
+import Notifications from './home/dashboard/notifications/notifications';
 import PrivacyPolicy from './home/dashboard/profile/privacyPolicy/privacyPolicy';
 import AboutUs from './home/dashboard/profile/aboutUs/aboutUs';
 import TermsCondition from './home/dashboard/profile/termsCondition/termsCondition';
@@ -36,6 +37,7 @@ import RateOrder from './home/myOrder/rateOrder/rateOrder';
 import Reorder from './home/myOrder/reorder/reorder';
 import OrderTracking from './home/myOrder/orderTracking';
 import ReturnOrder from './home/myOrder/returnOrder/returnOrder';
+import TypeProductList from './home/typeProductList/typeProductList';
 
 export {
   Signin,
@@ -53,6 +55,7 @@ export {
   Wallet,
   Address,
   EditAddress,
+  Notifications,
   PrivacyPolicy,
   AboutUs,
   TermsCondition,
@@ -67,4 +70,5 @@ export {
   Reorder,
   OrderTracking,
   ReturnOrder,
+  TypeProductList,
 };

@@ -174,8 +174,17 @@ const VerifyOTP: FC = () => {
                   }}
                 />
                 <TextView style={styles.titleText}>
-                  A 4 Digit OTP has been Sent to +91 {route?.params?.number}
+                  A 4 Digit OTP has Sent to Your Number
                 </TextView>
+                <View style={styles.numberRow}>
+                  <TextView style={styles.numberText}>+91 {route?.params?.number}</TextView>
+                  <TextView
+                    style={styles.editText}
+                    onPress={() => navigation.navigate("Signin")}
+                  >
+                    edit
+                  </TextView>
+                </View>
 
                 <View style={styles.otpView}>
                   <OtpInput

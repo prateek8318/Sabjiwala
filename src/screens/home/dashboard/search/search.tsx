@@ -20,7 +20,7 @@ import {
 import { Colors, Fonts, Icon, Images, Typography } from '../../../../constant';
 import { Header, TextView } from '../../../../components';
 import InputText from '../../../../components/InputText/TextInput';
-import ApiService from '../../../../service/apiService';
+import ApiService, { IMAGE_BASE_URL } from '../../../../service/apiService';
 import Voice, { SpeechResultsEvent } from '@react-native-voice/voice';
 
 type SearchScreenNavigationType = NativeStackNavigationProp<
@@ -47,24 +47,92 @@ const Search: FC = () => {
     );
   }, [allProducts, searchQuery]);
 
-  const buildImageUrl = (rawPath?: string) => {
+  const buildImageUrl = (rawPath: any) => {
     if (!rawPath) return null;
 
-    if (rawPath.startsWith('http')) return rawPath;
+    // Handle array inputs by picking the first entry
+    if (Array.isArray(rawPath)) {
+      return buildImageUrl(rawPath[0]);
+    }
 
-    const cleaned = rawPath
-      .replace('public\\', '')
-      .replace('public/', '')
-      .replace(/\\/g, '/')
-      .replace(/^\//, '');
+    // Accept objects with common url keys
+    const path =
+      typeof rawPath === 'string'
+        ? rawPath.trim()
+        : rawPath?.url || rawPath?.uri || rawPath?.path || rawPath?.image;
 
-    return ApiService.getImage(cleaned);
+    if (!path) return null;
+
+    if (path.startsWith('http')) return path;
+
+    let cleaned = path.replace(/\\/g, '/').replace(/^\//, '');
+    if (!cleaned.startsWith('public/')) {
+      cleaned = `public/${cleaned}`;
+    }
+
+    const finalUrl = ApiService.getImage(cleaned);
+    console.log('[Search] buildImageUrl cleaned ->', cleaned, 'url ->', finalUrl);
+    return finalUrl;
+  };
+
+  // Normalize incoming product with the same image logic as dashboard cards
+  const normalizeProduct = (product: any) => {
+    const variant =
+      product?.ProductVarient?.[0] || product?.variants?.[0] || {};
+
+    // Priority: variant images → primary_image array → images array
+    const preferredImages =
+      (Array.isArray(variant?.images) && variant.images.length > 0
+        ? variant.images
+        : null) ||
+      (Array.isArray(product?.primary_image) &&
+      product.primary_image.length > 0
+        ? product.primary_image
+        : null) ||
+      (Array.isArray(product?.images) && product.images.length > 0
+        ? product.images
+        : []);
+
+    const rawImage = Array.isArray(preferredImages)
+      ? preferredImages[0]
+      : preferredImages;
+
+    let normalizedImage =
+      typeof rawImage === 'string'
+        ? rawImage.replace(/\\/g, '/').replace(/^\//, '')
+        : '';
+
+    if (normalizedImage && !normalizedImage.startsWith('public/')) {
+      normalizedImage = `public/${normalizedImage}`;
+    }
+
+    const image =
+      (normalizedImage && `${IMAGE_BASE_URL}${normalizedImage}`) ||
+      buildImageUrl(rawImage) ||
+      'https://via.placeholder.com/100x100.png?text=No+Image';
+
+    console.log('[Search] normalizeProduct rawImage:', rawImage, 'normalizedImage:', normalizedImage, 'finalImage:', image);
+
+    const price =
+      variant?.price ??
+      product?.price ??
+      product?.variants?.[0]?.price ??
+      product?.ProductVarient?.[0]?.price ??
+      '0';
+
+    return {
+      ...product,
+      _id: product?._id || product?.id || '',
+      image,
+      price,
+    };
   };
 
   const loadProducts = async () => {
     try {
       setLoading(true);
       const res = await ApiService.getSubCategoryProducts('all');
+      console.log('[Search] loadProducts response keys:', Object.keys(res?.data || {}));
 
       const apiData =
         res.data?.paginateData ||
@@ -74,7 +142,13 @@ const Search: FC = () => {
         res.data?.items ||
         [];
 
-      setAllProducts(Array.isArray(apiData) ? apiData : []);
+      console.log('[Search] raw apiData length:', Array.isArray(apiData) ? apiData.length : 'not array');
+
+      const normalized = Array.isArray(apiData)
+        ? apiData.map(normalizeProduct)
+        : [];
+      setAllProducts(normalized);
+      console.log('[Search] normalized products length:', normalized.length);
     } catch (error) {
       console.log('Search load error:', error);
       setAllProducts([]);
@@ -136,24 +210,9 @@ const Search: FC = () => {
   };
 
   const renderItem = ({ item }: { item: any }) => {
-    const rawImage =
-      item?.primary_image ||
-      item?.primaryImage ||
-      item?.thumbnail ||
-      item?.images?.[0] ||
-      item?.ProductVarient?.[0]?.images?.[0] ||
-      item?.variants?.[0]?.images?.[0] ||
-      item?.image;
-
-    const image = rawImage
-      ? buildImageUrl(rawImage)
-      : 'https://via.placeholder.com/100x100.png?text=No+Image';
-
-    const price =
-      item?.variants?.[0]?.price ??
-      item?.ProductVarient?.[0]?.price ??
-      item?.price ??
-      '0';
+    console.log('[Search] renderItem image:', item?.image, 'id:', item?._id);
+    const image = item?.image;
+    const price = item?.price ?? '0';
 
     return (
       <Pressable
@@ -248,8 +307,8 @@ const Search: FC = () => {
           </View>
         ) : filteredProducts.length === 0 && searchQuery.trim() ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <TextView style={{ color: '#fff', fontSize: 16 }}>
-              No products found
+            <TextView style={{ color: '#000', fontSize: 16 }}>
+              No Product Found
             </TextView>
           </View>
         ) : filteredProducts.length === 0 ? (

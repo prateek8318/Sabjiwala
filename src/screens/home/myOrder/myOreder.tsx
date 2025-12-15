@@ -70,6 +70,119 @@ const MyOrder = () => {
     return '#666';
   };
 
+  const getDisplayStatus = (status: string) => {
+    const s = status?.toLowerCase() || '';
+    if (s.includes('returned_requested') || s.includes('return_requested') || s.includes('return requested')) {
+      return 'Return';
+    }
+    return status || 'Unknown';
+  };
+
+  const computeOrderTotals = (order: any) => {
+    const bill = order?.billSummary || order?.bill || order?.pricing || {};
+    const items = order?.items || order?.products || [];
+
+    const itemTotal =
+      Number(order?.itemTotal) ||
+      Number(order?.itemsTotal) ||
+      Number(order?.subtotal) ||
+      Number(bill?.itemTotal) ||
+      items.reduce((sum: number, p: any) => {
+        const qty = Number(p.quantity || 1);
+        const unit =
+          Number(p.price) ||
+          Number(p.amount) ||
+          Number(p.total) ||
+          Number(p.unitPrice) ||
+          0;
+        return sum + qty * unit;
+      }, 0);
+
+    const deliveryCharge =
+      Number(order?.deliveryFee) ||
+      Number(order?.deliveryCharge) ||
+      Number(order?.deliveryCharges) ||
+      Number(order?.delivery_amount) ||
+      Number(bill?.deliveryFee || bill?.deliveryCharge || bill?.deliveryCharges) ||
+      0;
+
+    const handlingCharge =
+      Number(order?.handlingCharge) ||
+      Number(order?.handling_fee) ||
+      Number(order?.handlingCharges) ||
+      Number(bill?.handlingCharge || bill?.handlingCharges || bill?.handlingFee) ||
+      0;
+
+    const packagingFee =
+      Number(order?.packagingFee) ||
+      Number(order?.packagingCharge) ||
+      Number(bill?.packagingFee || bill?.packagingCharge) ||
+      0;
+
+    const couponDiscount =
+      Number(order?.couponDiscount) ||
+      Number(order?.coupon_amount) ||
+      Number(bill?.couponDiscount || bill?.couponAmount) ||
+      0;
+
+    const walletUsed =
+      Number(order?.walletUsed) ||
+      Number(order?.walletAmount) ||
+      Number(order?.wallet) ||
+      Number(bill?.walletUsed || bill?.walletAmount || bill?.wallet) ||
+      0;
+
+    const tipAmount =
+      Number(order?.tip) ||
+      Number(order?.tipAmount) ||
+      Number(bill?.tip || bill?.tips) ||
+      0;
+
+    const rawGrand =
+      Number(order?.grandTotal) ||
+      Number(order?.totalPayable) ||
+      Number(order?.payableAmount) ||
+      Number(order?.paymentAmount) ||
+      Number(order?.finalAmount) ||
+      Number(order?.totalAmount) ||
+      Number(order?.amount) ||
+      Number(order?.total);
+
+    const computedTotal = Math.max(
+      0,
+      itemTotal +
+      deliveryCharge +
+      handlingCharge +
+      packagingFee +
+      tipAmount -
+      couponDiscount -
+      walletUsed
+    );
+
+    /**
+     * Prefer the computed payable amount so that the user sees
+     * the exact figure shown at checkout (after coupon/wallet/tip).
+     * Fallback to any backend grand total only when it matches
+     * the computed number (or differs by <₹1 to handle rounding).
+     */
+    const displayTotal =
+      Number.isFinite(rawGrand) && Math.abs(rawGrand - computedTotal) < 1
+        ? rawGrand
+        : computedTotal;
+
+    return {
+      itemTotal,
+      deliveryCharge,
+      handlingCharge,
+      packagingFee,
+      couponDiscount,
+      walletUsed,
+      tipAmount,
+      computedTotal,
+      displayTotal,
+    };
+  };
+
   const renderOrder = ({ item }: { item: any }) => {
     const items = item.items || item.products || [];
     const totalItems = items.length;
@@ -79,6 +192,7 @@ const MyOrder = () => {
       status.includes('return_requested') ||
       status.includes('return requested');
     const isDelivered = isReturnRequested || status.includes('delivered') || status.includes('completed');
+    const isCancelled = status.includes('cancel');
     const deliveredDate =
       item.deliveredAt ||
       item.delivered_on ||
@@ -92,33 +206,7 @@ const MyOrder = () => {
     const RETURN_WINDOW_HOURS = 72;
     const windowOpen = diffHours <= RETURN_WINDOW_HOURS;
 
-    const bill = item.billSummary || item.bill || item.pricing || {};
-
-    const itemTotal =
-      Number(item.itemTotal) ||
-      Number(item.itemsTotal) ||
-      Number(item.subtotal) ||
-      Number(bill.itemTotal) ||
-      items.reduce(
-        (sum: number, p: any) =>
-          sum + Number(p.price || p.amount || p.total || 0),
-        0
-      );
-    const deliveryCharge =
-      Number(item.deliveryFee) ||
-      Number(item.deliveryCharge) ||
-      Number(item.deliveryCharges) ||
-      Number(item.delivery_amount) ||
-      Number(bill.deliveryFee || bill.deliveryCharge || bill.deliveryCharges) ||
-      0;
-    const handlingCharge =
-      Number(item.handlingCharge) ||
-      Number(item.handling_fee) ||
-      Number(item.handlingCharges) ||
-      Number(bill.handlingCharge || bill.handlingCharges || bill.handlingFee) ||
-      0;
-    const totalAmount =
-      item.totalAmount || item.amount || item.total || itemTotal + deliveryCharge + handlingCharge;
+    const totals = computeOrderTotals(item);
 
     const displayItems = items.slice(0, 6);
     const extraCount = totalItems - displayItems.length;
@@ -132,32 +220,34 @@ const MyOrder = () => {
         }}
         style={[styles.orderCard, { backgroundColor: '#fff' }]}
       >
-        {/* Status and summary */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={{
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 14,
-              backgroundColor: '#fff',
-              borderWidth: 1,
-              borderColor: getStatusColor(item.status || item.orderStatus || ''),
-            }}>
-              <TextView style={{ color: getStatusColor(item.status || item.orderStatus || ''), fontWeight: '700' }}>
-                {item.status || item.orderStatus || 'Unknown'}
-              </TextView>
-            </View>
-          </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <TextView style={{ color: '#000', fontWeight: '700' }}>₹{totalAmount}</TextView>
-            <TextView style={{ color: '#444', fontSize: 11 }}>{formatDate(item.createdAt || item.orderDate)}</TextView>
+        {/* Status, price, and date on same line */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <TextView style={{ color: getStatusColor(item.status || item.orderStatus || ''), fontWeight: '700', fontSize: 14 }}>
+            {getDisplayStatus(item.status || item.orderStatus || '')}
+          </TextView>
+          <View style={{ alignItems: 'flex-end', flexDirection: 'row', gap: 8 }}>
+            <TextView style={{ color: '#000', fontWeight: '700', fontSize: 14 }}>₹{totals.displayTotal}</TextView>
+            <TextView style={{ color: '#444', fontSize: 12 }}>{formatDate(item.createdAt || item.orderDate)}</TextView>
           </View>
         </View>
 
-        <TextView style={{ color: '#000', marginBottom: 6 }}>{totalItems} item{totalItems === 1 ? '' : 's'} in order</TextView>
+        {/* Dashed border */}
+        <View style={{ flexDirection: 'row', marginBottom: 8, marginTop: 2, alignItems: 'center' }}>
+          {Array.from({ length: 30 }).map((_, i) => (
+            <View
+              key={i}
+              style={{
+                flex: 1,
+                height: 1,
+                backgroundColor: '#ddd',
+                marginRight: i < 29 ? 2 : 0,
+              }}
+            />
+          ))}
+        </View>
 
-        {/* Items thumbnails row */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+        {/* Items thumbnails row - overlapping images */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
           {displayItems.map((product: any, idx: number) => {
             const productObj = product.productId || product.product || product;
             const variantObj = product.variantId || product.variant;
@@ -187,20 +277,31 @@ const MyOrder = () => {
               <Image
                 key={idx}
                 source={source}
-                style={styles.productImage}
+                style={[styles.productImage, { marginLeft: idx === 0 ? 0 : -8, zIndex: displayItems.length - idx }]}
                 defaultSource={require('../../../assets/images/order.png')}
               />
             );
           })}
           {extraCount > 0 && (
-            <View style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: '#1B743E', alignItems: 'center', justifyContent: 'center', marginLeft: 4 }}>
-              <TextView style={{ color: '#fff', fontWeight: '700' }}>+{extraCount}</TextView>
+            <View style={{ 
+              width: 40, 
+              height: 40, 
+              borderRadius: 8, 
+              backgroundColor: '#2E7D32', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              marginLeft: -8,
+              zIndex: 0,
+              borderWidth: 2,
+              borderColor: '#fff'
+            }}>
+              <TextView style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>{extraCount}+</TextView>
             </View>
           )}
         </View>
 
         {/* Bill Summary (compact) */}
-        <View style={{ marginTop: 6, borderTopWidth: 1, borderColor: '#eee', paddingTop: 8 }}>
+        {/* <View style={{ marginTop: 6, borderTopWidth: 1, borderColor: '#eee', paddingTop: 8 }}>
           {[
             { label: 'Item total', value: itemTotal },
             { label: 'Delivery fee', value: deliveryCharge },
@@ -215,7 +316,7 @@ const MyOrder = () => {
             <TextView style={{ color: '#000', fontWeight: '700' }}>Total Bill</TextView>
             <TextView style={{ color: '#000', fontWeight: '700' }}>₹{totalAmount}</TextView>
           </View>
-        </View>
+        </View> */}
 
         {/* Actions */}
         <View style={styles.actionButtons}>
@@ -226,33 +327,29 @@ const MyOrder = () => {
             <TextView style={styles.actionText}>Reorder</TextView>
           </TouchableOpacity>
 
-          {isDelivered && (
-            <TouchableOpacity
-              style={[
-                styles.actionBtn,
-                styles.returnBtn,
-                !windowOpen && !isReturnRequested ? { borderColor: '#ccc', backgroundColor: '#f5f5f5' } : null,
-              ]}
-              disabled={!windowOpen && !isReturnRequested}
-              onPress={() => navigation.navigate('ReturnOrder', { orderId: item._id, order: item })}
-            >
-              <TextView
-                style={[
-                  styles.actionText,
-                  { color: Colors.PRIMARY[300] },
-                  !windowOpen && !isReturnRequested ? { color: '#999' } : null,
-                ]}
-              >
-                {isReturnRequested ? 'Return Requested' : windowOpen ? 'Return' : 'Return Closed'}
-              </TextView>
-            </TouchableOpacity>
-          )}
-
           <TouchableOpacity
             style={styles.actionBtn}
             onPress={() => navigation.navigate('OrderTracking', { orderId: item._id, order: item })}
           >
             <TextView style={styles.actionText}>Track</TextView>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.actionBtn,
+              (!isDelivered || isCancelled || (!windowOpen && !isReturnRequested)) ? styles.actionBtnDisabled : null,
+            ]}
+            disabled={!isDelivered || isCancelled || (!windowOpen && !isReturnRequested)}
+            onPress={() => navigation.navigate('ReturnOrder', { orderId: item._id, order: item })}
+          >
+            <TextView
+              style={[
+                styles.actionText,
+                (!isDelivered || isCancelled || (!windowOpen && !isReturnRequested)) ? styles.actionTextDisabled : null,
+              ]}
+            >
+              Return
+            </TextView>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -353,7 +450,9 @@ const MyOrder = () => {
                     const source = img
                       ? { uri: isAbsolute ? img : ApiService.getImage(img) }
                       : require('../../../assets/images/order.png');
-                    const price = Number(product.price || variantObj?.price || 0);
+                    const unitPrice = Number(product.price || variantObj?.price || 0);
+                    const qty = Number(product.quantity || 1);
+                    const lineTotal = unitPrice * qty;
                     return (
                       <View
                         key={`${selectedOrder._id}-prod-${idx}`}
@@ -376,11 +475,11 @@ const MyOrder = () => {
                             {productObj?.name || 'Item'}
                           </TextView>
                           <TextView style={{ color: '#555', marginTop: 2 }}>
-                            Qty: {product.quantity || 1}
+                            Qty: {qty} • ₹{unitPrice.toFixed(2)} each
                           </TextView>
                         </View>
                         <TextView style={{ color: '#000', fontWeight: '700' }}>
-                          ₹{price}
+                          ₹{lineTotal.toFixed(2)}
                         </TextView>
                       </View>
                     );
@@ -399,12 +498,57 @@ const MyOrder = () => {
                         {selectedOrder.status || selectedOrder.orderStatus || 'pending'}
                       </TextView>
                     </View>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                      <TextView style={{ color: '#000', fontWeight: '700' }}>Grand Total</TextView>
-                      <TextView style={{ color: '#000', fontWeight: '700' }}>
-                        ₹{selectedOrder.grandTotal || selectedOrder.totalAmount || selectedOrder.total || 0}
-                      </TextView>
-                    </View>
+                    {(() => {
+                      const totals = computeOrderTotals(selectedOrder);
+                      return (
+                        <>
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                            <TextView style={{ color: '#000' }}>Item total</TextView>
+                            <TextView style={{ color: '#000', fontWeight: '700' }}>₹{totals.itemTotal.toFixed(2)}</TextView>
+                          </View>
+                          {totals.deliveryCharge > 0 && (
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                              <TextView style={{ color: '#000' }}>Delivery</TextView>
+                              <TextView style={{ color: '#000', fontWeight: '700' }}>₹{totals.deliveryCharge.toFixed(2)}</TextView>
+                            </View>
+                          )}
+                          {totals.handlingCharge > 0 && (
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                              <TextView style={{ color: '#000' }}>Handling</TextView>
+                              <TextView style={{ color: '#000', fontWeight: '700' }}>₹{totals.handlingCharge.toFixed(2)}</TextView>
+                            </View>
+                          )}
+                          {totals.packagingFee > 0 && (
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                              <TextView style={{ color: '#000' }}>Packaging</TextView>
+                              <TextView style={{ color: '#000', fontWeight: '700' }}>₹{totals.packagingFee.toFixed(2)}</TextView>
+                            </View>
+                          )}
+                          {totals.tipAmount > 0 && (
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                              <TextView style={{ color: '#000' }}>Tip</TextView>
+                              <TextView style={{ color: '#000', fontWeight: '700' }}>₹{totals.tipAmount.toFixed(2)}</TextView>
+                            </View>
+                          )}
+                          {totals.couponDiscount > 0 && (
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                              <TextView style={{ color: '#000' }}>Coupon</TextView>
+                              <TextView style={{ color: '#000', fontWeight: '700' }}>-₹{totals.couponDiscount.toFixed(2)}</TextView>
+                            </View>
+                          )}
+                          {totals.walletUsed > 0 && (
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                              <TextView style={{ color: '#000' }}>Wallet</TextView>
+                              <TextView style={{ color: '#000', fontWeight: '700' }}>-₹{totals.walletUsed.toFixed(2)}</TextView>
+                            </View>
+                          )}
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
+                            <TextView style={{ color: '#000', fontWeight: '700' }}>Grand Total</TextView>
+                            <TextView style={{ color: '#000', fontWeight: '700' }}>₹{totals.displayTotal.toFixed(2)}</TextView>
+                          </View>
+                        </>
+                      );
+                    })()}
                   </View>
                 </>
               ) : null}

@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import styles from './address.styles';
 import { HomeStackProps } from '../../../../../@types';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Header, LinearButton, TextView } from '../../../../../components';
 import {
@@ -32,7 +32,9 @@ type AddressScreenNavigationType = NativeStackNavigationProp<
 >;
 
 const Address: FC = () => {
-  const navigation = useNavigation<AddressScreenNavigationType>();
+  // use loose typing here because AddAddress accepts params not declared on this stack type
+  const navigation = useNavigation<any>();
+  const isFocused = useIsFocused();
   const [addresses, setAddresses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -62,8 +64,10 @@ const Address: FC = () => {
   };
 
   useEffect(() => {
-    fetchAddresses();
-  }, []);
+    if (isFocused) {
+      fetchAddresses();
+    }
+  }, [isFocused]);
 
   const handleDelete = async (id: string) => {
     Alert.alert('Delete', 'Are you sure you want to delete this address?', [
@@ -104,7 +108,15 @@ const Address: FC = () => {
           </Pressable>
   
           <Pressable
-            onPress={() => navigation.navigate('AddAddress', { address: item.item })}
+            onPress={() =>
+              navigation.navigate(
+                'AddAddress' as never,
+                {
+                  address: item.item,
+                  fromAddressScreen: true,
+                } as never,
+              )
+            }
             style={styles.btnEdit}
           >
             <TextView style={styles.txtEdit}>Edit</TextView>
@@ -146,7 +158,12 @@ const Address: FC = () => {
 
           <LinearButton
             title="Add Address"
-            onPress={() => navigation.navigate('AddAddress')}
+            onPress={() =>
+              navigation.navigate(
+                'AddAddress' as never,
+                { fromAddressScreen: true } as never,
+              )
+            }
             style={{ marginTop: 20 }}
           />
         </View>

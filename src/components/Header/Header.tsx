@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { FC, ReactNode } from 'react';
 import {
   TextInput,
   View,
@@ -22,6 +22,7 @@ interface HeaderProps {
   rightIcon?: boolean;
   rightIconName?: any;
   rightIconPress?: any;
+  rightIconComponent?: ReactNode;
 }
 
 const Header: FC<HeaderProps> = ({
@@ -30,6 +31,7 @@ const Header: FC<HeaderProps> = ({
   rightIcon,
   rightIconName,
   rightIconPress,
+  rightIconComponent,
 }) => {
   const navigate = useNavigation();
 
@@ -47,13 +49,13 @@ const Header: FC<HeaderProps> = ({
 
       <Text style={styles.headerTitle}>{title}</Text>
       {rightIcon ? (
-        <Pressable onPress={() => rightIconPress() && rightIconPress()}>
-          <Image source={rightIconName} style={styles.imgBack} />
+        <Pressable onPress={() => rightIconPress && rightIconPress()}>
+          {rightIconComponent ? rightIconComponent : <Image source={rightIconName} style={styles.imgBack} />}
         </Pressable>
       ) : (
-        <Pressable onPress={() => rightIconPress() && rightIconPress()}>
+        <View>
           <Image style={styles.imgBack} />
-        </Pressable>
+        </View>
       )}
     </View>
   );

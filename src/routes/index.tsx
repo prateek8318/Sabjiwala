@@ -1,10 +1,13 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
-import React, { FC, useContext, useEffect, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { FC, useContext, useEffect, useRef, useState } from 'react';
+import {
+  NavigationContainer,
+  NavigationContainerRef,
+} from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeStackNavigator, AuthStackNavigator } from '../navigation';
-import { StatusBar } from 'react-native';
+import { BackHandler, StatusBar } from 'react-native';
 const Stack = createNativeStackNavigator();
 import { LocalStorage } from '../helpers/localstorage';
 import { UserData, UserDataContext } from '../context/userDataContext';
@@ -17,6 +20,8 @@ const Route: FC = () => {
   const { isLoggedIn, setIsLoggedIn } = useContext<UserData>(UserDataContext);
   const { showAlert, hideAlert } = CommonAlertModal();
   const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const [isExitAlertVisible, setIsExitAlertVisible] = useState(false);
+  const navigationRef = useRef<NavigationContainerRef<any>>(null);
 
   useEffect(() => {
     checkLoginStatus();
@@ -40,6 +45,48 @@ const Route: FC = () => {
     }
   };
 
+  useEffect(() => {
+    const handleBackPress = () => {
+      const navigation = navigationRef.current;
+
+      if (navigation && navigation.canGoBack()) {
+        navigation.goBack();
+        return true;
+      }
+
+      if (isExitAlertVisible) {
+        return true;
+      }
+
+      setIsExitAlertVisible(true);
+      showAlert(
+        'Exit App',
+        'Are you sure you want to exit?',
+        'Exit',
+        () => {
+          setIsExitAlertVisible(false);
+          hideAlert();
+          BackHandler.exitApp();
+        },
+        'confirm',
+        'Cancel',
+        () => {
+          setIsExitAlertVisible(false);
+          hideAlert();
+        },
+      );
+
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      handleBackPress,
+    );
+
+    return () => subscription.remove();
+  }, [hideAlert, isExitAlertVisible, showAlert]);
+
   if (isBootstrapping || isLoggedIn === null) {
     return <></>;
   }
@@ -48,7 +95,7 @@ const Route: FC = () => {
 
   return (
     <>
-      <NavigationContainer>
+      <NavigationContainer ref={navigationRef}>
         <StatusBar
           barStyle={'light-content'}
           backgroundColor={Colors.PRIMARY[100]}

@@ -117,17 +117,26 @@ const LocationPermission: FC = () => {
           }
 
           hideLoader();
-          (navigation as any).navigate('AddAddress', {
-            prefillAddress: {
-              pincode: geo.pincode,
-              city: geo.city,
-              landmark: geo.formattedAddress || geo.landmark || '',
-              floor: 'Ground',
-              houseNoOrFlatNo: geo.houseNumber || '',
-              lat: latitude,
-              long: longitude,
-            },
+          Toast.show({
+            type: 'success',
+            text1: 'Location Fetched!',
+            text2: 'Your location has been detected successfully',
+            visibilityTime: 2000,
           });
+          
+          setTimeout(() => {
+            (navigation as any).navigate('AddAddress', {
+              prefillAddress: {
+                pincode: geo.pincode,
+                city: geo.city,
+                landmark: geo.formattedAddress || geo.landmark || '',
+                floor: 'Ground',
+                houseNoOrFlatNo: geo.houseNumber || '',
+                lat: latitude,
+                long: longitude,
+              },
+            });
+          }, 1000);
         } catch (locationError: any) {
           hideLoader();
           console.log('[LocationPermission] Location error:', locationError);

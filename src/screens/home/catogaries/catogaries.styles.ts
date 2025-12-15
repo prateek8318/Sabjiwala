@@ -13,6 +13,14 @@ import { Colors } from '../../../constant';
      fontWeight: 'bold',
      backgroundColor: '#fff',
    },
+   title: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+    flex: 1,
+    
+    textAlign: 'center',
+  },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',

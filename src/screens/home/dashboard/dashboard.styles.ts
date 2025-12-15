@@ -177,7 +177,8 @@ const styles = StyleSheet.create({
   
   productHeadingMainView: {
     width: wp(100),
-    padding: hp(2),
+    paddingVertical: hp(1.2),
+    paddingHorizontal: hp(2),
   },
   productHeadingHeadingView: {
     flexDirection: 'row',
@@ -186,10 +187,10 @@ const styles = StyleSheet.create({
   },
   txtProductHeading: {
     color: Colors.PRIMARY[400],
-    
-    fontSize: wp(4.83),
+    fontSize: wp(5.8),
+    lineHeight: wp(6.2),
     fontWeight: '800',
-    marginBottom: hp(2),
+    marginBottom: hp(1),
   },
   txtViewMore: {
     color: '#000',
@@ -199,7 +200,7 @@ const styles = StyleSheet.create({
   groceryCardView: {
     width: wp(90),
     marginTop: hp(2),
-    marginLeft: hp(0.4),
+    marginLeft: hp(0),
     flexDirection: 'row',
     justifyContent:'space-evenly',
   },
@@ -242,14 +243,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardDealView: {
-    margin: hp(1),
+    margin: hp(0.6),
     width: wp(28),
     borderColor: Colors.SECONDARY[400],
     borderWidth: 1,
-    height: hp(18),
+    minHeight: hp(13),
     borderRadius: 10,
     overflow: 'hidden',
-    backgroundColor: Colors.PRIMARY[300],
+    backgroundColor: '#fff',
   },
   cardDealOfferView: {
     height: 30,
@@ -265,15 +266,15 @@ const styles = StyleSheet.create({
   },
   cardDealImageWrapper: {
     flex: 1,
-    backgroundColor: Colors.PRIMARY[300],
+    backgroundColor: '#fff',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     paddingHorizontal: wp(2),
-    paddingVertical: hp(1),
   },
   cardDealImage: {
-    width: '100%',
-    height: '100%',
+    width: 60,
+    height: 60,
+    resizeMode: 'contain',
   },
   cardDealImagePlaceholder: {
     width: '100%',
@@ -293,7 +294,7 @@ const styles = StyleSheet.create({
     height: hp(25),
     resizeMode: 'contain',
     alignSelf: 'center',
-    margin: hp(1),
+    
   },
   
  

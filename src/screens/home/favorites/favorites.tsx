@@ -89,12 +89,21 @@ const Favorites = () => {
       const transformProduct = (product: any, productId: string) => {
         const variant = product.ProductVarient?.[0] || product.variants?.[0];
         const imagePath = variant?.images?.[0] || product.primary_image?.[0] || product.images?.[0] || '';
-        
+
         const cleanPath = imagePath
           .replace('public\\', '')
           .replace('public/', 'public/')
           .replace(/\\/g, '/');
-        
+
+        // Normalize weight so it never renders empty on larger screens
+        const weightValue =
+          variant?.weight ??
+          product?.weight ??
+          variant?.stock ??
+          product?.stock ??
+          1;
+        const unitValue = variant?.unit ?? product?.unit ?? '';
+
         return {
           id: product._id || product.id || productId,
           productId: productId,
@@ -103,9 +112,9 @@ const Favorites = () => {
           price: variant?.price || product.price || 0,
           oldPrice: variant?.originalPrice || product.mrp || product.oldPrice || 0,
           discount: variant?.discount ? `₹${variant.discount} OFF` : '',
-          weight: variant ? `${variant.stock || 1} ${variant.unit || ''}` : 'N/A',
+          weight: `${weightValue} ${unitValue}`.trim(),
           rating: product.rating || 4.7,
-         
+
         };
       };
       
@@ -361,15 +370,11 @@ const Favorites = () => {
 
         {/* Price */}
         <View style={styles.cardProductPriceView}>
-          <View>
-            <TextView style={styles.cardProductPriceText}>
-              ₹{price}
-              {oldPrice > price && (
-                <TextView style={styles.cardProductPriceDiscount}>
-                  {' '}₹{oldPrice}
-                </TextView>
-              )}
-            </TextView>
+          <View style={styles.priceRow}>
+            <TextView style={styles.cardProductPriceText}>₹{price}</TextView>
+            {oldPrice > price && (
+              <TextView style={styles.cardProductPriceDiscount}>₹{oldPrice}</TextView>
+            )}
           </View>
           {discount && (
             <View style={styles.offerView}>

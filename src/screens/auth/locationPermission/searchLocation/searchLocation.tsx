@@ -264,6 +264,73 @@ const SearchLocation: FC = () => {
     }
   };
 
+  // Generate map HTML with OpenStreetMap
+  const generateMapHTML = () => {
+    const lat = currentLocation?.latitude ?? 28.6139;
+    const lon = currentLocation?.longitude ?? 77.2090;
+    const zoomLevel = currentLocation ? 15 : 11;
+    const cityName = resolvedAddress?.city || '';
+    const addressText = resolvedAddress?.formattedAddress || '';
+
+    // Escape HTML characters
+    const escapeHtml = (text: string) => {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    };
+
+    const escapedCity = escapeHtml(cityName);
+    const escapedAddress = escapeHtml(addressText);
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+          <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+          <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+          <style>
+            body { margin: 0; padding: 0; overflow: hidden; }
+            #map { width: 100%; height: 100%; }
+          </style>
+        </head>
+        <body>
+          <div id="map"></div>
+          <script>
+            var lat = ${lat};
+            var lon = ${lon};
+            var zoomLevel = ${zoomLevel};
+            
+            var map = L.map('map').setView([lat, lon], zoomLevel);
+            
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '© OpenStreetMap contributors',
+              maxZoom: 19
+            }).addTo(map);
+            
+            // Add location marker with colored circle (more reliable than default marker)
+            var locationMarker = L.circleMarker([lat, lon], {
+              radius: 12,
+              fillColor: '#4CAF50',
+              color: '#ffffff',
+              weight: 3,
+              opacity: 1,
+              fillOpacity: 0.9
+            }).addTo(map);
+            
+            var popupText = '${escapedCity ? '📍 ' + escapedCity : '📍 Your Location'}';
+            ${escapedAddress ? `popupText += '<br><small>${escapedAddress}</small>';` : ''}
+            locationMarker.bindPopup(popupText).openPopup();
+          </script>
+        </body>
+      </html>
+    `;
+  };
+
   const handleMapConfirm = async () => {
     if (!currentLocation) {
       Toast.show({
@@ -486,36 +553,7 @@ const SearchLocation: FC = () => {
                 ) : (
                   <WebView
                     originWhitelist={['*']}
-                    source={{
-                      html: `
-                        <!DOCTYPE html>
-                        <html>
-                          <head>
-                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-                            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-                            <style>
-                              body { margin: 0; padding: 0; }
-                              #map { width: 100%; height: 100%; }
-                            </style>
-                          </head>
-                          <body>
-                            <div id="map"></div>
-                            <script>
-                              var lat = ${currentLocation?.latitude ?? 28.6139};
-                              var lon = ${currentLocation?.longitude ?? 77.2090};
-                              var map = L.map('map').setView([lat, lon], ${currentLocation ? 15 : 11});
-                              L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                                attribution: '© OpenStreetMap contributors',
-                                maxZoom: 19
-                              }).addTo(map);
-                              var marker = L.marker([lat, lon]).addTo(map);
-                              marker.bindPopup('${resolvedAddress?.city ? `You are near ${resolvedAddress.city}` : 'Your Location'}').openPopup();
-                            </script>
-                          </body>
-                        </html>
-                      `,
-                    }}
+                    source={{ html: generateMapHTML() }}
                     style={styles.mapWebView}
                     javaScriptEnabled
                     domStorageEnabled

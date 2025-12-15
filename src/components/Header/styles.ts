@@ -20,8 +20,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontFamily: Fonts.Medium,
-    fontSize: wp(5),
+    fontSize: wp(6),
     color: Colors.PRIMARY[400],
+    fontWeight: 'bold',
   },
 });
 

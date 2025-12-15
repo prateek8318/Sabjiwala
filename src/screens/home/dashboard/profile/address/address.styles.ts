@@ -57,10 +57,10 @@ const styles = StyleSheet.create({
   },
   btnEdit: {
     backgroundColor: Colors.PRIMARY[100],
-    paddingHorizontal: wp(7),
-    paddingVertical: hp(1.3),
+    paddingHorizontal: wp(2),
+    paddingVertical: hp(0.5),
     borderRadius: wp(10),
-    minWidth: wp(22),
+    minWidth: wp(16),
     alignItems: 'center',
   },
   txtEdit: {

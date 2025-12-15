@@ -76,6 +76,14 @@ const Signin: FC = () => {
     }
   };
 
+  const openTerms = () => {
+    navigation.navigate('TermsCondition');
+  };
+
+  const openPrivacy = () => {
+    navigation.navigate('PrivacyPolicy');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
 
@@ -165,9 +173,13 @@ const Signin: FC = () => {
             <View style={styles.txtView}>
               <TextView style={styles.txtWhite}>
                 By continuing, you agree to our{' '}
-                <TextView style={styles.txtYellow}>Terms of Use</TextView>
+                <TextView style={styles.txtYellow} onPress={openTerms}>
+                  Terms of Use
+                </TextView>
                 <TextView style={styles.txtWhite}> and </TextView>
-                <TextView style={styles.txtYellow}>Privacy Policy</TextView>
+                <TextView style={styles.txtYellow} onPress={openPrivacy}>
+                  Privacy Policy
+                </TextView>
               </TextView>
             </View>
           </View>

@@ -63,6 +63,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'center',
   },
+  inputErrorBorder: {
+    borderColor: Colors.ERROR[300],
+    backgroundColor: '#FFF6F6',
+  },
   inputView: {
     ...Typography.BodyRegular13,
     color: Colors.PRIMARY[400],

@@ -6,9 +6,9 @@ import {
   View,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  Alert,
   Keyboard,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { CommonActions } from '@react-navigation/native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import styles from './addAddress.styles';
@@ -36,8 +36,11 @@ const AddAddress: FC = () => {
   const [receiverNo, setReceiverNo] = useState('');
   const [loading, setLoading] = useState(false);
   const [coords, setCoords] = useState<{ lat?: number; long?: number }>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   const editingAddress = route?.params?.address;
+  const fromAddressScreen = route?.params?.fromAddressScreen;
   const isEdit = !!editingAddress;
   const sanitizeText = (text: string, limit: number) =>
     text ? text.replace(/\s+/g, ' ').trim().slice(0, limit) : '';
@@ -72,13 +75,71 @@ const AddAddress: FC = () => {
     }
   }, [editingAddress, route?.params?.prefillAddress]);
 
+  const showToast = (
+    type: 'success' | 'error',
+    text1: string,
+    text2?: string,
+  ) => {
+    Toast.show({
+      type,
+      text1,
+      text2,
+      position: 'top',
+      topOffset: 50,
+      visibilityTime: 2200,
+      text1Style: { fontWeight: '700', color: '#000' },
+      text2Style: { color: '#000' },
+    });
+  };
+
+  const validateRequired = () => {
+    const validationErrors: Record<string, string> = {};
+    if (!floor.trim()) validationErrors.floor = ' ';
+    if (!houseNoOrFlatNo.trim())
+      validationErrors.houseNoOrFlatNo = ' ';
+    if (!landmark.trim()) validationErrors.landmark = ' ';
+    if (!pincode.trim()) validationErrors.pincode = ' ';
+    else if (!/^\d{6}$/.test(pincode.trim()))
+      validationErrors.pincode = 'Pincode must be 6 digits';
+    if (!city.trim()) validationErrors.city = ' ';
+    if (!receiverName.trim()) validationErrors.receiverName = ' ';
+    if (!receiverNo.trim()) validationErrors.receiverNo = ' ';
+    else if (receiverNo.trim().length !== 10)
+      validationErrors.receiverNo = 'Enter 10 digit mobile';
+
+    const touchedFields = {
+      floor: true,
+      houseNoOrFlatNo: true,
+      landmark: true,
+      pincode: true,
+      city: true,
+      receiverName: true,
+      receiverNo: true,
+    };
+
+    setTouched((prev) => ({ ...prev, ...touchedFields }));
+    setErrors(validationErrors);
+
+    if (Object.keys(validationErrors).length) {
+      showToast('error', 'Please fix highlighted fields', 'Missing details above');
+      return false;
+    }
+    return true;
+  };
+
+  const clearErrorIfValid = (field: string, value: string) => {
+    if (value.trim()) {
+      setErrors((prev) => {
+        if (!prev[field]) return prev;
+        const updated = { ...prev };
+        delete updated[field];
+        return updated;
+      });
+    }
+  };
+
   const saveAddress = async () => {
-    // Required validation
-    if (!floor.trim()) return Alert.alert('Required', 'Floor is required');
-    if (!houseNoOrFlatNo.trim()) return Alert.alert('Required', 'Flat/House No is required');
-    if (!landmark.trim()) return Alert.alert('Required', 'Landmark is required');
-    if (!pincode.trim()) return Alert.alert('Required', 'Pincode is required');
-    if (!city.trim()) return Alert.alert('Required', 'City is required');
+    if (!validateRequired()) return;
 
     const payload = {
       addressType: addressType,           // "home", "work", "other"
@@ -100,44 +161,47 @@ const AddAddress: FC = () => {
       setLoading(true);
       if (isEdit && editingAddress?._id) {
         await ApiService.updateAddress(editingAddress._id, payload);
-        Alert.alert('Success', 'Address updated successfully!', [
-          { text: 'OK', onPress: () => navigation.goBack() },
-        ]);
+        showToast('success', 'Address Updated!', 'Your address has been updated successfully');
+        setTimeout(() => {
+          navigation.goBack();
+        }, 1500);
       } else {
         const res = await ApiService.addAddress(payload);
         console.log('Address saved successfully!', res.data);
 
-        Alert.alert('Success', 'Address added successfully!', [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Mark user as logged in so root navigator switches to Home stack
-              LocalStorage.save('@login', true);
-              setIsLoggedIn(true);
+        showToast('success', 'Address Saved!', 'Your address has been saved successfully');
 
-              // If this screen sits inside the Home stack (after login),
-              // try to go to bottom tabs; otherwise rely on auth state switch.
-              const parentNav = navigation.getParent?.();
-              const routeNames =
-                parentNav?.getState?.()?.routeNames ||
-                navigation.getState?.()?.routeNames ||
-                [];
+        // Mark user as logged in so root navigator switches to Home stack
+        LocalStorage.save('@login', true);
+        setIsLoggedIn(true);
 
-              if (routeNames.includes('BottomStackNavigator')) {
-                navigation.navigate('BottomStackNavigator');
-              } else if (routeNames.includes('HomeStackNavigator')) {
-                navigation.navigate('HomeStackNavigator');
-              }
-            },
-          },
-        ]);
+        // If this screen sits inside the Home stack (after login),
+        // try to go to bottom tabs; otherwise rely on auth state switch.
+        setTimeout(() => {
+          if (fromAddressScreen) {
+            navigation.goBack();
+            return;
+          }
+
+          const parentNav = navigation.getParent?.();
+          const routeNames =
+            parentNav?.getState?.()?.routeNames ||
+            navigation.getState?.()?.routeNames ||
+            [];
+
+          if (routeNames.includes('BottomStackNavigator')) {
+            navigation.navigate('BottomStackNavigator');
+          } else if (routeNames.includes('HomeStackNavigator')) {
+            navigation.navigate('HomeStackNavigator');
+          }
+        }, 1500);
       }
     } catch (error: any) {
       const msg = 
         error?.response?.data?.message || 
         error?.response?.data?.error || 
         'Failed to save address';
-      Alert.alert('Error', msg);
+      showToast('error', 'Error', msg);
       console.log('API Error:', error.response?.data);
     } finally {
       setLoading(false);
@@ -190,71 +254,153 @@ const AddAddress: FC = () => {
               <InputText
                 placeholder="Floor *"
                 value={floor}
-                onChangeText={setFloor}
+                onFocus={() => setTouched((prev) => ({ ...prev, floor: true }))}
+                onChangeText={(txt) => {
+                  setFloor(txt);
+                  clearErrorIfValid('floor', txt);
+                }}
                 placeHolderTextStyle={placeholderColor}
                 inputStyle={styles.inputView}
-                inputContainer={styles.inputContainer}
+                inputContainer={[
+                  styles.inputContainer,
+                  errors.floor && touched.floor && styles.inputErrorBorder,
+                ]}
                 maxLength={30}
+                error={errors.floor}
+                touched={touched.floor}
               />
 
               <InputText
                 placeholder="Flat / House No *"
                 value={houseNoOrFlatNo}
-                onChangeText={(txt) => setHouseNoOrFlatNo(sanitizeText(txt, 60))}
+                onFocus={() =>
+                  setTouched((prev) => ({ ...prev, houseNoOrFlatNo: true }))
+                }
+                onChangeText={(txt) => {
+                  const sanitized = sanitizeText(txt, 60);
+                  setHouseNoOrFlatNo(sanitized);
+                  clearErrorIfValid('houseNoOrFlatNo', sanitized);
+                }}
                 placeHolderTextStyle={placeholderColor}
                 inputStyle={styles.inputView}
-                inputContainer={styles.inputContainer}
+                inputContainer={[
+                  styles.inputContainer,
+                  errors.houseNoOrFlatNo &&
+                    touched.houseNoOrFlatNo &&
+                    styles.inputErrorBorder,
+                ]}
                 maxLength={60}
+                error={errors.houseNoOrFlatNo}
+                touched={touched.houseNoOrFlatNo}
               />
 
               <InputText
                 placeholder="Landmark *"
                 value={landmark}
-                onChangeText={(txt) => setLandmark(sanitizeText(txt, 80))}
+                onFocus={() =>
+                  setTouched((prev) => ({ ...prev, landmark: true }))
+                }
+                onChangeText={(txt) => {
+                  setLandmark(txt.slice(0, 80));
+                  clearErrorIfValid('landmark', txt);
+                }}
                 placeHolderTextStyle={placeholderColor}
                 inputStyle={styles.inputView}
-                inputContainer={styles.inputContainer}
+                inputContainer={[
+                  styles.inputContainer,
+                  errors.landmark && touched.landmark && styles.inputErrorBorder,
+                ]}
                 maxLength={80}
+                error={errors.landmark}
+                touched={touched.landmark}
               />
 
               <InputText
                 placeholder="Pincode *"
                 value={pincode}
-                onChangeText={setPincode}
+                onFocus={() =>
+                  setTouched((prev) => ({ ...prev, pincode: true }))
+                }
+                onChangeText={(txt) => {
+              const onlyDigits = txt.replace(/[^0-9]/g, '').slice(0, 6);
+              setPincode(onlyDigits);
+              clearErrorIfValid('pincode', onlyDigits);
+                }}
                 keyboardType="number-pad"
                 maxLength={6}
                 placeHolderTextStyle={placeholderColor}
                 inputStyle={styles.inputView}
-                inputContainer={styles.inputContainer}
+                inputContainer={[
+                  styles.inputContainer,
+                  errors.pincode && touched.pincode && styles.inputErrorBorder,
+                ]}
+                error={errors.pincode}
+                touched={touched.pincode}
               />
 
               <InputText
                 placeholder="City *"
                 value={city}
-                onChangeText={setCity}
+                onFocus={() => setTouched((prev) => ({ ...prev, city: true }))}
+                onChangeText={(txt) => {
+                  setCity(txt);
+                  clearErrorIfValid('city', txt);
+                }}
                 placeHolderTextStyle={placeholderColor}
                 inputStyle={styles.inputView}
-                inputContainer={styles.inputContainer}
+                inputContainer={[
+                  styles.inputContainer,
+                  errors.city && touched.city && styles.inputErrorBorder,
+                ]}
+                error={errors.city}
+                touched={touched.city}
               />
 
               <InputText
-                placeholder="Receiver Name"
+                placeholder="Receiver Name*"
                 value={receiverName}
-                onChangeText={setReceiverName}
+                onFocus={() =>
+                  setTouched((prev) => ({ ...prev, receiverName: true }))
+                }
+                onChangeText={(txt) => {
+                  setReceiverName(txt);
+                  clearErrorIfValid('receiverName', txt);
+                }}
                 placeHolderTextStyle={placeholderColor}
                 inputStyle={styles.inputView}
-                inputContainer={styles.inputContainer}
+                inputContainer={[
+                  styles.inputContainer,
+                  errors.receiverName &&
+                    touched.receiverName &&
+                    styles.inputErrorBorder,
+                ]}
+                error={errors.receiverName}
+                touched={touched.receiverName}
               />
 
               <InputText
-                placeholder="Receiver Phone"
+                placeholder="Receiver Phone*"
                 value={receiverNo}
-                onChangeText={(txt) => setReceiverNo(txt.replace(/[^0-9]/g, '').slice(0, 10))}
+                onFocus={() =>
+                  setTouched((prev) => ({ ...prev, receiverNo: true }))
+                }
+                onChangeText={(txt) => {
+                  const digits = txt.replace(/[^0-9]/g, '').slice(0, 10);
+                  setReceiverNo(digits);
+                  clearErrorIfValid('receiverNo', digits);
+                }}
                 keyboardType="phone-pad"
                 maxLength={10}
                 placeHolderTextStyle={placeholderColor}
                 inputStyle={styles.inputView}
-                inputContainer={styles.inputContainer}
+                inputContainer={[
+                  styles.inputContainer,
+                  errors.receiverNo &&
+                    touched.receiverNo &&
+                    styles.inputErrorBorder,
+                ]}
+                error={errors.receiverNo}
+                touched={touched.receiverNo}
               />
             </View>
           </View>

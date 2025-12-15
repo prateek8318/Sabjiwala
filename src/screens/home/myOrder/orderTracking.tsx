@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, Image, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { Colors } from '../../../constant';
 import { TextView } from '../../../components';
 import ApiService from '../../../service/apiService';
 import styles from './myOrder.styles';
+import Geolocation from 'react-native-geolocation-service';
+import { Platform } from 'react-native';
+import { request, check, PERMISSIONS, RESULTS } from 'react-native-permissions';
 
 interface Props {
   route: any;
@@ -19,6 +23,8 @@ const OrderTracking: React.FC<Props> = ({ route, navigation }) => {
   const [addressText, setAddressText] = useState<string>('Loading address...');
   const [mapCoords, setMapCoords] = useState<{ lat: number; long: number }>({ lat: 28.6139, long: 77.209 });
   const [mapError, setMapError] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState<{ lat: number; long: number } | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
 
   const formatAddress = (addrObj: any) => {
     if (!addrObj) return '';
@@ -97,23 +103,161 @@ const OrderTracking: React.FC<Props> = ({ route, navigation }) => {
     resolveAddress();
   }, [order, passedOrder]);
 
+  // Fetch current location on component mount
+  useEffect(() => {
+    fetchCurrentLocation();
+  }, []);
+
+  const fetchCurrentLocation = async () => {
+    try {
+      setLocationLoading(true);
+      let permissionStatus;
+      if (Platform.OS === 'ios') {
+        permissionStatus = await request(PERMISSIONS.IOS.LOCATION_WHEN_IN_USE);
+      } else {
+        const current = await check(PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION);
+        if (current === RESULTS.BLOCKED) {
+          setLocationLoading(false);
+          return;
+        }
+        permissionStatus = await request(PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION);
+      }
+
+      if (permissionStatus === RESULTS.GRANTED) {
+        Geolocation.getCurrentPosition(
+          (position: any) => {
+            const { latitude, longitude } = position.coords;
+            setCurrentLocation({ lat: latitude, long: longitude });
+            setLocationLoading(false);
+          },
+          (error: any) => {
+            console.log('Error getting location:', error);
+            setLocationLoading(false);
+          },
+          {
+            enableHighAccuracy: false,
+            timeout: 15000,
+            maximumAge: 10000,
+            ...(Platform.OS === 'android' && { forceLocationManager: true }),
+          }
+        );
+      } else {
+        setLocationLoading(false);
+      }
+    } catch (error) {
+      console.log('Error requesting location permission:', error);
+      setLocationLoading(false);
+    }
+  };
+
   const currentStatus = (order?.status || order?.orderStatus || 'pending').toLowerCase();
   const statusIndex = statusSteps.findIndex((s) => currentStatus.includes(s)) ?? 0;
 
-  // 🔥 Delhi NCR Static Map (Fix for black image)
-  const defaultMapUri = 'https://i.ibb.co/0FyWQhL/delhi-ncr-map.png';
-  const mapUri = defaultMapUri;
+  // Generate map HTML with OpenStreetMap
+  const generateMapHTML = () => {
+    const deliveryLat = mapCoords.lat;
+    const deliveryLon = mapCoords.long;
+    const currentLat = currentLocation?.lat;
+    const currentLon = currentLocation?.long;
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+          <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+          <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+          <style>
+            body { margin: 0; padding: 0; overflow: hidden; }
+            #map { width: 100%; height: 100%; }
+          </style>
+        </head>
+        <body>
+          <div id="map"></div>
+          <script>
+            var deliveryLat = ${deliveryLat};
+            var deliveryLon = ${deliveryLon};
+            var currentLat = ${currentLat || 'null'};
+            var currentLon = ${currentLon || 'null'};
+            
+            // Center map on delivery location or current location
+            var centerLat = deliveryLat;
+            var centerLon = deliveryLon;
+            var zoomLevel = 15;
+            
+            // If both locations exist, fit bounds to show both
+            if (currentLat && currentLon) {
+              zoomLevel = 13;
+            }
+            
+            var map = L.map('map').setView([centerLat, centerLon], zoomLevel);
+            
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '© OpenStreetMap contributors',
+              maxZoom: 19
+            }).addTo(map);
+            
+            // Add delivery location marker (red circle)
+            var deliveryMarker = L.circleMarker([deliveryLat, deliveryLon], {
+              radius: 10,
+              fillColor: '#ff4444',
+              color: '#ffffff',
+              weight: 2,
+              opacity: 1,
+              fillOpacity: 0.8
+            }).addTo(map);
+            deliveryMarker.bindPopup('<b>📍 Delivery Address</b>').openPopup();
+            
+            // Add current location marker (blue circle) if available
+            if (currentLat && currentLon) {
+              var currentMarker = L.circleMarker([currentLat, currentLon], {
+                radius: 10,
+                fillColor: '#4444ff',
+                color: '#ffffff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.8
+              }).addTo(map);
+              currentMarker.bindPopup('<b>📍 Your Location</b>');
+              
+              // Fit map to show both markers
+              var group = new L.featureGroup([deliveryMarker, currentMarker]);
+              map.fitBounds(group.getBounds().pad(0.1));
+            }
+          </script>
+        </body>
+      </html>
+    `;
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
-        <View style={{ position: 'relative', height: 260 }}>
-          <Image
-            source={{ uri: mapUri }}
-            style={{ width: '100%', height: '100%' }}
-            resizeMode="cover"
-            onError={() => setMapError(true)}
-          />
+        <View style={{ position: 'relative', height: 260, backgroundColor: '#f0f0f0' }}>
+          {mapError ? (
+            <View style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: '#e0e0e0' }}>
+              <TextView style={{ color: '#666', fontSize: 14 }}>Map unavailable</TextView>
+            </View>
+          ) : (
+            <WebView
+              originWhitelist={['*']}
+              source={{ html: generateMapHTML() }}
+              style={{ width: '100%', height: '100%', backgroundColor: '#f0f0f0' }}
+              javaScriptEnabled={true}
+              domStorageEnabled={true}
+              startInLoadingState={true}
+              scalesPageToFit={true}
+              mixedContentMode="always"
+              onError={() => setMapError(true)}
+              onHttpError={() => setMapError(true)}
+            />
+          )}
+          {locationLoading && (
+            <View style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(255,255,255,0.9)', padding: 8, borderRadius: 8 }}>
+              <ActivityIndicator size="small" color={Colors.PRIMARY[100]} />
+            </View>
+          )}
         </View>
 
         <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>

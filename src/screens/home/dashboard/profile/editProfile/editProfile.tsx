@@ -185,7 +185,7 @@ const EditProfile: FC = () => {
             start={{ x: 0.5, y: 0.2 }}
             end={{ x: 0.5, y: 1 }}
           >
-            <TextView style={styles.txtEditProfile}>Edit Profile</TextView>
+            
 
             <TouchableOpacity onPress={showImagePicker} style={styles.imageContainer}>
               <Image
@@ -195,7 +195,7 @@ const EditProfile: FC = () => {
                 style={styles.profileImage}
               />
               <View style={styles.editIconView}>
-                <TextView style={{ color: '#fff', fontSize: 10 }}>Edit</TextView>
+              <TextView style={styles.txtEditProfile}>Edit Profile</TextView>
               </View>
             </TouchableOpacity>
           </LinearGradient>

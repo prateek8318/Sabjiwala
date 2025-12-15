@@ -37,10 +37,39 @@ const styles: any = StyleSheet.create({
     borderWidth: 1,
   },
 
+  freeDeliveryContainer: {
+    width: '100%',
+    backgroundColor: '#D7ECA8',   
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#8BC34A',
+    padding: 10,
+    paddingHorizontal: wp(5),
+    paddingVertical: hp(1.5),
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+
+  freeDeliveryLeft: {
+    flex: 1,
+    paddingRight: 10,
+  },
+
   freeDeliveryText: {
-    fontWeight: '700',
-    textAlign: 'center',
-    fontSize: hp(1.8),
+    color: '#2E7D32',
+    fontSize: 14,
+    fontWeight: '600',
+
+    
+  },
+
+  freeDeliveryImage: {
+    width: 50,
+    height: 50,
+    right: 5,
+    bottom: -5,
   },
 
   itemCard: {
@@ -124,10 +153,10 @@ const styles: any = StyleSheet.create({
   },
 
   couponButton: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#D7ECA8',
     marginHorizontal: wp(4),
     marginTop: hp(2),
-    padding: hp(2),
+    padding: hp(1),
     borderRadius: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -141,10 +170,10 @@ const styles: any = StyleSheet.create({
   },
 
   paymentBox: {
-    backgroundColor: '#E8F5E8',
-    marginHorizontal: wp(4),
+    backgroundColor: '#D7ECA8',
+    
     padding: hp(2),
-    borderRadius: 12,
+    
     marginTop: hp(2),
   },
 
@@ -162,17 +191,18 @@ const styles: any = StyleSheet.create({
   },
 
   grandTotalRow: {
-    borderTopWidth: 1,
-    borderColor: '#ddd',
+    borderTopWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: '#bbb',
     paddingTop: hp(1.5),
     marginTop: hp(1),
   },
 
   savingsBox: {
     backgroundColor: '#F4EFFF',
-    marginHorizontal: wp(4),
+    
     padding: hp(1.5),
-    borderRadius: 10,
+    
     marginTop: hp(2),
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -181,19 +211,29 @@ const styles: any = StyleSheet.create({
   savingsText: {
     fontSize: hp(2),
     fontWeight: '700',
-    color: '#4CAF50',
+    color: '#2E7D32',
   },
 
   tipBox: {
-    marginHorizontal: wp(4),
-    marginTop: hp(2),
+    backgroundColor: '#D7ECA8',
+    
+    padding: 14,
+    
+    marginVertical: 12,
   },
 
   tipTitle: {
-    fontSize: hp(2),
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '600',
     color: '#000',
-    marginBottom: hp(1),
+    marginBottom: 6,
+  },
+
+  tipDescription: {
+    fontSize: 13,
+    color: '#000',
+    marginBottom: 12,
+    lineHeight: 18,
   },
 
   tipButtonsRow: {
@@ -251,7 +291,7 @@ const styles: any = StyleSheet.create({
 
   browseButton: {
     marginTop: hp(3),
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#1B5E20',
     paddingHorizontal: wp(10),
     paddingVertical: hp(1.6),
     borderRadius: 12,
@@ -283,10 +323,10 @@ const styles: any = StyleSheet.create({
   },
 
   placeOrderButton: {
-    backgroundColor: "#fff",
+    backgroundColor: '#1B5E20',
     paddingHorizontal: 30,
     paddingVertical: 13,
-    borderRadius: 25,
+    borderRadius: 30,
     flexDirection: 'row',
     alignItems: 'center',
   },
