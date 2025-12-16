@@ -5,10 +5,10 @@ import {
   heightPercentageToDP as hp,
 } from '../../../constant/dimentions';
 
-// Clamp card sizing so it stays consistent on small and large screens
-const CARD_WIDTH = Math.min(wp(42), 180);
-const CARD_HEIGHT = Math.min(hp(32), 240);
-const CARD_IMAGE_HEIGHT = Math.min(CARD_WIDTH * 1.1, CARD_HEIGHT * 0.6);
+// Card sizing: fully responsive for phones + tablets (no small fixed cap)
+const CARD_WIDTH = wp(42);              // ~2 cards per row with small gap
+const CARD_HEIGHT = hp(40);             // height scales with screen height
+const CARD_IMAGE_HEIGHT = CARD_WIDTH * 1.1;
 
 const styles = StyleSheet.create({
   container: {

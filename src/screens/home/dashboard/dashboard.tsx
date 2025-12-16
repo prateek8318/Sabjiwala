@@ -693,8 +693,11 @@ const Dashboard: FC = () => {
         <View style={styles.buttonView}>
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={() => navigation.navigate('BottomStackNavigator', { screen: 'Catogaries' })}
+            onPress={() =>
+              navigation.navigate('BottomStackNavigator', { screen: 'Catogaries' })
+            }
             style={{
+              width: '100%', // follow responsive width from buttonView so not too wide on tablets
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'center',
@@ -702,8 +705,8 @@ const Dashboard: FC = () => {
               borderWidth: 3,
               borderColor: '#1B5E20',
               borderRadius: 30,
-              height: 54,
-              paddingHorizontal: 20,
+              paddingVertical: hp(1.2), // responsive height
+              paddingHorizontal: wp(3),
               elevation: 12,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 6 },
@@ -714,23 +717,20 @@ const Dashboard: FC = () => {
             <TextView
               style={{
                 color: '#FFFFFF',
-                fontSize: 20,  // screen width के हिसाब से font size
-                
+                fontSize: wp(4.2), // responsive font size
                 fontWeight: '400',
-                  marginLeft: wp(1),// horizontal spacing responsive
-                top: -hp(0.2),       // vertical alignment responsive
+                marginLeft: wp(1.2),
               }}
             >
               Explore
             </TextView>
 
-
             <Icon
               name="chevron-right"
-              size={26}
+              size={24}
               color="#ffffff"
               family="MaterialCommunityIcons"
-              style={{ marginRight: "auto" }}
+              style={{ marginLeft: wp(1.2) }}
             />
           </TouchableOpacity>
         </View>
@@ -892,45 +892,44 @@ const Dashboard: FC = () => {
           <View style={styles.buttonView}>
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={() => navigation.navigate('BottomStackNavigator', { screen: 'Catogaries' })}
-
+              onPress={() =>
+                navigation.navigate('BottomStackNavigator', { screen: 'Catogaries' })
+              }
               style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: '#1B5E20',
-              borderWidth: 3,
-              marginTop: hp(-3),
-              borderColor: '#1B5E20',
-              borderRadius: 30,
-              height: 54,
-              paddingHorizontal: 20,
-              elevation: 12,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.2,
-              shadowRadius: 10,
-            }}
-          >
-            <TextView
-              style={{
-                color: '#FFFFFF',
-                fontSize: 20,  // screen width के हिसाब से font size
-                
-                fontWeight: '400',
-                  marginLeft: wp(1),// horizontal spacing responsive
-                top: -hp(0.2),       // vertical alignment responsive
+                width: '100%', // follow responsive width from buttonView so not too wide on tablets
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#1B5E20',
+                borderWidth: 3,
+                borderColor: '#1B5E20',
+                borderRadius: 30,
+                paddingVertical: hp(1.2), // responsive height
+                paddingHorizontal: wp(3),
+                elevation: 12,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.2,
+                shadowRadius: 10,
               }}
+            >
+              <TextView
+                style={{
+                  color: '#FFFFFF',
+                  fontSize: wp(4.2), // responsive font size
+                  fontWeight: '400',
+                  marginLeft: wp(1.2),
+                }}
               >
                 Explore
               </TextView>
 
               <Icon
                 name="chevron-right"
-                size={28}
+                size={24}
                 color="#ffffff"
                 family="MaterialCommunityIcons"
-                style={{ marginLeft: "auto" }}
+                style={{ marginLeft: wp(1.2) }}
               />
             </TouchableOpacity>
           </View>

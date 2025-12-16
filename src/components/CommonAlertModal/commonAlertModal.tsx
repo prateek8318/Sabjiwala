@@ -92,26 +92,38 @@ export const CommonAlertProvider: React.FC<{ children: React.ReactNode }> = ({
               {modalTitle || 'Something went wrong'}
             </TextView>
             <TextView style={styles.modalText}>{modalText}</TextView>
-            {/* Action Button */}
-            <View style={[styles.actionButtonView]}>
-              <Button
-                title={modalActionButtonText}
-                buttonColor={Colors.PRIMARY[100]}
-                style={{ width: wp(35) }}
-                onPress={modalActionPress}
-              />
-            </View>
-            {/* Cancel & Go Back Button Show Only When Modal Type is Confirmation */}
-            {modalType === 'confirm' && (
-              <View style={styles.cancelButtonView}>
+            {modalType === 'confirm' ? (
+              <View style={styles.buttonRow}>
                 <Pressable
-                  style={styles.cancelButton}
-                  onPress={() => hideAlert()}
+                  style={styles.exitButton}
+                  onPress={() => {
+                    if (modalActionPress) modalActionPress();
+                  }}
                 >
-                  <TextView style={styles.caneclButtonText}>
+                  <TextView style={styles.exitButtonText}>
+                    {modalActionButtonText}
+                  </TextView>
+                </Pressable>
+                <Pressable
+                  style={styles.secondaryButton}
+                  onPress={() => {
+                    if (modalCancelPress) modalCancelPress();
+                    hideAlert();
+                  }}
+                >
+                  <TextView style={styles.secondaryButtonText}>
                     {modalCancelButtonText}
                   </TextView>
                 </Pressable>
+              </View>
+            ) : (
+              <View style={styles.actionButtonView}>
+                <Button
+                  title={modalActionButtonText}
+                  buttonColor={Colors.PRIMARY[100]}
+                  style={styles.primaryButton}
+                  onPress={modalActionPress}
+                />
               </View>
             )}
           </View>

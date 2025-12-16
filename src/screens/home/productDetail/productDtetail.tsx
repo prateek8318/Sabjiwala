@@ -83,6 +83,46 @@ const ProductDetail = () => {
     })();
   }, [productId]);
 
+  // Initial favorite status: check wishlist so heart is red if product already in favorites
+  useEffect(() => {
+    const loadFavoriteStatus = async () => {
+      try {
+        const res = await ApiService.getWishlist();
+
+        // Handle different response structures similar to other screens
+        let items: any[] = [];
+        if (res?.data?.wishlist?.items && Array.isArray(res.data.wishlist.items)) {
+          items = res.data.wishlist.items;
+        } else if (res?.data?.wishlist && Array.isArray(res.data.wishlist)) {
+          items = res.data.wishlist;
+        } else if (res?.data?.items && Array.isArray(res.data.items)) {
+          items = res.data.items;
+        } else if (res?.data?.data?.items && Array.isArray(res.data.data.items)) {
+          items = res.data.data.items;
+        }
+
+        const ids = items
+          .map((i: any) =>
+            (
+              i?.productId?._id ||
+              i?.productId ||
+              i?.product?.id ||
+              i?.product?._id ||
+              i?._id ||
+              i?.id
+            )?.toString(),
+          )
+          .filter(Boolean);
+
+        setIsFavorite(ids.includes(productId.toString()));
+      } catch (e) {
+        console.log('loadFavoriteStatus error', e);
+      }
+    };
+
+    loadFavoriteStatus();
+  }, [productId]);
+
   const loadCartQuantity = React.useCallback(
     async (variantIndex: number) => {
       try {

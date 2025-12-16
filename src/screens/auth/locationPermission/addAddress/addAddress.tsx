@@ -99,13 +99,19 @@ const AddAddress: FC = () => {
       validationErrors.houseNoOrFlatNo = ' ';
     if (!landmark.trim()) validationErrors.landmark = ' ';
     if (!pincode.trim()) validationErrors.pincode = ' ';
-    else if (!/^\d{6}$/.test(pincode.trim()))
-      validationErrors.pincode = 'Pincode must be 6 digits';
+    else {
+      const pincodeDigits = pincode.replace(/[^0-9]/g, '');
+      if (pincodeDigits.length !== 6)
+        validationErrors.pincode = 'Pincode is incorrect';
+    }
     if (!city.trim()) validationErrors.city = ' ';
     if (!receiverName.trim()) validationErrors.receiverName = ' ';
     if (!receiverNo.trim()) validationErrors.receiverNo = ' ';
-    else if (receiverNo.trim().length !== 10)
-      validationErrors.receiverNo = 'Enter 10 digit mobile';
+    else {
+      const phoneDigits = receiverNo.replace(/[^0-9]/g, '');
+      if (phoneDigits.length !== 10)
+        validationErrors.receiverNo = 'Phone number is incorrect';
+    }
 
     const touchedFields = {
       floor: true,

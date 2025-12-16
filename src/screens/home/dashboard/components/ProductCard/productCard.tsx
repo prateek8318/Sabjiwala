@@ -21,6 +21,7 @@ import { Colors, Icon, Images, Typography } from '../../../../../constant';
 import { TextView } from '../../../../../components';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useState, useEffect, useCallback } from 'react';
 import ApiService from '../../../../../service/apiService';
 interface ProductCardProps {
@@ -28,6 +29,7 @@ interface ProductCardProps {
   type?: string;
   horizontal?: boolean;
   numOfColumn?: number;
+  onProductAdded?: (product: any) => void;
 }
 
 const ProductCard: FC<ProductCardProps> = ({
@@ -35,6 +37,7 @@ const ProductCard: FC<ProductCardProps> = ({
   type,
   horizontal,
   numOfColumn,
+  onProductAdded,
 }) => {
   const navigation = useNavigation<any>();
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
@@ -90,33 +93,36 @@ const ProductCard: FC<ProductCardProps> = ({
       .filter(Boolean);
   }, []);
 
-  useEffect(() => {
-    const loadWishlist = async () => {
-      try {
-        const res = await ApiService.getWishlist();
-        console.log('Dashboard ProductCard - Wishlist response:', res?.data);
+  useFocusEffect(
+    useCallback(() => {
+      const loadWishlist = async () => {
+        try {
+          const res = await ApiService.getWishlist();
+          console.log('Dashboard ProductCard - Wishlist response:', res?.data);
 
-        // Handle different response structures
-        let items = [];
-        if (res?.data?.wishlist?.items) {
-          items = res.data.wishlist.items;
-        } else if (res?.data?.wishlist && Array.isArray(res.data.wishlist)) {
-          items = res.data.wishlist;
-        } else if (res?.data?.items) {
-          items = res.data.items;
-        } else if (res?.data?.data?.items) {
-          items = res.data.data.items;
+          // Handle different response structures
+          let items = [];
+          if (res?.data?.wishlist?.items) {
+            items = res.data.wishlist.items;
+          } else if (res?.data?.wishlist && Array.isArray(res.data.wishlist)) {
+            items = res.data.wishlist;
+          } else if (res?.data?.items) {
+            items = res.data.items;
+          } else if (res?.data?.data?.items) {
+            items = res.data.data.items;
+          }
+
+          const ids = extractWishlistIds(items);
+          console.log('Dashboard ProductCard - Loaded wishlist IDs:', ids);
+          setWishlist(new Set(ids));
+        } catch (e) {
+          console.log("wishlist load error", e);
         }
+      };
 
-        const ids = extractWishlistIds(items);
-        console.log('Dashboard ProductCard - Loaded wishlist IDs:', ids);
-        setWishlist(new Set(ids));
-      } catch (e) {
-        console.log("wishlist load error", e);
-      }
-    };
-    loadWishlist();
-  }, [extractWishlistIds]);
+      loadWishlist();
+    }, [extractWishlistIds])
+  );
 
   // Toggle favorite
   const toggleWishlist = async (productId: string) => {
@@ -167,6 +173,7 @@ const ProductCard: FC<ProductCardProps> = ({
     productId: string,
     variantId: string,
     qty: number,
+    productItem?: any,
   ) => {
     try {
       const pid = productId?.toString();
@@ -176,6 +183,10 @@ const ProductCard: FC<ProductCardProps> = ({
       if (qty > 0) {
         await ApiService.addToCart(pid, vid, qty.toString());
         setCartMap(prev => ({ ...prev, [pid]: qty }));
+        // Notify parent component if callback provided
+        if (onProductAdded && productItem && qty === 1) {
+          onProductAdded(productItem);
+        }
       } else {
         await ApiService.removeCartItem(pid, vid);
         setCartMap(prev => {
@@ -425,6 +436,7 @@ const ProductCard: FC<ProductCardProps> = ({
                         pid,
                         firstVariantId,
                         cartQty + 1,
+                        item,
                       );
                     }}
                     style={{
@@ -465,7 +477,8 @@ const ProductCard: FC<ProductCardProps> = ({
                       updateCartQty(
                         pid,
                         firstVariantId,
-                        1
+                        1,
+                        item,
                       );
                     }
                   }}
@@ -617,7 +630,7 @@ const ProductCard: FC<ProductCardProps> = ({
                     const pid = getProductId(selectedProduct);
                     const vid = v?._id || pid;
                     if (!pid || !vid) return;
-                    updateCartQty(pid, vid, 1);
+                    updateCartQty(pid, vid, 1, selectedProduct);
                     setShowVariantModal(false);
                   }}
                   style={{

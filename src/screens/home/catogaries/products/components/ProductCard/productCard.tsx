@@ -9,7 +9,7 @@ import {
   Text,
   Pressable,
 } from 'react-native';
-import { FC, useState, useEffect } from 'react';
+import { FC, useState, useEffect, useCallback } from 'react';
 import _ from 'lodash';
 import { widthPercentageToDP as wp } from '../../../../../../constant/dimentions';
 import styles from './productCard.styles';
@@ -23,6 +23,7 @@ import {
 import { TextView } from '../../../../../../components';
 import LinearGradient from 'react-native-linear-gradient';
 import ApiService from '../../../../../../service/apiService';
+import { useFocusEffect } from '@react-navigation/native';
 
 interface ProductCardProps {
   cardArray?: any;
@@ -41,33 +42,36 @@ const ProductCard: FC<ProductCardProps> = ({
 }) => {
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    const loadWishlist = async () => {
-      try {
-        const res = await ApiService.getWishlist();
-        console.log('Category ProductCard - Wishlist response:', res?.data);
-        
-        // Handle different response structures
-        let items = [];
-        if (res?.data?.wishlist?.items) {
-          items = res.data.wishlist.items;
-        } else if (res?.data?.wishlist && Array.isArray(res.data.wishlist)) {
-          items = res.data.wishlist;
-        } else if (res?.data?.items) {
-          items = res.data.items;
-        } else if (res?.data?.data?.items) {
-          items = res.data.data.items;
+  useFocusEffect(
+    useCallback(() => {
+      const loadWishlist = async () => {
+        try {
+          const res = await ApiService.getWishlist();
+          console.log('Category ProductCard - Wishlist response:', res?.data);
+
+          // Handle different response structures
+          let items = [];
+          if (res?.data?.wishlist?.items) {
+            items = res.data.wishlist.items;
+          } else if (res?.data?.wishlist && Array.isArray(res.data.wishlist)) {
+            items = res.data.wishlist;
+          } else if (res?.data?.items) {
+            items = res.data.items;
+          } else if (res?.data?.data?.items) {
+            items = res.data.data.items;
+          }
+
+          const ids = items.map((i: any) => i.productId?.toString()).filter(Boolean);
+          console.log('Category ProductCard - Loaded wishlist IDs:', ids);
+          setWishlist(new Set(ids));
+        } catch (e) {
+          console.log("wishlist load error", e);
         }
-        
-        const ids = items.map((i: any) => i.productId?.toString()).filter(Boolean);
-        console.log('Category ProductCard - Loaded wishlist IDs:', ids);
-        setWishlist(new Set(ids));
-      } catch (e) {
-        console.log("wishlist load error", e);
-      }
-    };
-    loadWishlist();
-  }, []);
+      };
+
+      loadWishlist();
+    }, [])
+  );
 
   // Toggle favorite
   const toggleWishlist = async (productId: string) => {

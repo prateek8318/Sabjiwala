@@ -82,6 +82,7 @@ const MyOrder = () => {
     const bill = order?.billSummary || order?.bill || order?.pricing || {};
     const items = order?.items || order?.products || [];
 
+    // Calculate item total based on quantity
     const itemTotal =
       Number(order?.itemTotal) ||
       Number(order?.itemsTotal) ||
@@ -89,13 +90,13 @@ const MyOrder = () => {
       Number(bill?.itemTotal) ||
       items.reduce((sum: number, p: any) => {
         const qty = Number(p.quantity || 1);
-        const unit =
+        const unitPrice =
           Number(p.price) ||
           Number(p.amount) ||
           Number(p.total) ||
           Number(p.unitPrice) ||
           0;
-        return sum + qty * unit;
+        return sum + qty * unitPrice;
       }, 0);
 
     const deliveryCharge =
@@ -113,73 +114,27 @@ const MyOrder = () => {
       Number(bill?.handlingCharge || bill?.handlingCharges || bill?.handlingFee) ||
       0;
 
-    const packagingFee =
-      Number(order?.packagingFee) ||
-      Number(order?.packagingCharge) ||
-      Number(bill?.packagingFee || bill?.packagingCharge) ||
-      0;
-
     const couponDiscount =
       Number(order?.couponDiscount) ||
       Number(order?.coupon_amount) ||
-      Number(bill?.couponDiscount || bill?.couponAmount) ||
+      Number(order?.discount) ||
+      Number(bill?.couponDiscount || bill?.couponAmount || bill?.discount) ||
       0;
 
-    const walletUsed =
-      Number(order?.walletUsed) ||
-      Number(order?.walletAmount) ||
-      Number(order?.wallet) ||
-      Number(bill?.walletUsed || bill?.walletAmount || bill?.wallet) ||
-      0;
-
-    const tipAmount =
-      Number(order?.tip) ||
-      Number(order?.tipAmount) ||
-      Number(bill?.tip || bill?.tips) ||
-      0;
-
-    const rawGrand =
+    // Use grandTotal from API if available, otherwise calculate
+    const grandTotal =
       Number(order?.grandTotal) ||
-      Number(order?.totalPayable) ||
-      Number(order?.payableAmount) ||
-      Number(order?.paymentAmount) ||
-      Number(order?.finalAmount) ||
       Number(order?.totalAmount) ||
+      Number(order?.total) ||
       Number(order?.amount) ||
-      Number(order?.total);
-
-    const computedTotal = Math.max(
-      0,
-      itemTotal +
-      deliveryCharge +
-      handlingCharge +
-      packagingFee +
-      tipAmount -
-      couponDiscount -
-      walletUsed
-    );
-
-    /**
-     * Prefer the computed payable amount so that the user sees
-     * the exact figure shown at checkout (after coupon/wallet/tip).
-     * Fallback to any backend grand total only when it matches
-     * the computed number (or differs by <₹1 to handle rounding).
-     */
-    const displayTotal =
-      Number.isFinite(rawGrand) && Math.abs(rawGrand - computedTotal) < 1
-        ? rawGrand
-        : computedTotal;
+      Math.max(0, itemTotal + handlingCharge + deliveryCharge - couponDiscount);
 
     return {
       itemTotal,
       deliveryCharge,
       handlingCharge,
-      packagingFee,
       couponDiscount,
-      walletUsed,
-      tipAmount,
-      computedTotal,
-      displayTotal,
+      grandTotal,
     };
   };
 
@@ -226,8 +181,38 @@ const MyOrder = () => {
             {getDisplayStatus(item.status || item.orderStatus || '')}
           </TextView>
           <View style={{ alignItems: 'flex-end', flexDirection: 'row', gap: 8 }}>
-            <TextView style={{ color: '#000', fontWeight: '700', fontSize: 14 }}>₹{totals.displayTotal}</TextView>
+            <TextView style={{ color: '#000', fontWeight: '700', fontSize: 14 }}>₹{totals.grandTotal.toFixed(2)}</TextView>
             <TextView style={{ color: '#444', fontSize: 12 }}>{formatDate(item.createdAt || item.orderDate)}</TextView>
+          </View>
+        </View>
+
+        {/* Price Breakdown */}
+        <View style={{ marginBottom: 8, paddingVertical: 8, paddingHorizontal: 8, backgroundColor: '#F9F9F9', borderRadius: 8 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+            <TextView style={{ color: '#666', fontSize: 12 }}>Item Total</TextView>
+            <TextView style={{ color: '#000', fontSize: 12, fontWeight: '600' }}>₹{totals.itemTotal.toFixed(2)}</TextView>
+          </View>
+          {totals.handlingCharge > 0 && (
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+              <TextView style={{ color: '#666', fontSize: 12 }}>Handling Charge</TextView>
+              <TextView style={{ color: '#000', fontSize: 12, fontWeight: '600' }}>₹{totals.handlingCharge.toFixed(2)}</TextView>
+            </View>
+          )}
+          {totals.deliveryCharge > 0 && (
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+              <TextView style={{ color: '#666', fontSize: 12 }}>Delivery Charge</TextView>
+              <TextView style={{ color: '#000', fontSize: 12, fontWeight: '600' }}>₹{totals.deliveryCharge.toFixed(2)}</TextView>
+            </View>
+          )}
+          {totals.couponDiscount > 0 && (
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+              <TextView style={{ color: '#666', fontSize: 12 }}>Coupon Discount</TextView>
+              <TextView style={{ color: '#2E7D32', fontSize: 12, fontWeight: '600' }}>-₹{totals.couponDiscount.toFixed(2)}</TextView>
+            </View>
+          )}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4, paddingTop: 4, borderTopWidth: 1, borderTopColor: '#ddd' }}>
+            <TextView style={{ color: '#000', fontSize: 13, fontWeight: '700' }}>Grand Total</TextView>
+            <TextView style={{ color: '#000', fontSize: 13, fontWeight: '700' }}>₹{totals.grandTotal.toFixed(2)}</TextView>
           </View>
         </View>
 
@@ -299,24 +284,6 @@ const MyOrder = () => {
             </View>
           )}
         </View>
-
-        {/* Bill Summary (compact) */}
-        {/* <View style={{ marginTop: 6, borderTopWidth: 1, borderColor: '#eee', paddingTop: 8 }}>
-          {[
-            { label: 'Item total', value: itemTotal },
-            { label: 'Delivery fee', value: deliveryCharge },
-            { label: 'Handling charge', value: handlingCharge },
-          ].map((row, i) => (
-            <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 }}>
-              <TextView style={{ color: '#000' }}>{row.label}</TextView>
-              <TextView style={{ color: '#000' }}>₹{row.value}</TextView>
-            </View>
-          ))}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
-            <TextView style={{ color: '#000', fontWeight: '700' }}>Total Bill</TextView>
-            <TextView style={{ color: '#000', fontWeight: '700' }}>₹{totalAmount}</TextView>
-          </View>
-        </View> */}
 
         {/* Actions */}
         <View style={styles.actionButtons}>
@@ -485,71 +452,51 @@ const MyOrder = () => {
                     );
                   })}
 
-                  <View style={{ marginTop: 12, padding: 12, borderRadius: 10, backgroundColor: '#F2F7EC' }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <TextView style={{ color: '#000' }}>Payment</TextView>
-                      <TextView style={{ color: '#000', fontWeight: '700' }}>
-                        {selectedOrder.paymentMethod?.toUpperCase()}
-                      </TextView>
-                    </View>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <TextView style={{ color: '#000' }}>Status</TextView>
-                      <TextView style={{ color: '#000', fontWeight: '700' }}>
-                        {selectedOrder.status || selectedOrder.orderStatus || 'pending'}
-                      </TextView>
-                    </View>
-                    {(() => {
-                      const totals = computeOrderTotals(selectedOrder);
-                      return (
-                        <>
+                  {(() => {
+                    const totals = computeOrderTotals(selectedOrder);
+                    return (
+                      <View style={{ marginTop: 12, padding: 12, borderRadius: 10, backgroundColor: '#F2F7EC' }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <TextView style={{ color: '#000' }}>Payment</TextView>
+                          <TextView style={{ color: '#000', fontWeight: '700' }}>
+                            {selectedOrder.paymentMethod?.toUpperCase()}
+                          </TextView>
+                        </View>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <TextView style={{ color: '#000' }}>Status</TextView>
+                          <TextView style={{ color: '#000', fontWeight: '700' }}>
+                            {selectedOrder.status || selectedOrder.orderStatus || 'pending'}
+                          </TextView>
+                        </View>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <TextView style={{ color: '#000' }}>Item Total</TextView>
+                          <TextView style={{ color: '#000', fontWeight: '700' }}>₹{totals.itemTotal.toFixed(2)}</TextView>
+                        </View>
+                        {totals.handlingCharge > 0 && (
                           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                            <TextView style={{ color: '#000' }}>Item total</TextView>
-                            <TextView style={{ color: '#000', fontWeight: '700' }}>₹{totals.itemTotal.toFixed(2)}</TextView>
+                            <TextView style={{ color: '#000' }}>Handling Charge</TextView>
+                            <TextView style={{ color: '#000', fontWeight: '700' }}>₹{totals.handlingCharge.toFixed(2)}</TextView>
                           </View>
-                          {totals.deliveryCharge > 0 && (
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                              <TextView style={{ color: '#000' }}>Delivery</TextView>
-                              <TextView style={{ color: '#000', fontWeight: '700' }}>₹{totals.deliveryCharge.toFixed(2)}</TextView>
-                            </View>
-                          )}
-                          {totals.handlingCharge > 0 && (
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                              <TextView style={{ color: '#000' }}>Handling</TextView>
-                              <TextView style={{ color: '#000', fontWeight: '700' }}>₹{totals.handlingCharge.toFixed(2)}</TextView>
-                            </View>
-                          )}
-                          {totals.packagingFee > 0 && (
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                              <TextView style={{ color: '#000' }}>Packaging</TextView>
-                              <TextView style={{ color: '#000', fontWeight: '700' }}>₹{totals.packagingFee.toFixed(2)}</TextView>
-                            </View>
-                          )}
-                          {totals.tipAmount > 0 && (
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                              <TextView style={{ color: '#000' }}>Tip</TextView>
-                              <TextView style={{ color: '#000', fontWeight: '700' }}>₹{totals.tipAmount.toFixed(2)}</TextView>
-                            </View>
-                          )}
-                          {totals.couponDiscount > 0 && (
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                              <TextView style={{ color: '#000' }}>Coupon</TextView>
-                              <TextView style={{ color: '#000', fontWeight: '700' }}>-₹{totals.couponDiscount.toFixed(2)}</TextView>
-                            </View>
-                          )}
-                          {totals.walletUsed > 0 && (
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                              <TextView style={{ color: '#000' }}>Wallet</TextView>
-                              <TextView style={{ color: '#000', fontWeight: '700' }}>-₹{totals.walletUsed.toFixed(2)}</TextView>
-                            </View>
-                          )}
-                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-                            <TextView style={{ color: '#000', fontWeight: '700' }}>Grand Total</TextView>
-                            <TextView style={{ color: '#000', fontWeight: '700' }}>₹{totals.displayTotal.toFixed(2)}</TextView>
+                        )}
+                        {totals.deliveryCharge > 0 && (
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                            <TextView style={{ color: '#000' }}>Delivery Charge</TextView>
+                            <TextView style={{ color: '#000', fontWeight: '700' }}>₹{totals.deliveryCharge.toFixed(2)}</TextView>
                           </View>
-                        </>
-                      );
-                    })()}
-                  </View>
+                        )}
+                        {totals.couponDiscount > 0 && (
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                            <TextView style={{ color: '#000' }}>Coupon Discount</TextView>
+                            <TextView style={{ color: '#2E7D32', fontWeight: '700' }}>-₹{totals.couponDiscount.toFixed(2)}</TextView>
+                          </View>
+                        )}
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4, paddingTop: 4, borderTopWidth: 1, borderTopColor: '#ddd' }}>
+                          <TextView style={{ color: '#000', fontWeight: '700' }}>Grand Total</TextView>
+                          <TextView style={{ color: '#000', fontWeight: '700' }}>₹{totals.grandTotal.toFixed(2)}</TextView>
+                        </View>
+                      </View>
+                    );
+                  })()}
                 </>
               ) : null}
             </ScrollView>

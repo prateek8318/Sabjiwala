@@ -53,6 +53,10 @@ const Cart = ({ navigation }: any) => {
     receiverNo: "",
   });
   const [addingAddress, setAddingAddress] = useState(false);
+  const [addressErrors, setAddressErrors] = useState<{
+    receiverNo?: string;
+    pincode?: string;
+  }>({});
 
   const [totals, setTotals] = useState({
     itemPriceTotal: 0,
@@ -302,6 +306,7 @@ const Cart = ({ navigation }: any) => {
 
   // ADD ADDRESS
   const handleAddAddress = async () => {
+    // Validate required fields
     if (!addressForm.houseNoOrFlatNo || !addressForm.city || !addressForm.pincode || !addressForm.receiverName || !addressForm.receiverNo) {
       Toast.show({
         type: "error",
@@ -310,6 +315,33 @@ const Cart = ({ navigation }: any) => {
       });
       return;
     }
+
+    // Validate phone number (must be exactly 10 digits)
+    const phoneDigits = addressForm.receiverNo.replace(/[^0-9]/g, '');
+    if (phoneDigits.length !== 10) {
+      setAddressErrors({ ...addressErrors, receiverNo: "Phone number is incorrect" });
+      Toast.show({
+        type: "error",
+        text1: "Validation Error",
+        text2: "Phone number is incorrect",
+      });
+      return;
+    }
+
+    // Validate pincode (must be exactly 6 digits)
+    const pincodeDigits = addressForm.pincode.replace(/[^0-9]/g, '');
+    if (pincodeDigits.length !== 6) {
+      setAddressErrors({ ...addressErrors, pincode: "Pincode is incorrect" });
+      Toast.show({
+        type: "error",
+        text1: "Validation Error",
+        text2: "Pincode is incorrect",
+      });
+      return;
+    }
+
+    // Clear errors if validation passes
+    setAddressErrors({});
     try {
       setAddingAddress(true);
       await ApiService.addAddress(addressForm);
@@ -325,6 +357,7 @@ const Cart = ({ navigation }: any) => {
         receiverName: "",
         receiverNo: "",
       });
+      setAddressErrors({});
       await fetchAddresses();
       Toast.show({
         type: "success",
@@ -1456,7 +1489,7 @@ const Cart = ({ navigation }: any) => {
             
             {/* Title */}
             <Text style={{ fontSize: 24, fontWeight: "800", color: "#000", marginBottom: 8 }}>
-              Payment Successful!
+              Order Successful!
             </Text>
             
             {/* Subtitle */}
@@ -1629,7 +1662,10 @@ const Cart = ({ navigation }: any) => {
         visible={showAddAddressModal}
         transparent
         animationType="slide"
-        onRequestClose={() => setShowAddAddressModal(false)}
+        onRequestClose={() => {
+          setShowAddAddressModal(false);
+          setAddressErrors({});
+        }}
       >
         <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" }}>
           <View
@@ -1643,7 +1679,10 @@ const Cart = ({ navigation }: any) => {
           >
             {/* Header */}
             <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 20 }}>
-              <TouchableOpacity onPress={() => setShowAddAddressModal(false)} style={{ paddingRight: 10 }}>
+              <TouchableOpacity onPress={() => {
+                setShowAddAddressModal(false);
+                setAddressErrors({});
+              }} style={{ paddingRight: 10 }}>
                 <Icon name="arrow-back" size={24} color="#000" />
               </TouchableOpacity>
               <Text style={{ fontSize: 18, fontWeight: "700", color: "#000" }}>Add New Address</Text>
@@ -1703,11 +1742,20 @@ const Cart = ({ navigation }: any) => {
                   placeholder="Enter receiver number"
                   placeholderTextColor="#999"
                   value={addressForm.receiverNo}
-                  onChangeText={(text) => setAddressForm({ ...addressForm, receiverNo: text })}
+                  onChangeText={(text) => {
+                    // Only allow digits and limit to 10
+                    const digitsOnly = text.replace(/[^0-9]/g, '').slice(0, 10);
+                    setAddressForm({ ...addressForm, receiverNo: digitsOnly });
+                    // Clear error when user types
+                    if (addressErrors.receiverNo) {
+                      setAddressErrors({ ...addressErrors, receiverNo: undefined });
+                    }
+                  }}
                   keyboardType="phone-pad"
+                  maxLength={10}
                   style={{
                     borderWidth: 1,
-                    borderColor: "#ddd",
+                    borderColor: addressErrors.receiverNo ? "#FF3B30" : "#ddd",
                     borderRadius: 8,
                     paddingHorizontal: 12,
                     paddingVertical: 12,
@@ -1715,6 +1763,11 @@ const Cart = ({ navigation }: any) => {
                     color: "#000",
                   }}
                 />
+                {addressErrors.receiverNo && (
+                  <Text style={{ color: "#FF3B30", fontSize: 12, marginTop: 4 }}>
+                    {addressErrors.receiverNo}
+                  </Text>
+                )}
               </View>
 
               {/* House/Flat No */}
@@ -1804,11 +1857,20 @@ const Cart = ({ navigation }: any) => {
                   placeholder="Enter pincode"
                   placeholderTextColor="#999"
                   value={addressForm.pincode}
-                  onChangeText={(text) => setAddressForm({ ...addressForm, pincode: text })}
+                  onChangeText={(text) => {
+                    // Only allow digits and limit to 6
+                    const digitsOnly = text.replace(/[^0-9]/g, '').slice(0, 6);
+                    setAddressForm({ ...addressForm, pincode: digitsOnly });
+                    // Clear error when user types
+                    if (addressErrors.pincode) {
+                      setAddressErrors({ ...addressErrors, pincode: undefined });
+                    }
+                  }}
                   keyboardType="number-pad"
+                  maxLength={6}
                   style={{
                     borderWidth: 1,
-                    borderColor: "#ddd",
+                    borderColor: addressErrors.pincode ? "#FF3B30" : "#ddd",
                     borderRadius: 8,
                     paddingHorizontal: 12,
                     paddingVertical: 12,
@@ -1816,6 +1878,11 @@ const Cart = ({ navigation }: any) => {
                     color: "#000",
                   }}
                 />
+                {addressErrors.pincode && (
+                  <Text style={{ color: "#FF3B30", fontSize: 12, marginTop: 4 }}>
+                    {addressErrors.pincode}
+                  </Text>
+                )}
               </View>
 
               {/* Save Button */}

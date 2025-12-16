@@ -57,11 +57,29 @@ export default StyleSheet.create({
     flex: 1,
     marginLeft: wp(3),
   },
+  productHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
   productName: {
     fontSize: hp(2),
     fontWeight: '700',
     color: '#000',
-    marginBottom: 4,
+    flex: 1,
+  },
+  editBadge: {
+    backgroundColor: '#FF9800',
+    paddingHorizontal: wp(2),
+    paddingVertical: hp(0.5),
+    borderRadius: 4,
+    marginLeft: wp(2),
+  },
+  editBadgeText: {
+    color: '#fff',
+    fontSize: hp(1.4),
+    fontWeight: '600',
   },
   productQuantity: {
     fontSize: hp(1.6),
@@ -88,9 +106,21 @@ export default StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginBottom: hp(1.5),
   },
   starButton: {
     padding: 4,
+  },
+  reviewInput: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    padding: wp(3),
+    fontSize: hp(1.8),
+    color: '#000',
+    backgroundColor: '#FAFAFA',
+    minHeight: hp(8),
+    marginTop: hp(1),
   },
   submitContainer: {
     position: 'absolute',
@@ -121,6 +151,80 @@ export default StyleSheet.create({
   submitButtonText: {
     color: '#fff',
     fontSize: hp(2.2),
+    fontWeight: '700',
+  },
+  // Styled Alert Modal Styles
+  alertOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: wp(5),
+  },
+  alertContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: wp(6),
+    width: '100%',
+    maxWidth: wp(85),
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  alertIconContainer: {
+    width: wp(20),
+    height: wp(20),
+    borderRadius: wp(10),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp(2),
+  },
+  alertIconSuccess: {
+    backgroundColor: '#4CAF50',
+  },
+  alertIconError: {
+    backgroundColor: '#F44336',
+  },
+  alertIconInfo: {
+    backgroundColor: '#2196F3',
+  },
+  alertTitle: {
+    fontSize: hp(2.5),
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: hp(1),
+    textAlign: 'center',
+  },
+  alertMessage: {
+    fontSize: hp(1.9),
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: hp(3),
+    lineHeight: hp(2.8),
+  },
+  alertButton: {
+    paddingVertical: hp(1.5),
+    paddingHorizontal: wp(10),
+    borderRadius: 12,
+    minWidth: wp(30),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  alertButtonSuccess: {
+    backgroundColor: '#4CAF50',
+  },
+  alertButtonError: {
+    backgroundColor: '#F44336',
+  },
+  alertButtonInfo: {
+    backgroundColor: '#2196F3',
+  },
+  alertButtonText: {
+    color: '#fff',
+    fontSize: hp(2),
     fontWeight: '700',
   },
 });

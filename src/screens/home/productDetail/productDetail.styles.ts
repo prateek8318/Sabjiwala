@@ -113,6 +113,6 @@ export default StyleSheet.create({
   cartGradient: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: wp(5) },
   cartLeft: { flexDirection: 'row', alignItems: 'center' },
   cartPrice: { fontSize: wp(6.5), fontFamily: Fonts.Bold, color: '#000', marginLeft: wp(3) },
-  addToCartBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', paddingVertical: hp(1.8), paddingHorizontal: wp(7), borderRadius: 30, elevation: 3 },
+  addToCartBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', paddingVertical: hp(1.8), paddingHorizontal: wp(7), borderRadius: 50, elevation: 3 },
   addToCartText: { fontSize: wp(4.8), fontFamily: Fonts.Medium, color: '#000', alignItems: 'center', justifyContent: 'center',textAlign: 'center', },
 });

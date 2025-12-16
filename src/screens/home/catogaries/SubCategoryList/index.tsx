@@ -15,6 +15,8 @@ import {
   TouchableWithoutFeedback,
 } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
+import { useNavigation } from "@react-navigation/native";
+import { useIsFocused } from "@react-navigation/native";
 import { Header, TextView } from "../../../../components";
 import ApiService from "../../../../service/apiService";
 import { Colors, Icon } from "../../../../constant";
@@ -52,6 +54,8 @@ const getFullScreenCardWidthPercent = () => {
 
 const SubCategoryList = ({ route }: any) => {
   const { categoryId, categoryName } = route.params;
+  const navigation = useNavigation<any>();
+  const isFocused = useIsFocused();
 
   const [loading, setLoading] = useState(true);
   const [subCategories, setSubCategories] = useState<any[]>([]);
@@ -70,6 +74,11 @@ const SubCategoryList = ({ route }: any) => {
 
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
   const [showVariantModal, setShowVariantModal] = useState(false);
+
+  // Cart state for floating button
+  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [cartLoading, setCartLoading] = useState(false);
+  const [recentlyAddedProducts, setRecentlyAddedProducts] = useState<any[]>([]);
 
   const ShimmerPlaceholder = ({ style }: { style?: any }) => {
     const shimmerValue = useRef(new Animated.Value(0)).current;
@@ -217,6 +226,46 @@ const SubCategoryList = ({ route }: any) => {
     else setLoading(false);
   }, [categoryId]);
 
+  // Load cart data for floating button
+  const loadCart = async () => {
+    try {
+      setCartLoading(true);
+      const res = await ApiService.getCart();
+      const cartData =
+        res?.data?.cart?.products ||
+        res?.data?.products ||
+        res?.data?.items ||
+        res?.data?.data?.items ||
+        [];
+      const fetchedItems = Array.isArray(cartData) ? cartData : [];
+      
+      // Merge with recently added products if cart is empty or update existing
+      if (fetchedItems.length > 0) {
+        setCartItems(fetchedItems);
+        // Clear recently added after successful fetch (they're now in cart)
+        if (recentlyAddedProducts.length > 0) {
+          setTimeout(() => {
+            setRecentlyAddedProducts([]);
+          }, 1000);
+        }
+      } else if (recentlyAddedProducts.length > 0) {
+        // Keep recently added products visible even if API cart is empty
+        // This handles the case where API hasn't updated yet
+      }
+    } catch (err) {
+      console.log("Cart load error:", err);
+      // Don't clear cart items on error, keep optimistic updates
+    } finally {
+      setCartLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isFocused) {
+      loadCart();
+    }
+  }, [isFocused]);
+
   // Search + Filter + Sort Logic
   useEffect(() => {
     let filtered = [...allProducts];
@@ -291,6 +340,55 @@ const SubCategoryList = ({ route }: any) => {
 
   const addToCart = (product: any, variant: any) => {
     console.log("Added to cart:", product.name, variant);
+  };
+
+  // Handle product added callback from ProductCard
+  const handleProductAdded = (product: any) => {
+    // Extract image from product
+    const productImage = 
+      product?.image || 
+      product?.variants?.[0]?.images?.[0] || 
+      product?.ProductVarient?.[0]?.images?.[0] ||
+      product?.primary_image?.[0];
+    
+    // Add to recently added products list
+    const productWithImage = {
+      ...product,
+      image: productImage,
+    };
+    setRecentlyAddedProducts(prev => {
+      // Remove duplicate if exists and add to front
+      const filtered = prev.filter(p => (p.id || p._id) !== (product.id || product._id));
+      const newList = [productWithImage, ...filtered].slice(0, 3); // Keep only last 3 products
+      return newList;
+    });
+    
+    // Immediately update cart items optimistically
+    const newCartItem = {
+      productId: {
+        _id: product.id || product._id,
+        name: product.name,
+        images: [product.image || product.variants?.[0]?.images?.[0] || product.ProductVarient?.[0]?.images?.[0]].filter(Boolean),
+      },
+      quantity: 1,
+    };
+    setCartItems(prev => {
+      const existingIndex = prev.findIndex(
+        item => (item.productId?._id || item.productId) === (product.id || product._id)
+      );
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          quantity: (updated[existingIndex].quantity || 1) + 1,
+        };
+        return updated;
+      }
+      return [newCartItem, ...prev];
+    });
+    
+    // Refresh cart from API in background
+    loadCart();
   };
 
   return (
@@ -374,6 +472,7 @@ const SubCategoryList = ({ route }: any) => {
                           cardArray={[item]}
                           horizontal={false}
                           numOfColumn={1}
+                          onProductAdded={handleProductAdded}
                         />
                       </View>
                     );
@@ -409,6 +508,7 @@ const SubCategoryList = ({ route }: any) => {
                           cardArray={[item]}
                           horizontal={false}
                           numOfColumn={2}
+                          onProductAdded={handleProductAdded}
                         />
                       </View>
                     )}
@@ -495,7 +595,11 @@ const SubCategoryList = ({ route }: any) => {
                   <TextView>₹{v.price}</TextView>
                   {v.originalPrice && <TextView style={{ textDecorationLine: "line-through", fontSize: 12 }}>₹{v.originalPrice}</TextView>}
                 </View>
-                <Pressable onPress={() => { addToCart(selectedProduct, v); setShowVariantModal(false); }} style={{ backgroundColor: "#1B5E20", paddingVertical: 6, paddingHorizontal: 14, borderRadius: 20, marginLeft: 10 }}>
+                <Pressable onPress={() => { 
+                  handleProductAdded(selectedProduct);
+                  addToCart(selectedProduct, v); 
+                  setShowVariantModal(false); 
+                }} style={{ backgroundColor: "#1B5E20", paddingVertical: 6, paddingHorizontal: 14, borderRadius: 20, marginLeft: 10 }}>
                   <TextView style={{ color: "white" }}>Add</TextView>
                 </Pressable>
               </View>
@@ -505,6 +609,81 @@ const SubCategoryList = ({ route }: any) => {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+
+      {/* Floating Cart Button */}
+      {(cartItems.length > 0 || recentlyAddedProducts.length > 0) && (
+        <Pressable
+          onPress={() => {
+            navigation.navigate("BottomStackNavigator", { screen: "Cart" });
+          }}
+          style={styles.floatingCartButton}
+        >
+          <View style={styles.cartButtonContent}>
+            {/* Stacked Product Images */}
+            <View style={styles.stackedImagesContainer}>
+              {(() => {
+                // Use recently added products if available, otherwise use cart items
+                let productsToShow: any[] = [];
+                
+                if (recentlyAddedProducts.length > 0) {
+                  productsToShow = recentlyAddedProducts.slice(0, 3).map(product => ({
+                    image: product?.image || 
+                           product?.variants?.[0]?.images?.[0] || 
+                           product?.ProductVarient?.[0]?.images?.[0] ||
+                           product?.primary_image?.[0],
+                  }));
+                } else if (cartItems.length > 0) {
+                  productsToShow = cartItems.slice(0, 3).map(item => {
+                    const product = item?.productId || item?.product;
+                    return {
+                      image: product?.images?.[0] || 
+                             product?.primary_image?.[0] || 
+                             product?.image || 
+                             item?.image,
+                    };
+                  });
+                }
+
+                return productsToShow.map((product, index) => {
+                  const productImage = product?.image;
+                  const imageUri = productImage
+                    ? ApiService.getImage(productImage)
+                    : null;
+
+                  return (
+                    <View
+                      key={index}
+                      style={[
+                        styles.cartProductImageContainer,
+                        index > 0 && styles.stackedImage,
+                        { zIndex: 10 - index },
+                      ]}
+                    >
+                      {imageUri ? (
+                        <Image
+                          source={{ uri: imageUri }}
+                          style={styles.cartProductImage}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View style={styles.cartProductImagePlaceholder}>
+                          <Icon name="image" family="Feather" size={16} color="#fff" />
+                        </View>
+                      )}
+                    </View>
+                  );
+                });
+              })()}
+            </View>
+
+            {/* View Cart Text */}
+            <TextView style={styles.cartButtonText}>View Cart</TextView>
+
+            {/* Arrow Icon */}
+            <Icon name="chevron-forward" family="Ionicons" size={20} color="#fff" />
+          </View>
+        </Pressable>
+      )}
     </SafeAreaView>
   );
 };

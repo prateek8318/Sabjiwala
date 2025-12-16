@@ -146,7 +146,7 @@ export default StyleSheet.create({
   },
   productCardWrapper: {
     width: "50%",           // 2 cards perfect fit
-    marginBottom: hp(.5),  
+   
     paddingHorizontal: -4,
   },
 searchHeader: {
@@ -241,5 +241,69 @@ noResultContainer: {
   shimmerBase: {
     overflow: "hidden",
     backgroundColor: "#e6e6e6",
+  },
+
+  // Floating Cart Button
+  floatingCartButton: {
+    position: "absolute",
+    bottom: hp(12), // Position above bottom tab bar (tab bar height ~80px = ~hp(10))
+    alignSelf: "center",
+    backgroundColor: "#1B5E20",
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: "#4CAF50",
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1.2),
+    minWidth: wp(45),
+    maxWidth: wp(90),
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+    zIndex: 1000,
+  },
+  cartButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: wp(2.5),
+  },
+  stackedImagesContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: wp(2),
+  },
+  cartProductImageContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: "hidden",
+    backgroundColor: "#fff",
+    borderWidth: 2,
+    borderColor: "#4CAF50",
+  },
+  stackedImage: {
+    marginLeft: -wp(6),
+  },
+  cartProductImage: {
+    width: "100%",
+    height: "100%",
+  },
+  cartProductImagePlaceholder: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#1B5E20",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cartButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
+    fontFamily: "Poppins-SemiBold",
   },
 });
