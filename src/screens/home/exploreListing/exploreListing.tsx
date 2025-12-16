@@ -101,7 +101,7 @@ const ExploreListing = () => {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <Header title={displayName} isBack />
+      <Header title={displayName} />
 
       {loading ? (
         <View style={styles.loader}>

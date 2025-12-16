@@ -128,6 +128,7 @@ const Products = () => {
     const imageUri = item?.image
       ? `${IMAGE_BASE_URL}${item.image}`.replace(/\\/g, '/')
       : '';
+    console.log('Products Subcategory Image → id:', item?._id, '| name:', item?.name, '| raw:', item?.image, '| final:', imageUri);
     return (
       <TouchableOpacity
         activeOpacity={0.7}

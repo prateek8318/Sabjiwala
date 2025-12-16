@@ -21,7 +21,6 @@ import { Colors, Icon, Images, Typography } from '../../../../../constant';
 import { TextView } from '../../../../../components';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import { useFocusEffect } from '@react-navigation/native';
 import { useState, useEffect, useCallback } from 'react';
 import ApiService from '../../../../../service/apiService';
 interface ProductCardProps {
@@ -93,36 +92,33 @@ const ProductCard: FC<ProductCardProps> = ({
       .filter(Boolean);
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      const loadWishlist = async () => {
-        try {
-          const res = await ApiService.getWishlist();
-          console.log('Dashboard ProductCard - Wishlist response:', res?.data);
+  useEffect(() => {
+    const loadWishlist = async () => {
+      try {
+        const res = await ApiService.getWishlist();
+        console.log('Dashboard ProductCard - Wishlist response:', res?.data);
 
-          // Handle different response structures
-          let items = [];
-          if (res?.data?.wishlist?.items) {
-            items = res.data.wishlist.items;
-          } else if (res?.data?.wishlist && Array.isArray(res.data.wishlist)) {
-            items = res.data.wishlist;
-          } else if (res?.data?.items) {
-            items = res.data.items;
-          } else if (res?.data?.data?.items) {
-            items = res.data.data.items;
-          }
-
-          const ids = extractWishlistIds(items);
-          console.log('Dashboard ProductCard - Loaded wishlist IDs:', ids);
-          setWishlist(new Set(ids));
-        } catch (e) {
-          console.log("wishlist load error", e);
+        // Handle different response structures
+        let items = [];
+        if (res?.data?.wishlist?.items) {
+          items = res.data.wishlist.items;
+        } else if (res?.data?.wishlist && Array.isArray(res.data.wishlist)) {
+          items = res.data.wishlist;
+        } else if (res?.data?.items) {
+          items = res.data.items;
+        } else if (res?.data?.data?.items) {
+          items = res.data.data.items;
         }
-      };
 
-      loadWishlist();
-    }, [extractWishlistIds])
-  );
+        const ids = extractWishlistIds(items);
+        console.log('Dashboard ProductCard - Loaded wishlist IDs:', ids);
+        setWishlist(new Set(ids));
+      } catch (e) {
+        console.log("wishlist load error", e);
+      }
+    };
+    loadWishlist();
+  }, [extractWishlistIds]);
 
   // Toggle favorite
   const toggleWishlist = async (productId: string) => {
@@ -213,9 +209,11 @@ const ProductCard: FC<ProductCardProps> = ({
     const productId = getProductId(item);
     const isFavorite = productId ? wishlist.has(productId) : false;
     const cartQty = productId ? cartMap[productId] || 0 : 0;
+    // 👉 Variant logic: agar 0 variants hai to simple ADD button,
+    // warna option button (modal open karega)
     const hasVariants =
-      (item?.variants?.length || 0) > 1 ||
-      (item?.ProductVarient?.length || 0) > 1;
+      (item?.variants && item.variants.length > 0) ||
+      (item?.ProductVarient && item.ProductVarient.length > 0);
     const firstVariantId =
       item?.variantId ||
       item?.ProductVarient?.[0]?._id ||
@@ -325,47 +323,56 @@ const ProductCard: FC<ProductCardProps> = ({
 
           {/* ===== FIXED BLOCK START ===== */}
           {type === 'OFFER' ? (
-            <View>
+            hasVariants ? (
+              // ✅ Jisme variant hoga → upar ADD (half width), niche OPTIONS
+              <View>
+                <Pressable
+                  onPress={e => {
+                    e.stopPropagation();
+                    setSelectedProduct(item);
+                    setShowVariantModal(true);
+                  }}
+                >
+                  <LinearGradient
+                    colors={[Colors.PRIMARY[200], Colors.PRIMARY[100]]}
+                    style={styles.addButtonView}
+                    start={{ x: 0, y: 0.5 }}
+                    end={{ x: 1, y: 0 }}
+                  >
+                    <TextView style={styles.txtAdd}>Add</TextView>
+                  </LinearGradient>
+                </Pressable>
+
+                <Pressable
+                  onPress={e => {
+                    e.stopPropagation();
+                    setSelectedProduct(item);
+                    setShowVariantModal(true);
+                  }}
+                  style={styles.optionView}
+                >
+                  <TextView style={styles.txtOption}>{item.options}</TextView>
+                </Pressable>
+              </View>
+            ) : (
+              // ✅ Jisme 0 variants honge → sirf Add button (style: addProductButon)
               <Pressable
                 onPress={e => {
                   e.stopPropagation();
-                  if (hasVariants) {
-                    setSelectedProduct(item);
-                    setShowVariantModal(true);
-                  } else {
-                    if (!productId) return;
-                    updateCartQty(productId, firstVariantId, 1);
-                  }
+                  if (!productId) return;
+                  updateCartQty(productId, firstVariantId, 1, item);
                 }}
               >
                 <LinearGradient
                   colors={[Colors.PRIMARY[200], Colors.PRIMARY[100]]}
-                  style={[
-                    styles.addButtonView,
-                    { borderTopLeftRadius: 50, borderTopRightRadius: 50 },
-                  ]}
+                  style={styles.addProductButon}
                   start={{ x: 0, y: 0.5 }}
                   end={{ x: 1, y: 0 }}
                 >
                   <TextView style={styles.txtAdd}>Add</TextView>
                 </LinearGradient>
               </Pressable>
-
-              <Pressable
-                onPress={e => {
-                  e.stopPropagation();
-                  if (hasVariants) {
-                    setSelectedProduct(item);
-                    setShowVariantModal(true);
-                  } else if (productId) {
-                    updateCartQty(productId, firstVariantId, 1);
-                  }
-                }}
-                style={styles.optionView}
-              >
-                <TextView style={styles.txtOption}>{item.options}</TextView>
-              </Pressable>
-            </View>
+            )
           ) : (
             <View style={{ marginTop: 8, alignItems: 'flex-end', borderRadius: 12, borderColor: "#F5F5F5" }}>
               {cartQty > 0 ? (

@@ -5,7 +5,7 @@ import {
   heightPercentageToDP as hp,
 } from '../../../../../constant/dimentions';
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create<any>({
   cardProduct: {
     width: wp(38),
     marginBottom: hp(1),
@@ -153,6 +153,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  addButtonView: {
+    width: 75,
+    height: 20,
+    borderTopLeftRadius: 45,
+    borderTopRightRadius: 45,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
   txtOption: {
     color: Colors.PRIMARY[400],
@@ -167,6 +175,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'center',
     includeFontPadding: false,
   },
+  listProduct: {},
 });
 
 export default styles;

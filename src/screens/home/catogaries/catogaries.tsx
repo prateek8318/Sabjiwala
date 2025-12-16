@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   FlatList,
   Pressable,
   SafeAreaView,
   View,
-  ActivityIndicator,
   Image,
   Dimensions,
+  Animated,
+  StyleSheet,
+  ScrollView,
 } from 'react-native';
 import { Header, TextView } from '../../../components';
 import styles from './catogaries.styles';
@@ -16,6 +18,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Toast from 'react-native-toast-message';
 import { Colors, Icon } from '../../../constant';
 import ApiService, { IMAGE_BASE_URL } from '../../../service/apiService';
+import LinearGradient from 'react-native-linear-gradient';
 
 type CatogariesScreenNavigationType = NativeStackNavigationProp<
   HomeStackProps,
@@ -30,6 +33,7 @@ interface Category {
 
 const { width } = Dimensions.get('window');
 const ITEM_WIDTH = (width - 48) / 2;
+const FALLBACK_IMAGE = 'https://via.placeholder.com/300x150.png?text=No+Image';
 
 const Catogaries = () => {
   const navigation = useNavigation<CatogariesScreenNavigationType>();
@@ -64,10 +68,77 @@ const Catogaries = () => {
     fetchCategories();
   }, []);
 
-  const renderCat = ({ item }: { item: Category }) => {
-    const imagePath = item.image
-      ? `${IMAGE_BASE_URL}${item.image.replace('public\\', '').replace(/\\/g, '/')}`
-      : null;
+  const ShimmerPlaceholder = ({ style }: { style?: any }) => {
+    const shimmerValue = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(shimmerValue, {
+            toValue: 1,
+            duration: 1200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shimmerValue, {
+            toValue: 0,
+            duration: 0,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      loop.start();
+      return () => loop.stop();
+    }, [shimmerValue]);
+
+    const translateX = shimmerValue.interpolate({
+      inputRange: [0, 1],
+      outputRange: [-120, 120],
+    });
+
+    return (
+      <View style={[styles.shimmerBase, style]}>
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              transform: [{ translateX }],
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={['#f0f0f0', '#e2e2e2', '#f0f0f0']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+      </View>
+    );
+  };
+
+  const renderShimmerGrid = () => (
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.shimmerGrid}>
+      {Array.from({ length: 6 }).map((_, idx) => (
+        <View key={idx} style={[styles.shimmerCardWrapper, { width: ITEM_WIDTH }]}>
+          <ShimmerPlaceholder style={styles.shimmerImage} />
+          <View style={styles.shimmerInfo}>
+            <ShimmerPlaceholder style={styles.shimmerLinePrimary} />
+            <ShimmerPlaceholder style={styles.shimmerLineSecondary} />
+          </View>
+        </View>
+      ))}
+    </ScrollView>
+  );
+
+  const CategoryCard = ({ item }: { item: Category }) => {
+    const [uri, setUri] = useState(() => {
+      const raw = item.image || '';
+      const cleaned = raw.replace(/\\/g, '/').replace(/^\//, '');
+      const imagePath = cleaned ? `${IMAGE_BASE_URL}${cleaned}` : null;
+      return imagePath || FALLBACK_IMAGE;
+    });
+
+    const handleError = () => setUri(FALLBACK_IMAGE);
 
     return (
       <Pressable
@@ -81,13 +152,10 @@ const Catogaries = () => {
       >
         <View style={styles.itemCatView}>
           <Image
-            source={{
-              uri:
-                imagePath ||
-                'https://via.placeholder.com/300x150.png?text=No+Image',
-            }}
+            source={{ uri }}
             style={styles.categoryImage}
             resizeMode="cover"
+            onError={handleError}
           />
           <TextView style={styles.itemCatTxt} numberOfLines={2} ellipsizeMode="tail">
             {item.name}
@@ -97,14 +165,14 @@ const Catogaries = () => {
     );
   };
 
+  const renderCat = ({ item }: { item: Category }) => <CategoryCard item={item} />;
+
   return (
     <SafeAreaView style={styles.container}>
       <Header title="Categories" isBack={true} />
 
       {loading ? (
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={Colors.PRIMARY[300]} />
-        </View>
+        renderShimmerGrid()
       ) : (
         <FlatList
           data={categories}

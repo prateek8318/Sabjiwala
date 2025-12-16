@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
 import { Colors, Typography } from '../../../constant';
 import {
   widthPercentageToDP as wp,
@@ -6,9 +6,14 @@ import {
 } from '../../../constant/dimentions';
 
 // Card sizing: fully responsive for phones + tablets (no small fixed cap)
-const CARD_WIDTH = wp(42);              // ~2 cards per row with small gap
-const CARD_HEIGHT = hp(40);             // height scales with screen height
-const CARD_IMAGE_HEIGHT = CARD_WIDTH * 1.1;
+const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
+const isTablet = SCREEN_WIDTH >= 768;
+const isLargePhone = !isTablet && SCREEN_HEIGHT >= 800;
+
+const CARD_WIDTH = wp(42);               // ~2 cards per row with small gap
+// Large / tall phones pe height thodi kam, small & tablet pe same
+const CARD_HEIGHT = isLargePhone ? hp(28) : hp(36);
+const CARD_IMAGE_HEIGHT = CARD_WIDTH * 0.9;
 
 const styles = StyleSheet.create({
   container: {
@@ -61,7 +66,7 @@ const styles = StyleSheet.create({
     width: CARD_WIDTH,
     height: CARD_HEIGHT,                    // consistent height across devices
     marginHorizontal: wp(2),
-    marginBottom: hp(1),
+    marginBottom: hp(2.5),
     backgroundColor: Colors.PRIMARY[300],
     borderRadius: 14,
     boxShadow:'20',

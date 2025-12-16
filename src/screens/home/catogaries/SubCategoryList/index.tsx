@@ -305,6 +305,7 @@ const SubCategoryList = ({ route }: any) => {
 
   const renderSubItem = ({ item }: any) => {
     const img = item.image ? ApiService.getImage(item.image) : "https://via.placeholder.com/300x150.png?text=No+Image";
+    console.log('SubCategoryList Image → id:', item?._id, '| name:', item?.name, '| raw:', item?.image, '| final:', img);
     const isSelected = selectedSubId === item._id;
 
     return (
@@ -472,6 +473,7 @@ const SubCategoryList = ({ route }: any) => {
                           cardArray={[item]}
                           horizontal={false}
                           numOfColumn={1}
+                          type="OFFER"
                           onProductAdded={handleProductAdded}
                         />
                       </View>
@@ -508,6 +510,7 @@ const SubCategoryList = ({ route }: any) => {
                           cardArray={[item]}
                           horizontal={false}
                           numOfColumn={2}
+                          type="OFFER"
                           onProductAdded={handleProductAdded}
                         />
                       </View>

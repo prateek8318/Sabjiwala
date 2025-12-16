@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { SafeAreaView, View, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { SafeAreaView, View, Animated, StyleSheet, ScrollView } from 'react-native';
 import { Header, TextView } from '../../../components';
 import ApiService, { IMAGE_BASE_URL } from '../../../service/apiService';
 import ProductCard from '../dashboard/components/ProductCard/productCard';
 import { Product, ProductCardItem } from '../../../@types';
-import { Colors } from '../../../constant';
 import styles from './typeProductList.styles';
+import LinearGradient from 'react-native-linear-gradient';
 
 type TypeProductListProps = {
   route?: {
@@ -22,6 +22,72 @@ const TypeProductList = ({ route }: TypeProductListProps) => {
 
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<ProductCardItem[]>([]);
+
+  const ShimmerPlaceholder = ({ style }: { style?: any }) => {
+    const shimmerValue = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(shimmerValue, {
+            toValue: 1,
+            duration: 1200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shimmerValue, {
+            toValue: 0,
+            duration: 0,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      loop.start();
+      return () => loop.stop();
+    }, [shimmerValue]);
+
+    const translateX = shimmerValue.interpolate({
+      inputRange: [0, 1],
+      outputRange: [-120, 120],
+    });
+
+    return (
+      <View style={[styles.shimmerBase, style]}>
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              transform: [{ translateX }],
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={['#f0f0f0', '#e2e2e2', '#f0f0f0']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+      </View>
+    );
+  };
+
+  const renderShimmerGrid = () => (
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.shimmerGrid}>
+      {Array.from({ length: 6 }).map((_, idx) => (
+        <View key={idx} style={styles.shimmerCardWrapper}>
+          <ShimmerPlaceholder style={styles.shimmerImage} />
+          <View style={styles.shimmerInfo}>
+            <ShimmerPlaceholder style={styles.shimmerLinePrimary} />
+            <ShimmerPlaceholder style={styles.shimmerLineSecondary} />
+            <View style={styles.shimmerRow}>
+              <ShimmerPlaceholder style={styles.shimmerChip} />
+              <ShimmerPlaceholder style={styles.shimmerChipSmall} />
+            </View>
+          </View>
+        </View>
+      ))}
+    </ScrollView>
+  );
 
   const transformProductToCard = useCallback((product: Product): ProductCardItem => {
     const variant =
@@ -98,12 +164,10 @@ const TypeProductList = ({ route }: TypeProductListProps) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header title={title} isBack />
+      <Header title={title} />
 
       {loading ? (
-        <View style={styles.loader}>
-          <ActivityIndicator size="large" color={Colors.PRIMARY[300]} />
-        </View>
+        renderShimmerGrid()
       ) : products.length === 0 ? (
         <View style={styles.emptyState}>
           <TextView style={styles.emptyText}>No products found</TextView>

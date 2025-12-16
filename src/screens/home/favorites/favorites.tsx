@@ -91,9 +91,11 @@ const Favorites = () => {
         const imagePath = variant?.images?.[0] || product.primary_image?.[0] || product.images?.[0] || '';
 
         const cleanPath = imagePath
-          .replace('public\\', '')
-          .replace('public/', 'public/')
-          .replace(/\\/g, '/');
+          .replace(/\\/g, '/')
+          .replace(/^\//, '');
+
+        const finalUrl = imagePath ? `${IMAGE_BASE_URL}${cleanPath}` : '';
+        console.log('Favorites Image → id:', productId, '| name:', product?.name || product?.productName, '| raw:', imagePath, '| final:', finalUrl);
 
         // Normalize weight so it never renders empty on larger screens
         const weightValue =
@@ -108,7 +110,7 @@ const Favorites = () => {
           id: product._id || product.id || productId,
           productId: productId,
           name: product.productName || product.name || 'Unknown Product',
-          image: imagePath ? IMAGE_BASE_URL + cleanPath : '',
+          image: finalUrl,
           price: variant?.price || product.price || 0,
           oldPrice: variant?.originalPrice || product.mrp || product.oldPrice || 0,
           discount: variant?.discount ? `₹${variant.discount} OFF` : '',

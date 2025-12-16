@@ -12,6 +12,11 @@ import {
 import { Header, TextView } from "../../../../components";
 import ApiService from "../../../../service/apiService";
 import { Colors } from "../../../../constant";
+import LinearGradient from "react-native-linear-gradient";
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from "../../../../constant/dimentions";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const CARD_WIDTH = (SCREEN_WIDTH - 32 - 12) / 2; // Left menu ke liye perfect size
@@ -30,12 +35,12 @@ const ProductList = ({ route, navigation }: any) => {
     if (rawPath.startsWith("http")) return rawPath;
 
     const cleaned = rawPath
-      .replace("public\\", "")
-      .replace("public/", "")
       .replace(/\\/g, "/")
       .replace(/^\//, "");
 
-    return ApiService.getImage(cleaned);
+    const finalUrl = ApiService.getImage(cleaned);
+    console.log("ProductList Image → raw:", rawPath, "| cleaned:", cleaned, "| final:", finalUrl);
+    return finalUrl;
   };
 
   const loadProducts = async () => {
@@ -84,6 +89,16 @@ const ProductList = ({ route, navigation }: any) => {
       item?.price ??
       "0";
 
+    const variantCount =
+      (item?.variants?.length || 0) + (item?.ProductVarient?.length || 0);
+    const hasVariants = variantCount > 0;
+    const optionLabel =
+      variantCount > 1
+        ? `${variantCount} Options`
+        : variantCount === 1
+        ? "1 Option"
+        : "Options";
+
     return (
       <Pressable
         onPress={() =>
@@ -114,6 +129,102 @@ const ProductList = ({ route, navigation }: any) => {
         <TextView style={{ marginTop: 4, color: Colors.PRIMARY[300] }}>
           ₹ {price}
         </TextView>
+
+        {/* Action buttons similar to dashboard cardMainView */}
+        <View style={{ marginTop: 10, alignItems: "flex-end" }}>
+          {hasVariants ? (
+            <View>
+              {/* Upper half-width Add (same width as option) */}
+              <Pressable
+                onPress={() =>
+                  navigation.navigate("ProductDetail", { productId: item._id })
+                }
+              >
+                <LinearGradient
+                  colors={[Colors.PRIMARY[200], Colors.PRIMARY[100]]}
+                  style={{
+                    width: 75,
+                    height: 20,
+                    borderTopLeftRadius: 45,
+                    borderTopRightRadius: 45,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <TextView
+                    style={{
+                      color: Colors.PRIMARY[300],
+                      fontSize: 14,
+                      textAlign: "center",
+                      includeFontPadding: false,
+                    }}
+                  >
+                    Add
+                  </TextView>
+                </LinearGradient>
+              </Pressable>
+
+              {/* Option strip */}
+              <Pressable
+                onPress={() =>
+                  navigation.navigate("ProductDetail", { productId: item._id })
+                }
+                style={{
+                  width: 75,
+                  height: 17,
+                  backgroundColor: Colors.PRIMARY[600],
+                  borderBottomLeftRadius: 45,
+                  borderBottomRightRadius: 45,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <TextView
+                  style={{
+                    color: Colors.PRIMARY[400],
+                    fontSize: 10,
+                    fontWeight: "600",
+                  }}
+                >
+                  {optionLabel}
+                </TextView>
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable
+              onPress={() =>
+                navigation.navigate("ProductDetail", { productId: item._id })
+              }
+            >
+              <LinearGradient
+                colors={[Colors.PRIMARY[200], Colors.PRIMARY[100]]}
+                style={{
+                  height: hp(3.5),
+                  width: wp(15),
+                  marginTop: -10,
+                  borderRadius: 50,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <TextView
+                  style={{
+                    color: Colors.PRIMARY[300],
+                    fontSize: 14,
+                    textAlign: "center",
+                    includeFontPadding: false,
+                  }}
+                >
+                  Add
+                </TextView>
+              </LinearGradient>
+            </Pressable>
+          )}
+        </View>
       </Pressable>
     );
   };

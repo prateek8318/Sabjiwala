@@ -133,4 +133,42 @@ import { Colors } from '../../../constant';
      color: '#9E9E9E',
      textAlign: 'center',
    },
+  shimmerGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 20,
+  },
+  shimmerCardWrapper: {
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  shimmerImage: {
+    height: 150,
+    borderRadius: 12,
+    backgroundColor: '#e6e6e6',
+  },
+  shimmerInfo: {
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  shimmerLinePrimary: {
+    height: 14,
+    borderRadius: 8,
+    backgroundColor: '#e6e6e6',
+    width: '78%',
+  },
+  shimmerLineSecondary: {
+    height: 12,
+    borderRadius: 8,
+    backgroundColor: '#e6e6e6',
+    width: '62%',
+  },
+  shimmerBase: {
+    overflow: 'hidden',
+    backgroundColor: '#e6e6e6',
+  },
  });

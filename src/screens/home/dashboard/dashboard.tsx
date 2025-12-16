@@ -25,19 +25,13 @@ import {
   heightPercentageToDP as hp,
 } from '../../../constant/dimentions';
 import { Colors, Icon, Images } from '../../../constant';
-// 🔹 Local Category Icons Mapping
+// 🔹 Local Category Icons Mapping (fallback + "All")
 export const CategoryIcons: Record<string, any> = {
   all: require('../../../assets/images/catogaries/all.png'),
   bread1: require('../../../assets/images/catogaries/bread.png'),
   vegetables: require('../../../assets/images/catogaries/vegetables.png'),
   milk: require('../../../assets/images/catogaries/milk.png'),
   egg: require('../../../assets/images/catogaries/egg.png'),
-};
-
-// 🔹 Match API category name to local icon
-const getCategoryIcon = (name: string) => {
-  const key = name.toLowerCase().replace(/ /g, '');
-  return CategoryIcons[key] || CategoryIcons['all'];
 };
 
 import InputText from '../../../components/InputText/TextInput';
@@ -52,7 +46,6 @@ type DashboardScreenNavigationType = NativeStackNavigationProp<any, 'Dashboard'>
 const Dashboard: FC = () => {
   const navigation = useNavigation<DashboardScreenNavigationType>();
 
-
   const [categories, setCategories] = useState<SubCategory[]>([]);
   const [selectedCat, setSelectedCat] = useState<string>('all');
   const [products, setProducts] = useState<ProductCardItem[]>([]);
@@ -66,6 +59,8 @@ const Dashboard: FC = () => {
   const [favorite, setFavorite] = useState<ProductCardItem[]>([]);
   const [freshFood, setFreshFood] = useState<ProductCardItem[]>([]);
   const [userAddress, setUserAddress] = useState<string>('Fetching location...');
+  // Remember if we already have a valid address so it doesn't get overwritten by placeholder text
+  const [hasResolvedAddress, setHasResolvedAddress] = useState(false);
   const [addressList, setAddressList] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [showAddressPicker, setShowAddressPicker] = useState(false);
@@ -77,6 +72,33 @@ const Dashboard: FC = () => {
     { id: string; name: string; image?: string }[]
   >([]);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  // Build clean image URL from API response (PURA "public/..." path rakhna hai)
+  const buildCategoryImageUrl = (rawPath?: string) => {
+    if (!rawPath) {
+      console.log('Category Image: NO rawPath');
+      return null;
+    }
+
+    const cleaned = rawPath
+      .replace(/\\/g, '/')
+      .replace(/^\//, '');
+
+    const finalUrl = `${IMAGE_BASE_URL}${cleaned}`;
+    console.log('Category Image → raw:', rawPath, '| cleaned:', cleaned, '| final:', finalUrl);
+    return finalUrl;
+  };
+
+  // Prefer dynamic image from API; fallback to local icon map + "All"
+  const getCategoryImageSource = (item: SubCategory) => {
+    if (item._id === 'all') return CategoryIcons['all'];
+
+    const dynamicUri = buildCategoryImageUrl(item.image);
+    if (dynamicUri) return { uri: dynamicUri };
+
+    const key = item.name?.toLowerCase().replace(/ /g, '') || '';
+    return CategoryIcons[key] || CategoryIcons['all'];
+  };
 
 
   // 🧠 Fetch Categories
@@ -116,10 +138,18 @@ const Dashboard: FC = () => {
       const storedId = await LocalStorage.read('@selectedAddressId');
       const matched = list.find((item: any) => item?._id === storedId);
       const primary = matched || list.find((item: any) => item?.isDefault) || list[0];
-      const formatted = formatAddress(primary) || 'Tap to set location';
+
+      // Agar koi bhi address select / default mil gaya ho toh
+      // "Tap to set location" ka placeholder kabhi mat dikhana.
+      const formatted =
+        formatAddress(primary) ||
+        primary?.address || // backend se consolidated address aa rha ho toh
+        primary?.addressType || // kam se kam "Home / Work" dikh jaye
+        'Saved address';
 
       setSelectedAddressId(primary?._id || null);
       setUserAddress(formatted);
+      setHasResolvedAddress(true);
       if (primary?._id) {
         await LocalStorage.save('@selectedAddressId', primary._id);
       }
@@ -141,7 +171,9 @@ const Dashboard: FC = () => {
   
       if (!user) {
         console.log('No user data found');
-        setUserAddress('Tap to set location');
+        if (!hasResolvedAddress) {
+          setUserAddress('Tap to set location');
+        }
         return;
       }
 
@@ -157,7 +189,9 @@ const Dashboard: FC = () => {
   
       if (!lat || !lng) {
         console.log('No coordinates found in user data');
-        setUserAddress('Tap to set location');
+        if (!hasResolvedAddress) {
+          setUserAddress('Tap to set location');
+        }
         return;
       }
   
@@ -176,11 +210,14 @@ const Dashboard: FC = () => {
         'Current Location';
 
       setUserAddress(shortAddress);
+      setHasResolvedAddress(true);
   
     } catch (err: any) {
       console.error('fetchUserLocation FAILED:', err);
       console.error('Error message:', err.message);
-      setUserAddress('H-146, Sector-63, Noida');
+      if (!hasResolvedAddress) {
+        setUserAddress('H-146, Sector-63, Noida');
+      }
     }
   };
 
@@ -195,7 +232,15 @@ const Dashboard: FC = () => {
         await LocalStorage.save('@selectedAddressId', addr._id);
       }
       setSelectedAddressId(addr?._id || null);
-      setUserAddress(formatAddress(addr) || 'Tap to set location');
+
+      // Yahan bhi selected address ke baad placeholder text nahi aana chahiye
+      const formatted =
+        formatAddress(addr) ||
+        addr?.address ||
+        addr?.addressType ||
+        'Saved address';
+      setUserAddress(formatted);
+      setHasResolvedAddress(true);
     } finally {
       setShowAddressPicker(false);
     }
@@ -212,6 +257,16 @@ const Dashboard: FC = () => {
       console.log('loadCachedUser error', err);
     }
   }, []);
+
+  const handleNotificationPress = useCallback(async () => {
+    try {
+      const token = await LocalStorage.read('fcm_token');
+      console.log('[FCM] dashboard icon token', token || 'no token saved');
+    } catch (err) {
+      console.log('[FCM] dashboard icon token read error', err);
+    }
+    navigation.navigate('Notifications');
+  }, [navigation]);
   // Fetch Static Home Content (Banners + Categories + Explore)
   const fetchStaticContent = async (isRefresh = false) => {
     try {
@@ -228,11 +283,17 @@ const Dashboard: FC = () => {
       const allCat: SubCategory = { _id: 'all', name: 'All' };
       //       setCategories([allCat, ...apiCats]);
 
-      const mappedGroceryCards = apiCats.map((item: SubCategory) => ({
-        id: item._id,
-        name: item.name,
-        image: item.image ? IMAGE_BASE_URL + item.image.replace('public\\', '').replace(/\\/g, '/') : undefined,
-      }));
+      const mappedGroceryCards = apiCats.map((item: SubCategory) => {
+        const raw = item.image || '';
+        const cleaned = raw.replace(/\\/g, '/').replace(/^\//, '');
+        const finalUrl = cleaned ? `${IMAGE_BASE_URL}${cleaned}` : undefined;
+        console.log('GroceryCard Image → id:', item?._id, '| name:', item?.name, '| raw:', raw, '| final:', finalUrl);
+        return {
+          id: item._id,
+          name: item.name,
+          image: finalUrl,
+        };
+      });
       setGroceryCards(mappedGroceryCards);
 
       // Explore Sections
@@ -240,7 +301,11 @@ const Dashboard: FC = () => {
 
       // Deal Banner
       if (data.dealBanner?.image) {
-        setDealBanner(IMAGE_BASE_URL + data.dealBanner.image.replace('public\\', '').replace(/\\/g, '/'));
+        const raw = data.dealBanner.image;
+        const cleaned = raw.replace(/\\/g, '/').replace(/^\//, '');
+        const finalUrl = `${IMAGE_BASE_URL}${cleaned}`;
+        console.log('DealBanner Image → raw:', raw, '| final:', finalUrl);
+        setDealBanner(finalUrl);
       }
     } catch (error) {
       console.error('Static content error:', error);
@@ -364,7 +429,12 @@ const Dashboard: FC = () => {
   useFocusEffect(
     useCallback(() => {
       loadCachedUser();
-      fetchUserLocation();
+      (async () => {
+        const hasSaved = await fetchSavedAddress();
+        if (!hasSaved) {
+          fetchUserLocation();
+        }
+      })();
     }, [loadCachedUser])
   );
 
@@ -387,6 +457,7 @@ const Dashboard: FC = () => {
   // 🔹 Render Category
   const renderCategoryItem = ({ item }: { item: SubCategory }) => {
     const isSelected = selectedCat === item._id;
+    const imageSource = getCategoryImageSource(item);
 
     return (
       <TouchableOpacity
@@ -403,7 +474,7 @@ const Dashboard: FC = () => {
       >
         {/* Icon Upar */}
         <Image
-          source={getCategoryIcon(item.name)}
+          source={imageSource}
           style={{ width: 35, height: 35, marginBottom: 4 }}
           resizeMode="contain"
         />
@@ -605,7 +676,7 @@ const Dashboard: FC = () => {
                     style={[styles.actionButton, { marginRight: hp(0.8) }]}
                   />
                 </Pressable>
-                <Pressable onPress={() => navigation.navigate('Notifications')}>
+                <Pressable onPress={handleNotificationPress}>
                   <Image
                     source={Images.ic_notificaiton}
                     style={[styles.actionButton, { marginLeft: hp(0.5),marginRight: hp(0.5) }]}
@@ -616,9 +687,10 @@ const Dashboard: FC = () => {
           </View>
 
           {/* 🔹 Search bar */}
-          <View style={styles.searchBox}>
+          <View style={styles.searchBox} pointerEvents="box-none">
             <Pressable
               style={[styles.searchView, { flex: 1 }]}
+              hitSlop={{ top: 0, bottom: 0, left: 0, right: 0 }}
               onPress={() => navigation.navigate('Search')}
             >
               <Icon
@@ -638,6 +710,7 @@ const Dashboard: FC = () => {
             </Pressable>
             <Pressable
               style={styles.micView}
+              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
               onPress={() => navigation.navigate('Search', { startVoice: true })}
             >
               <View style={styles.divider} />

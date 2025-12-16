@@ -1,6 +1,7 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
+apply plugin: "com.google.gms.google-services"
 apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
 
 project.ext.react = [
@@ -139,5 +140,8 @@ dependencies {
     // Use a single explicit version for fused location to avoid class/interface mismatch
     implementation("com.google.android.gms:play-services-location:21.0.1")
     implementation("com.google.android.gms:play-services-base:18.2.0")
+
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-messaging")
 }
 
