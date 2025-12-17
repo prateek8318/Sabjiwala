@@ -25,6 +25,7 @@ import Toast from 'react-native-toast-message';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { ApiService, IMAGE_BASE_URL } from '../../../../../service/apiService';
 import ActionSheet, { SheetManager } from 'react-native-actions-sheet';
+import { LocalStorage } from '../../../../../helpers/localstorage';
 
 type EditProfileNavigationType = NativeStackNavigationProp<
   HomeStackProps,
@@ -146,13 +147,16 @@ const EditProfile: FC = () => {
         profileImage: finalImageUrl !== userData?.profileImage ? finalImageUrl : undefined,
       });
   
-      // Context update
-      setUserData({
+      // Context + storage update (taaki refresh ke baad bhi data rahe)
+      const updatedUser = {
         ...userData,
         name: name.trim(),
         email: email.trim(),
         profileImage: finalImageUrl,
-      });
+      };
+
+      setUserData(updatedUser);
+      await LocalStorage.save('@user', updatedUser);
   
       Toast.show({ type: 'success', text1: 'Profile updated successfully!' });
       navigation.goBack();

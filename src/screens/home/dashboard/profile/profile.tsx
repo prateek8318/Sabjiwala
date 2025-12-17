@@ -60,25 +60,56 @@ const Profile: FC = () => {
 
   const { userData, setUserData, setIsLoggedIn } = useContext(UserDataContext);
 
-  const [displayName, setDisplayName] = useState('Guest User');
-  const [displayPhone, setDisplayPhone] = useState('+91 XXXXXXXX');
+  // Name / phone ke liye koi placeholder nahi, jo actual data hai wahi dikhayenge
+  const [displayName, setDisplayName] = useState(
+    userData?.name ? userData.name : 'Guest User'
+  );
+  const [displayPhone, setDisplayPhone] = useState(
+    userData?.mobileNo ? `+91 ${userData.mobileNo}` : ''
+  );
 
-  // Load user from storage on mount
+  // Load user from storage + fresh profile from API on mount
   useEffect(() => {
-    const loadUser = async () => {
+    const loadFromStorage = async () => {
       try {
-        const saved = await LocalStorage.get('@user');
+        let saved = await LocalStorage.read('@user');
         if (saved) {
-          const user = JSON.parse(saved);
+          if (typeof saved === 'string') {
+            try {
+              saved = JSON.parse(saved);
+            } catch (e) {
+              // ignore
+            }
+          }
+
+          const user = saved;
+          setUserData(user);
+          if (user?.name) setDisplayName(user.name);
+          if (user?.mobileNo) setDisplayPhone(`+91 ${user.mobileNo}`);
+        }
+      } catch (e) {
+        console.log('Load user error', e);
+      }
+    };
+
+    const fetchProfileFromApi = async () => {
+      try {
+        const res = await ApiService.getUserProfile();
+        const user = res.data?.user || res.data;
+        if (user) {
           setUserData(user);
           if (user.name) setDisplayName(user.name);
           if (user.mobileNo) setDisplayPhone(`+91 ${user.mobileNo}`);
+          await LocalStorage.save('@user', user);
         }
       } catch (e) {
-        console.log('Load user error');
+        console.log('getUserProfile error', e);
       }
     };
-    loadUser();
+
+    // Pehle storage se jitna mile dikha do, fir API se latest le aao
+    loadFromStorage();
+    fetchProfileFromApi();
   }, []);
 
   // Real-time update from context
@@ -141,7 +172,8 @@ const Profile: FC = () => {
           : { ...userData, profileImage: uploadedImage };
 
         setUserData(updatedUser);
-        await LocalStorage.save('@user', JSON.stringify(updatedUser));
+        // LocalStorage.save khud JSON.stringify karega, yahan sirf object do
+        await LocalStorage.save('@user', updatedUser);
         Toast.show({ type: 'success', text1: 'Profile picture updated!' });
       } catch (err: any) {
         Toast.show({

@@ -4,10 +4,9 @@ import React, {
   ReactNode,
   useState,
   useEffect,
-} from "react";
-import { LocalStorage } from "../helpers/localstorage";
+} from 'react';
+import { LocalStorage } from '../helpers/localstorage';
 
-// const UserDataContext = createContext({});
 export interface UserData {
   isLoggedIn: boolean | string | null;
   setIsLoggedIn: (value: boolean | any) => void;
@@ -21,21 +20,32 @@ const UserDataContext = createContext<UserData>({
   userData: null,
   setUserData: () => {},
 });
+
 type Props = {
   children?: ReactNode;
 };
 
 const UserDataContextProvider: FC<Props> = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | string | null>(null);
-  const [userData, setUserData] = useState<any>("");
+  const [userData, setUserData] = useState<any>('');
 
   useEffect(() => {
     setContextDataFromStorage();
   }, []);
 
   const setContextDataFromStorage = async () => {
-    let val = await LocalStorage.read("@login");
-    let user = await LocalStorage.read("@user");
+    const val = await LocalStorage.read('@login');
+    let user = await LocalStorage.read('@user');
+
+    // Purane data ke liye jahan double-stringify hua tha
+    if (typeof user === 'string') {
+      try {
+        user = JSON.parse(user);
+      } catch (e) {
+        // ignore parse error, user ko as-is rehne do
+      }
+    }
+
     setUserData(user);
     setIsLoggedIn(val);
   };
@@ -55,3 +65,4 @@ const UserDataContextProvider: FC<Props> = ({ children }) => {
 };
 
 export { UserDataContextProvider, UserDataContext };
+

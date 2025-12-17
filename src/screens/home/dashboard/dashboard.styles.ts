@@ -296,9 +296,85 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     
   },
-  
- 
-  
+  floatingCartButton: {
+    position: 'absolute',
+    bottom: hp(1.5),
+    alignSelf: 'center',
+    backgroundColor: '#1B5E20',
+    borderRadius: 28,
+    borderWidth: 1.6,
+    borderColor: '#4CAF50',
+    paddingHorizontal: wp(3.4),
+    paddingVertical: hp(0.8),
+    minWidth: wp(42),
+    maxWidth: wp(90),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.28,
+    shadowRadius: 4.5,
+    elevation: 10,
+    zIndex: 1000,
+  },
+  cartButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: wp(2),
+  },
+  stackedImagesContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: wp(1),
+  },
+  cartProductImageContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    borderWidth: 1.6,
+    borderColor: '#4CAF50',
+  },
+  stackedImage: {
+    marginLeft: -wp(5),
+  },
+  cartProductImage: {
+    width: '100%',
+    height: '100%',
+  },
+  cartProductImagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#1B5E20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cartButtonText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: Fonts.Medium,
+  },
+  cartTextBlock: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    marginHorizontal: wp(2),
+  },
+  cartButtonSubText: {
+    color: '#E8F5E9',
+    fontSize: 11,
+    fontWeight: '600',
+    fontFamily: Fonts.Medium,
+  },
+  arrowCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
 
 export default styles;

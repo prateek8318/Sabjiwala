@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect, useCallback } from 'react';
+import React, { FC, useState, useEffect, useCallback, useRef } from 'react';
 import {
   SafeAreaView,
   View,
@@ -9,6 +9,7 @@ import {
   FlatList,
   RefreshControl,
   Modal,
+  Animated,
 } from 'react-native';
 import styles from './dashboard.styles';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -72,6 +73,10 @@ const Dashboard: FC = () => {
     { id: string; name: string; image?: string }[]
   >([]);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [recentlyAddedProducts, setRecentlyAddedProducts] = useState<any[]>([]);
+  const [lastAddedId, setLastAddedId] = useState<string | null>(null);
+  const bounceValue = useRef(new Animated.Value(0)).current;
 
   // Build clean image URL from API response (PURA "public/..." path rakhna hai)
   const buildCategoryImageUrl = (rawPath?: string) => {
@@ -249,9 +254,20 @@ const Dashboard: FC = () => {
   // Load cached user image immediately (no network)
   const loadCachedUser = useCallback(async () => {
     try {
-      const saved = await LocalStorage.read('@user');
+      let saved = await LocalStorage.read('@user');
       if (saved) {
-        if (saved?.profileImage) setProfileImage(saved.profileImage);
+        // Agar purana data string form me ho (double stringify), toh parse karne ki koshish karo
+        if (typeof saved === 'string') {
+          try {
+            saved = JSON.parse(saved);
+          } catch (e) {
+            // ignore parse error
+          }
+        }
+
+        if (saved?.profileImage) {
+          setProfileImage(saved.profileImage);
+        }
       }
     } catch (err) {
       console.log('loadCachedUser error', err);
@@ -437,6 +453,104 @@ const Dashboard: FC = () => {
       })();
     }, [loadCachedUser])
   );
+
+  const loadCart = useCallback(async () => {
+    try {
+      const res = await ApiService.getCart();
+      const cartData =
+        res?.data?.cart?.products ||
+        res?.data?.products ||
+        res?.data?.items ||
+        res?.data?.data?.items ||
+        [];
+      setCartItems(Array.isArray(cartData) ? cartData : []);
+
+      if (recentlyAddedProducts.length > 0) {
+        setTimeout(() => setRecentlyAddedProducts([]), 1200);
+      }
+    } catch (err) {
+      console.log('Dashboard cart load error:', err);
+    }
+  }, [recentlyAddedProducts.length]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadCart();
+    }, [loadCart])
+  );
+
+  useEffect(() => {
+    if (!lastAddedId) return;
+    bounceValue.setValue(0);
+    Animated.sequence([
+      Animated.timing(bounceValue, {
+        toValue: -12,
+        duration: 140,
+        useNativeDriver: true,
+      }),
+      Animated.spring(bounceValue, {
+        toValue: 0,
+        friction: 4,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [lastAddedId, bounceValue]);
+
+  const handleProductAdded = (product: any) => {
+    const productImage =
+      product?.image ||
+      product?.variants?.[0]?.images?.[0] ||
+      product?.ProductVarient?.[0]?.images?.[0] ||
+      product?.primary_image?.[0];
+
+    const productWithImage = {
+      ...product,
+      image: productImage,
+    };
+
+    setRecentlyAddedProducts(prev => {
+      const filtered = prev.filter(
+        p => (p.id || p._id) !== (product.id || product._id)
+      );
+      return [productWithImage, ...filtered].slice(0, 3);
+    });
+
+    setLastAddedId(
+      (product.id || product._id || Date.now().toString()).toString()
+    );
+
+    const newCartItem = {
+      productId: {
+        _id: product.id || product._id,
+        name: product.name,
+        images: [
+          product.image ||
+            product?.variants?.[0]?.images?.[0] ||
+            product?.ProductVarient?.[0]?.images?.[0],
+        ].filter(Boolean),
+      },
+      quantity: 1,
+    };
+
+    setCartItems(prev => {
+      const existingIndex = prev.findIndex(
+        item =>
+          (item.productId?._id || item.productId) ===
+          (product.id || product._id)
+      );
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          quantity: (updated[existingIndex].quantity || 1) + 1,
+        };
+        return updated;
+      }
+      return [newCartItem, ...prev];
+    });
+
+    loadCart();
+  };
 
   // 🧠 Pull to refresh
   const onRefresh = useCallback(() => {
@@ -637,14 +751,23 @@ const Dashboard: FC = () => {
   );
 
 
+  // Profile image normalize: agar server se pure URL aaye to direct use,
+  // warna IMAGE_BASE_URL + relative path (jo '@user.profileImage' me aa raha hai)
   const headerProfileImage = profileImage
-    ? (profileImage.startsWith('http') ? profileImage : `${IMAGE_BASE_URL}${profileImage}`)
+    ? (profileImage.startsWith('http') || profileImage.startsWith('file:')
+        ? profileImage
+        : `${IMAGE_BASE_URL}${profileImage}`)
     : 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ4YreOWfDX3kK-QLAbAL4ufCPc84ol2MA8Xg&s';
+  const cartItemCount = (cartItems || []).reduce(
+    (sum, item) => sum + (item?.quantity || 1),
+    0,
+  ) || recentlyAddedProducts.length;
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: hp(6) }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -753,7 +876,12 @@ const Dashboard: FC = () => {
               </View>
             </View>
             {/* 🔹 Product List */}
-          <ProductCard cardArray={products} type="OFFER" horizontal />
+          <ProductCard
+            cardArray={products}
+            type="OFFER"
+            horizontal
+            onProductAdded={handleProductAdded}
+          />
         
           </View>
         </View>
@@ -851,6 +979,7 @@ const Dashboard: FC = () => {
             cardArray={favorite}
             horizontal
             type="BOUGHT"
+            onProductAdded={handleProductAdded}
           />
         </View>
 
@@ -910,7 +1039,12 @@ const Dashboard: FC = () => {
               </Pressable>
             </View>
           </View>
-        <ProductCard cardArray={recommended} horizontal type="BOUGHT" />
+        <ProductCard
+          cardArray={recommended}
+          horizontal
+          type="BOUGHT"
+          onProductAdded={handleProductAdded}
+        />
         </View>
 
         {/* Fresh Fruits Section */}
@@ -955,6 +1089,7 @@ const Dashboard: FC = () => {
             cardArray={freshFood}
             horizontal
             type="FRUITS"
+            onProductAdded={handleProductAdded}
           />
         </View>
 
@@ -975,6 +1110,7 @@ const Dashboard: FC = () => {
                 justifyContent: 'center',
                 backgroundColor: '#1B5E20',
                 borderWidth: 3,
+                marginTop: hp(-1.5),
                 borderColor: '#1B5E20',
                 borderRadius: 30,
                 paddingVertical: hp(1.2), // responsive height
@@ -1046,9 +1182,103 @@ const Dashboard: FC = () => {
               </Pressable>
             </View>
           </View>
-          <ProductCard cardArray={dealOfTheDay} type="LIMITED" horizontal />
+          <ProductCard
+            cardArray={dealOfTheDay}
+            type="LIMITED"
+            horizontal
+            onProductAdded={handleProductAdded}
+          />
         </View>
       </ScrollView>
+
+      {(cartItems.length > 0 || recentlyAddedProducts.length > 0) && (
+        <Pressable
+          onPress={() =>
+            navigation.navigate('BottomStackNavigator', { screen: 'Cart' })
+          }
+          style={styles.floatingCartButton}
+        >
+          <View style={styles.cartButtonContent}>
+            <View style={styles.stackedImagesContainer}>
+              {(() => {
+                let productsToShow: any[] = [];
+
+                if (recentlyAddedProducts.length > 0) {
+                  // newest product should appear at the front
+                  productsToShow = recentlyAddedProducts
+                    .slice(-3)
+                    .reverse()
+                    .map(p => ({
+                    image:
+                      p?.image ||
+                      p?.variants?.[0]?.images?.[0] ||
+                      p?.ProductVarient?.[0]?.images?.[0] ||
+                      p?.primary_image?.[0],
+                  }));
+                } else if (cartItems.length > 0) {
+                  productsToShow = cartItems
+                    .slice(-3)
+                    .reverse()
+                    .map(item => {
+                    const product = item?.productId || item?.product;
+                    return {
+                      image:
+                        product?.images?.[0] ||
+                        product?.primary_image?.[0] ||
+                        product?.image ||
+                        item?.image,
+                    };
+                  });
+                }
+
+                return productsToShow.map((product, index) => {
+                  const imageUri = product?.image
+                    ? ApiService.getImage(product.image)
+                    : null;
+                  const Container: any = index === 0 ? Animated.View : View;
+
+                  return (
+                    <Container
+                      key={index}
+                      style={[
+                        styles.cartProductImageContainer,
+                        index > 0 && styles.stackedImage,
+                        index === 0 && { transform: [{ translateY: bounceValue }] },
+                        { zIndex: 10 - index },
+                      ]}
+                    >
+                      {imageUri ? (
+                        <Image
+                          source={{ uri: imageUri }}
+                          style={styles.cartProductImage}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View style={styles.cartProductImagePlaceholder} />
+                      )}
+                    </Container>
+                  );
+                });
+              })()}
+            </View>
+
+            <View style={styles.cartTextBlock}>
+              <TextView style={styles.cartButtonText}>View Cart</TextView>
+              <TextView style={styles.cartButtonSubText}>
+                {cartItemCount} item{cartItemCount === 1 ? '' : 's'}
+              </TextView>
+            </View>
+            <View style={styles.arrowCircle}>
+              <Icon
+                name="chevron-forward"
+                family="Ionicons"
+                size={16}
+                color="#1B5E20"
+              />
+            </View>
+          </View>
+        </Pressable>
+      )}
 
       {/* Address Picker */}
       <Modal
@@ -1167,7 +1397,7 @@ export default Dashboard;
     oldPrice: variant?.originalPrice || (product as any)?.mrp || 0,
     discount: variant?.discount ? `₹${variant.discount} OFF` : '',
     weight: `${weightValue} ${unitValue}`.trim(),
-    rating: 4.5,
+    rating: (product as any)?.rating || 4.5,
     options: `${((product as any)?.ProductVarient || (product as any)?.variants || []).length} Option${(((product as any)?.ProductVarient || (product as any)?.variants || []).length || 0) > 1 ? 's' : ''}`,
     variantId:
       variant?._id ||

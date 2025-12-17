@@ -126,7 +126,7 @@ const TypeProductList = ({ route }: TypeProductListProps) => {
       oldPrice: (variant as any)?.originalPrice || (product as any)?.mrp || 0,
       discount: (variant as any)?.discount ? `₹${(variant as any).discount} OFF` : '',
       weight: `${weightValue} ${unitValue}`.trim(),
-      rating: 4.5,
+      rating: (product as any)?.rating || 4.5,
       options: `${(((product as any)?.ProductVarient || (product as any)?.variants || []).length || 0)} Option${(((product as any)?.ProductVarient || (product as any)?.variants || []).length || 0) > 1 ? 's' : ''}`,
       variantId:
         (variant as any)?._id ||

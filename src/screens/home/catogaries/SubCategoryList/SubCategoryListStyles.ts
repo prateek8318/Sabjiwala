@@ -55,6 +55,7 @@ export default StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     color: "#228B22",
+    
   },
 
   // Search Icon Button (with border)
@@ -62,11 +63,11 @@ export default StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.PRIMARY[600],
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E0E0E0",
+    borderColor: Colors.PRIMARY[100],
   },
 
   // Illustration when search is active
@@ -75,6 +76,7 @@ export default StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingTop: 60,
+    
   },
   searchIllustration: {
     width: 341.84,
@@ -137,6 +139,7 @@ export default StyleSheet.create({
     paddingTop: 6,
     paddingHorizontal: -4, 
     marginLeft:-7,
+    paddingBottom: hp(3),
     
   },
   sortFilterContainer: {
@@ -157,7 +160,7 @@ searchHeader: {
   paddingVertical: 12,
   backgroundColor: "#fff",
   borderBottomWidth: 1,
-  borderColor: "#eee",
+  borderColor: "#ccc",
 },
 
 searchBackBtn: {
@@ -246,14 +249,14 @@ noResultContainer: {
   // Floating Cart Button
   floatingCartButton: {
     position: "absolute",
-    bottom: hp(12), // Position above bottom tab bar (tab bar height ~80px = ~hp(10))
+    bottom: hp(1.5), // Position above bottom tab bar (tab bar height ~80px = ~hp(10))
     alignSelf: "center",
     backgroundColor: "#1B5E20",
     borderRadius: 30,
     borderWidth: 2,
     borderColor: "#4CAF50",
-    paddingHorizontal: wp(4),
-    paddingVertical: hp(1.2),
+    paddingHorizontal: wp(2),
+    paddingVertical: hp(1),
     minWidth: wp(45),
     maxWidth: wp(90),
     shadowColor: "#000",
@@ -271,6 +274,12 @@ noResultContainer: {
     alignItems: "center",
     justifyContent: "center",
     gap: wp(2.5),
+  },
+  cartTextBlock: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    justifyContent: "center",
+    marginHorizontal: wp(2),
   },
   stackedImagesContainer: {
     flexDirection: "row",
@@ -305,5 +314,19 @@ noResultContainer: {
     fontSize: 14,
     fontWeight: "700",
     fontFamily: "Poppins-SemiBold",
+  },
+  cartButtonSubText: {
+    color: "#E8F5E9",
+    fontSize: 11,
+    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
+  },
+  arrowCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

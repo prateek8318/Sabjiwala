@@ -385,6 +385,51 @@ const ProductDetail = () => {
       </Text>
     </Pressable>
   );
+
+  // Render yellow star rating component
+  const renderStarRating = (rating: number) => {
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
+    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+
+    return (
+      <View style={styles.starRatingContainer}>
+        {[...Array(fullStars)].map((_, index) => (
+          <Icon
+            key={`full-${index}`}
+            family="AntDesign"
+            name="star"
+            color="#FFD700"
+            size={16}
+            style={styles.starIcon}
+          />
+        ))}
+        {hasHalfStar && (
+          <Icon
+            key="half"
+            family="AntDesign"
+            name="star"
+            color="#FFD700"
+            size={16}
+            style={styles.starIcon}
+          />
+        )}
+        {[...Array(emptyStars)].map((_, index) => (
+          <Icon
+            key={`empty-${index}`}
+            family="AntDesign"
+            name="staro"
+            color="#FFD700"
+            size={16}
+            style={styles.starIcon}
+          />
+        ))}
+        {rating > 0 && (
+          <Text style={styles.ratingValue}>{rating.toFixed(1)}</Text>
+        )}
+      </View>
+    );
+  };
   
 
   return (
@@ -408,7 +453,7 @@ const ProductDetail = () => {
 
           {/* Back Button */}
           <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Icon name="arrow-left" family="Feather" size={28} color="#000" />
+            <Icon name="arrow-left" family="Feather" size={22} color="#000" />
           </Pressable>
 
           {/* Heart Icon (Favorite) */}
@@ -416,7 +461,7 @@ const ProductDetail = () => {
             <Icon
               name={isFavorite ? "heart" : "heart-outline"}
               family="Ionicons"
-              size={28}
+              size={22}
               color={isFavorite ? "#FF4444" : "#fff"}
             />
           </Pressable>
@@ -435,33 +480,30 @@ const ProductDetail = () => {
               ))}
             </View>
           ) : null}
+
+          {/* Trademark Symbol - Bottom Left */}
+          <View style={styles.imgTradeMarkView}>
+            <Image source={Images.ic_trademark} style={styles.imgTradeMark} />
+          </View>
         </View>
 
-        {/* Name, Rating & Share */}
+        {/* Name & Share */}
         <View style={styles.nameRatingRow}>
           <View style={styles.nameRatingContainer}>
             <Text style={styles.productName}>{String(product.name || '')}</Text>
-
-            {/* Rating sirf tab dikhe jab rating > 0 ho */}
-            {product.rating > 0 && (
-              <View style={styles.ratingContainer}>
-                <Icon
-                  family="AntDesign"
-                  name="star"
-                  color={Colors.PRIMARY[400] || "#4CAF50"}
-                  size={16}
-                />
-                <Text style={styles.ratingText}>{String(product.rating)}</Text>
-              </View>
-            )}
           </View>
 
-          {/* Share Button - Fixed: ab black dot nahi aayega */}
+          {/* Share Button */}
           <Pressable onPress={handleShare} style={styles.shareBtn}>
             <Icon name="share-2" family="Feather" size={24} color="#000" />
           </Pressable>
         </View>
-        <Text style={styles.weightText}>{String(weight || '')}</Text>
+
+        {/* Weight & Rating Row */}
+        <View style={styles.weightRatingRow}>
+          <Text style={styles.weightText}>{String(weight || '')}</Text>
+          {product.rating > 0 && renderStarRating(product.rating)}
+        </View>
 
         {/* Price */}
         <View style={styles.priceRow}>

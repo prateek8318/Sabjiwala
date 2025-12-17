@@ -79,6 +79,9 @@ const SubCategoryList = ({ route }: any) => {
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [cartLoading, setCartLoading] = useState(false);
   const [recentlyAddedProducts, setRecentlyAddedProducts] = useState<any[]>([]);
+  const cartItemCount =
+    (cartItems || []).reduce((sum, item) => sum + (item?.quantity || 1), 0) ||
+    recentlyAddedProducts.length;
 
   const ShimmerPlaceholder = ({ style }: { style?: any }) => {
     const shimmerValue = useRef(new Animated.Value(0)).current;
@@ -441,15 +444,16 @@ const SubCategoryList = ({ route }: any) => {
 
               {searchQuery.trim() === "" ? (
                 <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-                  <Image source={require("../../../../assets/images/search.png")} style={{ width: 300, height: 400 }} resizeMode="contain" />
-                  <TextView style={{ marginTop: 20, fontSize: 16, color: "#999" }}>Start typing to search products</TextView>
+                  <TextView style={{ marginTop: 0, fontSize: 16, color: "#999" }}>Start typing to search products</TextView>
+                  <Image source={require("../../../../assets/images/search.png")} style={{ width: 250, height: 300 }} resizeMode="contain" />
+                  
                 </View>
               ) : productLoading ? (
                 renderShimmerGrid()
               ) : products.length === 0 ? (
                 <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-                  <Image source={require("../../../../assets/images/search.png")} style={{ width: 140, height: 140, opacity: 0.5 }} resizeMode="contain" />
-                  <TextView style={{ marginTop: 20, fontSize: 16, color: "#999" }}>No products found</TextView>
+                  <Image source={require("../../../../assets/images/search.png")} style={{ width: 140, height: 120, opacity: 0.5 }} resizeMode="contain" />
+                  <TextView style={{ marginTop: 0, fontSize: 16, color: "#999" }}>No products found</TextView>
                 </View>
               ) : (
                 <FlatList
@@ -669,9 +673,7 @@ const SubCategoryList = ({ route }: any) => {
                           resizeMode="cover"
                         />
                       ) : (
-                        <View style={styles.cartProductImagePlaceholder}>
-                          <Icon name="image" family="Feather" size={16} color="#fff" />
-                        </View>
+                        <View style={styles.cartProductImagePlaceholder} />
                       )}
                     </View>
                   );
@@ -680,10 +682,16 @@ const SubCategoryList = ({ route }: any) => {
             </View>
 
             {/* View Cart Text */}
-            <TextView style={styles.cartButtonText}>View Cart</TextView>
+            <View style={styles.cartTextBlock}>
+              <TextView style={styles.cartButtonText}>View Cart</TextView>
+              <TextView style={styles.cartButtonSubText}>
+                {cartItemCount} item{cartItemCount === 1 ? "" : "s"}
+              </TextView>
+            </View>
 
-            {/* Arrow Icon */}
-            <Icon name="chevron-forward" family="Ionicons" size={20} color="#fff" />
+            <View style={styles.arrowCircle}>
+              <Icon name="chevron-forward" family="Ionicons" size={16} color="#1B5E20" />
+            </View>
           </View>
         </Pressable>
       )}

@@ -20,7 +20,7 @@ import styles from './productCard.styles';
 import { Colors, Icon, Images, Typography } from '../../../../../constant';
 import { TextView } from '../../../../../components';
 import LinearGradient from 'react-native-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useState, useEffect, useCallback } from 'react';
 import ApiService from '../../../../../service/apiService';
 interface ProductCardProps {
@@ -44,38 +44,63 @@ const ProductCard: FC<ProductCardProps> = ({
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
   const [cartMap, setCartMap] = useState<{ [key: string]: number }>({});
+  // Store variant info for each product in cart: productId -> { variantId, variantData, quantity }
+  const [cartVariantMap, setCartVariantMap] = useState<{ [key: string]: { variantId?: string; variantData?: any; quantity: number } }>({});
   // Wishlist is the single source of truth for favorites
 
-  // Load cart
-  useEffect(() => {
-    const loadCart = async () => {
-      try {
-        const res = await ApiService.getCart();
-        const map: any = {};
+  // Load cart function
+  const loadCart = useCallback(async () => {
+    try {
+      const res = await ApiService.getCart();
+      const map: any = {};
+      const variantMap: any = {};
 
-        const cartItems =
-          res?.data?.cart?.products ||
-          res?.data?.products ||
-          res?.data?.items ||
-          [];
+      const cartItems =
+        res?.data?.cart?.products ||
+        res?.data?.products ||
+        res?.data?.items ||
+        [];
 
-        cartItems.forEach((i: any) => {
-          const pid =
-            i?.productId?._id ||
-            i?.productId ||
-            i?._id ||
-            i?.id ||
-            '';
-          if (pid) {
-            map[pid.toString()] = i.quantity || 0;
-          }
-        });
+      cartItems.forEach((i: any) => {
+        const pid =
+          i?.productId?._id ||
+          i?.productId ||
+          i?._id ||
+          i?.id ||
+          '';
+        if (pid) {
+          map[pid.toString()] = i.quantity || 0;
+          // Store variant info - variantId can be object with _id or just string
+          const variantIdObj = i?.variantId;
+          const variantId = variantIdObj?._id || variantIdObj || undefined;
+          // variantData should be the full variant object if available
+          const variantData = variantIdObj && typeof variantIdObj === 'object' ? variantIdObj : undefined;
+          variantMap[pid.toString()] = {
+            variantId: variantId,
+            variantData: variantData,
+            quantity: i.quantity || 0,
+          };
+        }
+      });
 
-        setCartMap(map);
-      } catch (e) { }
-    };
-    loadCart();
+      setCartMap(map);
+      setCartVariantMap(variantMap);
+    } catch (e) {
+      console.log('loadCart error:', e);
+    }
   }, []);
+
+  // Load cart on mount
+  useEffect(() => {
+    loadCart();
+  }, [loadCart]);
+
+  // Reload cart when screen comes into focus (e.g., when returning from cart screen)
+  useFocusEffect(
+    useCallback(() => {
+      loadCart();
+    }, [loadCart])
+  );
 
   const extractWishlistIds = useCallback((items: any[] = []) => {
     return items
@@ -167,31 +192,87 @@ const ProductCard: FC<ProductCardProps> = ({
   // Update cart qty
   const updateCartQty = async (
     productId: string,
-    variantId: string,
+    variantId: string | undefined,
     qty: number,
     productItem?: any,
   ) => {
     try {
       const pid = productId?.toString();
-      const vid = variantId?.toString();
-      if (!pid || !vid) return;
+      if (!pid) {
+        console.log('updateCartQty: No productId provided');
+        return;
+      }
+      // variantId can be undefined for products without variants
+      const vid = variantId ? variantId.toString() : undefined;
 
       if (qty > 0) {
-        await ApiService.addToCart(pid, vid, qty.toString());
+        // Optimistically update UI first for instant response
         setCartMap(prev => ({ ...prev, [pid]: qty }));
+        // Update variant map if we have variant info
+        if (vid && productItem) {
+          // Find variant data from productItem
+          const variantData = [...(productItem?.ProductVarient || []), ...(productItem?.variants || [])].find(
+            (v: any) => v._id === vid
+          );
+          if (variantData) {
+            setCartVariantMap(prev => ({
+              ...prev,
+              [pid]: {
+                variantId: vid,
+                variantData: variantData,
+                quantity: qty,
+              },
+            }));
+          }
+        } else if (!vid && productItem) {
+          // For products without variants, still update variant map to track
+          setCartVariantMap(prev => ({
+            ...prev,
+            [pid]: {
+              variantId: undefined,
+              variantData: undefined,
+              quantity: qty,
+            },
+          }));
+        }
         // Notify parent component if callback provided
         if (onProductAdded && productItem && qty === 1) {
           onProductAdded(productItem);
         }
+        // Then make API call in background
+        ApiService.addToCart(pid, vid, qty.toString()).then(() => {
+          // Reload cart from API to ensure consistency (in background)
+          loadCart();
+        }).catch((e) => {
+          console.log('addToCart error:', e);
+          // On error, reload cart to sync
+          loadCart();
+        });
       } else {
-        await ApiService.removeCartItem(pid, vid);
+        // Optimistically update UI first for instant response
         setCartMap(prev => {
           const next = { ...prev };
           delete next[pid];
           return next;
         });
+        setCartVariantMap(prev => {
+          const next = { ...prev };
+          delete next[pid];
+          return next;
+        });
+        // Then make API call in background
+        ApiService.removeCartItem(pid, vid).then(() => {
+          // Reload cart from API to ensure consistency (in background)
+          loadCart();
+        }).catch((e) => {
+          console.log('removeCartItem error:', e);
+          // On error, reload cart to sync
+          loadCart();
+        });
       }
-    } catch (e) { }
+    } catch (e) {
+      console.log('updateCartQty error:', e);
+    }
   };
 
   const getProductId = useCallback(
@@ -209,19 +290,94 @@ const ProductCard: FC<ProductCardProps> = ({
     const productId = getProductId(item);
     const isFavorite = productId ? wishlist.has(productId) : false;
     const cartQty = productId ? cartMap[productId] || 0 : 0;
+    // Get cart variant info if product is in cart
+    const cartVariantInfo = productId ? cartVariantMap[productId] : undefined;
+    
     // 👉 Variant logic: agar 0 variants hai to simple ADD button,
     // warna option button (modal open karega)
     const hasVariants =
       (item?.variants && item.variants.length > 0) ||
       (item?.ProductVarient && item.ProductVarient.length > 0);
-    const firstVariantId =
-      item?.variantId ||
-      item?.ProductVarient?.[0]?._id ||
-      item?.variants?.[0]?._id ||
-      productId;
+    
+    // Get selected variant from cart, or use first variant, or undefined
+    const selectedVariant = cartVariantInfo?.variantId
+      ? [...(item?.ProductVarient || []), ...(item?.variants || [])].find(
+          (v: any) => v._id === cartVariantInfo.variantId
+        )
+      : undefined;
+    
+    // For products without variants, variantId should be undefined
+    const firstVariantId = hasVariants
+      ? (selectedVariant?._id ||
+         item?.variantId ||
+         item?.ProductVarient?.[0]?._id ||
+         item?.variants?.[0]?._id ||
+         undefined)
+      : undefined;
+
+    // Use selected variant data if in cart, otherwise use default
+    const displayVariant = selectedVariant || item?.ProductVarient?.[0] || item?.variants?.[0] || {};
+    
+    // Display price from selected variant if in cart, otherwise from item
+    // cartVariantInfo?.variantData can have price/mrp directly, or we need to use selectedVariant
+    const displayPrice = cartVariantInfo?.variantData?.price 
+      || selectedVariant?.price 
+      || item?.price 
+      || 0;
+    const displayOldPrice = cartVariantInfo?.variantData?.originalPrice 
+      || cartVariantInfo?.variantData?.mrp 
+      || selectedVariant?.originalPrice 
+      || selectedVariant?.mrp 
+      || item?.oldPrice 
+      || 0;
+    
+    // Calculate discount - format it properly as "₹X OFF"
+    const calculateDiscount = () => {
+      // First check if discount is already formatted (contains "OFF" or "₹")
+      const variantDiscount = selectedVariant?.discount || cartVariantInfo?.variantData?.discount;
+      if (variantDiscount) {
+        // If it's already a string with "OFF" or "₹", return as is
+        if (typeof variantDiscount === 'string' && (variantDiscount.includes('OFF') || variantDiscount.includes('₹'))) {
+          return variantDiscount;
+        }
+        // If it's a number, format it
+        if (typeof variantDiscount === 'number' || !isNaN(Number(variantDiscount))) {
+          return `₹${variantDiscount} OFF`;
+        }
+        return variantDiscount;
+      }
+      
+      // Check item discount
+      if (item?.discount) {
+        if (typeof item.discount === 'string' && (item.discount.includes('OFF') || item.discount.includes('₹'))) {
+          return item.discount;
+        }
+        if (typeof item.discount === 'number' || !isNaN(Number(item.discount))) {
+          return `₹${item.discount} OFF`;
+        }
+        return item.discount;
+      }
+      
+      // Calculate discount from price difference
+      if (displayOldPrice > displayPrice) {
+        const discountAmount = Math.round(displayOldPrice - displayPrice);
+        return discountAmount > 0 ? `₹${discountAmount} OFF` : '';
+      }
+      
+      return '';
+    };
+    
+    const displayDiscount = calculateDiscount();
 
     // Ensure weight always shows (even if API missed it for some cards)
     const weightText = (() => {
+      // If variant is selected from cart, use that variant's weight
+      if (selectedVariant) {
+        const weightValue = selectedVariant?.weight ?? selectedVariant?.stock ?? 1;
+        const unitValue = selectedVariant?.unit ?? 'kg';
+        return `${weightValue} ${unitValue}`.trim();
+      }
+      
       // Prefer explicit weight if present
       if (item?.weight) return item.weight;
 
@@ -284,18 +440,18 @@ const ProductCard: FC<ProductCardProps> = ({
         {/* ====== PRICE SECTION - FINAL CLEAN VERSION ====== */}
         <View style={styles.cardProductPriceView}>
           <View style={styles.priceMainRow}>
-            <TextView style={styles.cardProductPriceText}>₹{item.price}</TextView>
+            <TextView style={styles.cardProductPriceText}>₹{displayPrice}</TextView>
 
-            {(item.oldPrice > item.price || item.discount) && (
+            {(displayOldPrice > displayPrice || displayDiscount) && (
               <>
-                {item.oldPrice > item.price && (
+                {displayOldPrice > displayPrice && (
                   <TextView style={styles.cardProductPriceDiscount}>
-                    ₹{item.oldPrice}
+                    ₹{displayOldPrice}
                   </TextView>
                 )}
-                {item.discount && (
+                {displayDiscount && (
                   <View style={styles.offerView}>
-                    <TextView style={styles.offerTxt}>{item.discount}</TextView>
+                    <TextView style={styles.offerTxt}>{displayDiscount}</TextView>
                   </View>
                 )}
               </>
@@ -323,7 +479,106 @@ const ProductCard: FC<ProductCardProps> = ({
 
           {/* ===== FIXED BLOCK START ===== */}
           {type === 'OFFER' ? (
-            hasVariants ? (
+            cartQty > 0 ? (
+              // ✅ If item is in cart, show quantity controls
+              <View style={{ marginTop: 8, alignItems: 'flex-end', borderRadius: 12, borderColor: "#F5F5F5" }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                  }}
+                >
+                  {/* --- Minus Button --- */}
+                  <Pressable
+                    onPress={e => {
+                      e.stopPropagation();
+                      const pid = getProductId(item);
+                      if (!pid) return;
+                      updateCartQty(
+                        pid,
+                        firstVariantId,
+                        cartQty - 1,
+                        item,
+                      );
+                    }}
+                    style={{
+                      height: hp(3),
+                      width: hp(3),
+                      borderRadius: hp(3),
+                      borderWidth: 1,
+                      borderColor: '#000',
+                      backgroundColor: '#fff',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginLeft: wp(2),
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: hp(2),
+                        color: '#000',
+                        fontWeight: '600',
+                        marginBottom: 2,
+                      }}
+                    >
+                      -
+                    </Text>
+                  </Pressable>
+
+                  {/* Quantity Text */}
+                  <Text
+                    style={{
+                      fontSize: hp(2),
+                      fontWeight: '600',
+                      color: '#000',
+                      minWidth: wp(2),
+                      textAlign: 'center',
+                    }}
+                  >
+                    {cartQty}
+                  </Text>
+
+                  {/* --- Plus Button --- */}
+                  <Pressable
+                    onPress={e => {
+                      e.stopPropagation();
+                      const pid = getProductId(item);
+                      if (!pid) return;
+                      updateCartQty(
+                        pid,
+                        firstVariantId,
+                        cartQty + 1,
+                        item,
+                      );
+                    }}
+                    style={{
+                      height: hp(3),
+                      width: hp(3),
+                      marginRight: hp(1),
+                      borderRadius: hp(3),
+                      borderWidth: 1,
+                      borderColor: '#000',
+                      backgroundColor: '#fff',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: hp(2),
+                        color: '#000',
+                        fontWeight: '600',
+                        marginBottom: 1,
+                      }}
+                    >
+                      +
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : hasVariants ? (
               // ✅ Jisme variant hoga → upar ADD (half width), niche OPTIONS
               <View>
                 <Pressable
@@ -357,10 +612,17 @@ const ProductCard: FC<ProductCardProps> = ({
             ) : (
               // ✅ Jisme 0 variants honge → sirf Add button (style: addProductButon)
               <Pressable
-                onPress={e => {
+                onPress={(e) => {
                   e.stopPropagation();
-                  if (!productId) return;
-                  updateCartQty(productId, firstVariantId, 1, item);
+                  if (!productId) {
+                    console.log('No productId found');
+                    return;
+                  }
+                  console.log('Add button clicked - productId:', productId, 'variantId:', firstVariantId);
+                  // Call without await for instant response
+                  updateCartQty(productId, firstVariantId, 1, item).catch((error) => {
+                    console.log('Error adding to cart:', error);
+                  });
                 }}
               >
                 <LinearGradient
@@ -471,35 +733,64 @@ const ProductCard: FC<ProductCardProps> = ({
                   </Pressable>
                 </View>
               ) : (
-                <Pressable
-                  onPress={e => {
-                    e.stopPropagation();
+                hasVariants ? (
+                  // ✅ Jisme variant hoga → upar ADD (half width), niche OPTIONS (option button style)
+                  <View>
+                    <Pressable
+                      onPress={e => {
+                        e.stopPropagation();
+                        setSelectedProduct(item);
+                        setShowVariantModal(true);
+                      }}
+                    >
+                      <LinearGradient
+                        colors={[Colors.PRIMARY[200], Colors.PRIMARY[100]]}
+                        style={styles.addButtonView}
+                        start={{ x: 0, y: 0.5 }}
+                        end={{ x: 1, y: 0 }}
+                      >
+                        <TextView style={styles.txtAdd}>Add</TextView>
+                      </LinearGradient>
+                    </Pressable>
 
-                    if (hasVariants) {
-                      setSelectedProduct(item);
-                      setShowVariantModal(true);
-                    } else {
+                    <Pressable
+                      onPress={e => {
+                        e.stopPropagation();
+                        setSelectedProduct(item);
+                        setShowVariantModal(true);
+                      }}
+                      style={styles.optionView}
+                    >
+                      <TextView style={styles.txtOption}>{item.options}</TextView>
+                    </Pressable>
+                  </View>
+                ) : (
+                  // ✅ Jisme 0 variants honge → sirf Add button
+                  <Pressable
+                    onPress={(e) => {
+                      e.stopPropagation();
                       const pid = getProductId(item);
-                      if (!pid) return;
-                      updateCartQty(
-                        pid,
-                        firstVariantId,
-                        1,
-                        item,
-                      );
-                    }
-                  }}
-                >
-
-                  <LinearGradient
-                    colors={[Colors.PRIMARY[200], Colors.PRIMARY[100]]}
-                    style={styles.addProductButon}
-                    start={{ x: 0, y: 0.5 }}
-                    end={{ x: 1, y: 0 }}
+                      if (!pid) {
+                        console.log('No productId found');
+                        return;
+                      }
+                      console.log('Add button clicked - productId:', pid, 'variantId:', firstVariantId);
+                      // Call without await for instant response
+                      updateCartQty(pid, firstVariantId, 1, item).catch((error) => {
+                        console.log('Error adding to cart:', error);
+                      });
+                    }}
                   >
-                    <TextView style={styles.txtAdd}>Add</TextView>
-                  </LinearGradient>
-                </Pressable>
+                    <LinearGradient
+                      colors={[Colors.PRIMARY[200], Colors.PRIMARY[100]]}
+                      style={styles.addProductButon}
+                      start={{ x: 0, y: 0.5 }}
+                      end={{ x: 1, y: 0 }}
+                    >
+                      <TextView style={styles.txtAdd}>Add</TextView>
+                    </LinearGradient>
+                  </Pressable>
+                )
               )}
             </View>
 
@@ -633,11 +924,20 @@ const ProductCard: FC<ProductCardProps> = ({
 
                 {/* Add Button */}
                 <Pressable
-                  onPress={() => {
+                  onPress={async () => {
                     const pid = getProductId(selectedProduct);
-                    const vid = v?._id || pid;
-                    if (!pid || !vid) return;
-                    updateCartQty(pid, vid, 1, selectedProduct);
+                    const vid = v?._id;
+                    if (!pid) return;
+                    // Optimistically update variant map
+                    setCartVariantMap(prev => ({
+                      ...prev,
+                      [pid]: {
+                        variantId: vid,
+                        variantData: v,
+                        quantity: 1,
+                      },
+                    }));
+                    await updateCartQty(pid, vid, 1, selectedProduct);
                     setShowVariantModal(false);
                   }}
                   style={{

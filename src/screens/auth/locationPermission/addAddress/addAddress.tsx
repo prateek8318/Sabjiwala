@@ -94,10 +94,10 @@ const AddAddress: FC = () => {
 
   const validateRequired = () => {
     const validationErrors: Record<string, string> = {};
-    if (!floor.trim()) validationErrors.floor = ' ';
+    // if (!floor.trim()) validationErrors.floor = ' ';
     if (!houseNoOrFlatNo.trim())
       validationErrors.houseNoOrFlatNo = ' ';
-    if (!landmark.trim()) validationErrors.landmark = ' ';
+    // Landmark is optional, so no required validation here
     if (!pincode.trim()) validationErrors.pincode = ' ';
     else {
       const pincodeDigits = pincode.replace(/[^0-9]/g, '');
@@ -116,7 +116,7 @@ const AddAddress: FC = () => {
     const touchedFields = {
       floor: true,
       houseNoOrFlatNo: true,
-      landmark: true,
+      // landmark is optional; we don't need to force-touch it for validation
       pincode: true,
       city: true,
       receiverName: true,
@@ -149,7 +149,7 @@ const AddAddress: FC = () => {
 
     const payload = {
       addressType: addressType,           // "home", "work", "other"
-      floor: floor.trim(),
+      // floor: floor.trim(),
       houseNoOrFlatNo: houseNoOrFlatNo.trim(),
       landmark: landmark.trim(),
       pincode: pincode.trim(),
@@ -257,7 +257,7 @@ const AddAddress: FC = () => {
             </View>
 
             <View style={{ marginTop: 2, gap: 8 }}>
-              <InputText
+              {/* <InputText
                 placeholder="Floor *"
                 value={floor}
                 onFocus={() => setTouched((prev) => ({ ...prev, floor: true }))}
@@ -274,7 +274,7 @@ const AddAddress: FC = () => {
                 maxLength={30}
                 error={errors.floor}
                 touched={touched.floor}
-              />
+              /> */}
 
               <InputText
                 placeholder="Flat / House No *"
@@ -301,7 +301,7 @@ const AddAddress: FC = () => {
               />
 
               <InputText
-                placeholder="Landmark *"
+                placeholder="Landmark (Optional)"
                 value={landmark}
                 onFocus={() =>
                   setTouched((prev) => ({ ...prev, landmark: true }))

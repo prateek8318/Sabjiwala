@@ -136,7 +136,7 @@ import { Colors } from '../../../constant';
   shimmerGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingTop: 12,
     paddingBottom: 20,
   },
@@ -153,7 +153,7 @@ import { Colors } from '../../../constant';
   shimmerInfo: {
     paddingHorizontal: 10,
     paddingVertical: 10,
-    gap: 8,
+    gap: 4,
   },
   shimmerLinePrimary: {
     height: 14,
