@@ -76,7 +76,7 @@ const styles = StyleSheet.create<any>({
 
   offerView: {
     // backgroundColor: '#E53935',        
-    backgroundColor: Colors.PRIMARY[600],
+    backgroundColor: "#C7E6AB",
     borderRadius: 50,
     width: 40,
     alignItems: 'center',

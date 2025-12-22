@@ -12,6 +12,7 @@ import Toast from 'react-native-toast-message';
 import { CartProvider } from './src/context/CartContext';
 import useFCM from './src/hooks/useFCM';
 import { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 const AppContent: FC = () => {
   const { addNotification } = useNotificationContext();
@@ -58,7 +59,9 @@ const AppContent: FC = () => {
 
 const App: FC = () => (
   <NotificationProvider>
-    <AppContent />
+    <SafeAreaProvider>
+      <AppContent />
+    </SafeAreaProvider>
   </NotificationProvider>
 );
 

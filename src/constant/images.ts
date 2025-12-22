@@ -44,6 +44,13 @@ const Images = {
   ic_heart: require('../assets/images/dashboard/ic_heart.png'),
   ic_order: require('../assets/images/dashboard/ic_order.png'),
   ic_cart: require('../assets/images/dashboard/ic_cart.png'),
+  
+  //Bottom Tabs - Active (focused state) - Add your Figma exported images here
+  ic_home_active: require('../assets/images/dashboard/ic_home_active.png'), // Replace with ic_home_active.png from Figma
+  ic_catogary_active: require('../assets/images/dashboard/ic_catogary_active.png'), // Replace with ic_catogary_active.png from Figma
+  ic_heart_active: require('../assets/images/dashboard/ic_heart_active.png'), // Replace with ic_heart_active.png from Figma
+  ic_order_active: require('../assets/images/dashboard/ic_order_active.png'), // Replace with ic_order_active.png from Figma
+  ic_cart_active: require('../assets/images/dashboard/ic_cart.png'), // Replace with ic_cart_active.png from Figma
 
   //Empty State
   empty_cart: require('../assets/images/empty-cart.png'),

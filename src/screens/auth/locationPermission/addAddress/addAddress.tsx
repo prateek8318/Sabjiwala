@@ -2,12 +2,12 @@
 
 import React, { FC, useState, useContext, useEffect } from 'react';
 import {
-  SafeAreaView,
   View,
   TouchableOpacity,
   TouchableWithoutFeedback,
   Keyboard,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import { CommonActions } from '@react-navigation/native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
@@ -216,7 +216,7 @@ const AddAddress: FC = () => {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <KeyboardAwareScrollView
           enableOnAndroid
           keyboardShouldPersistTaps="handled"

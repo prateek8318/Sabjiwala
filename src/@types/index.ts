@@ -85,6 +85,7 @@ export interface ProductCardItem {
   id: string;
   name: string;
   image: string;
+  images?: string[];
   price: number;
   oldPrice: number;
   discount: string;

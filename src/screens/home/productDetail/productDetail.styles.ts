@@ -87,15 +87,13 @@ export default StyleSheet.create({
   },
 
   bottomCartBar: {
-    position: 'absolute',
-    bottom: 0,
+    position: 'fixed',
+    bottom: hp(1),
     left: 0,
     right: 0,
-    height: hp(10),
-    backgroundColor: '#fff',
-    elevation: 15,
-    borderTopWidth: 0.5,
-    borderTopColor: '#ddd',
+    height: hp(6),
+   
+    
   },
   qtyAdjustBtn: {
     backgroundColor: '#fff',

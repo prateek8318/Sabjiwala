@@ -1,12 +1,11 @@
 import React, { FC } from 'react';
 import {
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   View,
   Image,
-  TouchableOpacity,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import styles from './locationPermission.styles';
 import { AuthStackProps } from '../../../@types';
 import { useNavigation } from '@react-navigation/native';
@@ -168,7 +167,7 @@ const LocationPermission: FC = () => {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View>
           <Image source={Images.img_location} style={styles.imgView} />
         </View>
@@ -180,40 +179,19 @@ const LocationPermission: FC = () => {
 
         <View>
           <View style={styles.buttonView}>
-            <TouchableOpacity
-              activeOpacity={0.8}
+            <LinearButton
+              title="Allow Location Access"
               onPress={() => {
                 console.log('[LocationPermission] Allow Location Access button pressed');
                 requestLocationPermission();
               }}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#1B5E20',
-                borderWidth: 3,
-                borderColor: '#1B5E20',
-                borderRadius: 30,
-                height: 54,
-                paddingHorizontal: 24,
-                elevation: 12,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.2,
-                shadowRadius: 10,
+              style={{}}
+              titleStyle={{
+                fontSize: 17,
+                fontWeight: '400',
+                top: -1,
               }}
-            >
-              <TextView
-                style={{
-                  color: '#FFFFFF',
-                  fontSize: 17,
-                  fontWeight: '400',
-                  top: -1,
-                }}
-              >
-                Allow Location Access
-              </TextView>
-            </TouchableOpacity>
+            />
           </View>
 
           <View style={styles.buttonView}>

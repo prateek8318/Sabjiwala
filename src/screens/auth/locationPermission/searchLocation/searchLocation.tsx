@@ -1,6 +1,5 @@
 import React, { FC, useContext, useState, useEffect } from 'react';
 import {
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   View,
@@ -9,6 +8,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import styles from './searchLocation.styles';
 import { AuthStackProps } from '../../../../@types';
@@ -445,7 +445,7 @@ const SearchLocation: FC = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1 }}
     >
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View>
           <Header />
         </View>

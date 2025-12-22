@@ -214,7 +214,7 @@ const ProductCard: FC<ProductCardProps> = ({
           {type === 'OFFER' && (
             <Pressable onPress={() => onAddAction()}>
               <LinearGradient
-                colors={[Colors.PRIMARY[200], Colors.PRIMARY[100]]}
+                colors={['#5A875C', '#015304']}
                 style={[
                   styles.addButtonView,
                   {
@@ -235,7 +235,7 @@ const ProductCard: FC<ProductCardProps> = ({
           {type !== 'OFFER' && (
             <View>
               <LinearGradient
-                colors={[Colors.PRIMARY[200], Colors.PRIMARY[100]]}
+                colors={['#5A875C', '#015304']}
                 style={styles.addProductButon}
                 start={{ x: 0, y: 0.5 }}
                 end={{ x: 1, y: 0 }}

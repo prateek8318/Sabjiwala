@@ -1,11 +1,17 @@
 // src/context/CartContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { Vibration } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 const API_URL = 'http://167.71.232.245:8539/api/user/cart';
 
+// Vibration duration in milliseconds
+const VIBRATION_DURATION = 50;
+
 type CartItem = {
   id: string;
+  productId?: string | { _id: string; [key: string]: any };
   name: string;
   price: number;
   image: any;
@@ -20,7 +26,7 @@ type CartContextType = {
   totalItems: number;
   totalSavings: number;
   loading: boolean;
-  addItem: (productId: string) => Promise<void>;
+  addItem: (product: any, variant?: string) => Promise<void>;
   updateQuantity: (id: string, qty: number) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
   fetchCart: () => Promise<void>;
@@ -67,20 +73,64 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       await removeItem(id);
       return;
     }
+    
+    // Optimistically update the UI
+    setItems(prevItems => {
+      return prevItems.map(item => {
+        const itemId = item.id || (typeof item.productId === 'object' ? item.productId?._id : item.productId);
+        if (itemId === id) {
+          return { ...item, quantity };
+        }
+        return item;
+      });
+    });
+    
+    // Provide haptic feedback
+    Vibration.vibrate(VIBRATION_DURATION);
+    
     try {
       await axios.put(`${API_URL}/${id}`, { quantity });
-      await fetchCart();
+      // Don't fetch cart again, we already updated optimistically
     } catch (err) {
-      console.log('Update failed');
+      console.log('Update failed', err);
+      // Revert on error
+      fetchCart().catch(console.error);
     }
   };
 
   const removeItem = async (id: string) => {
+    // Store the current items for potential rollback
+    const previousItems = [...items];
+    
     try {
+      // Optimistically update the UI immediately
+      setItems(prevItems => {
+        const updatedItems = prevItems.filter(item => {
+          const itemId = item.id || 
+            (typeof item.productId === 'object' ? item.productId?._id : item.productId);
+          return itemId !== id;
+        });
+        return updatedItems;
+      });
+      
+      // Make the API call in the background
       await axios.delete(`${API_URL}/${id}`);
-      await fetchCart();
+      
+      // Only fetch if we still have items, otherwise the cart will be hidden
+      if (items.length > 1) {
+        fetchCart().catch(console.error);
+      }
     } catch (err) {
-      console.log('Delete failed');
+      console.log('Delete failed', err);
+      // Revert to previous state on error
+      setItems(previousItems);
+      
+      // Show error to user
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to remove item. Please try again.',
+      });
     }
   };
 

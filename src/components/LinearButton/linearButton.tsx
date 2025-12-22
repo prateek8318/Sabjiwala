@@ -66,10 +66,10 @@ const LinearButton: FC<LinearButtonProps> = ({
       style={style}
       onPress={() => handleClick()}
       disabled={isLoading === true ? true : disabled}>
-      <View
-      >
+      <View>
         <LinearGradient
-          colors={[Colors.PRIMARY[200], Colors.PRIMARY[100]]}
+          // Global primary button gradient
+          colors={['#5A875C', '#015304']}
           style={styles.gradientButton}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0 }}>

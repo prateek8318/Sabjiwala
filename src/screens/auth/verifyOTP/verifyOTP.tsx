@@ -2,7 +2,6 @@ import React, { FC, useContext, useEffect, useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
-  SafeAreaView,
   ScrollView,
   TouchableWithoutFeedback,
   View,
@@ -16,12 +15,13 @@ import Toast from "react-native-toast-message";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { AuthStackProps } from "../../../@types";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "../../../constant/dimentions";
 import ApiService from "../../../service/apiService";
 import { LocalStorage } from "../../../helpers/localstorage";
 import { storage } from "../../../service/storage";
 import { UserData, UserDataContext } from "../../../context/userDataContext";
+import LinearGradient from "react-native-linear-gradient";
 
 const VerifyOTP: FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackProps>>();
@@ -121,169 +121,177 @@ const VerifyOTP: FC = () => {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <SafeAreaView style={styles.container}>
+      <LinearGradient
+        colors={["#015304", "#5A875C"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.container}
+      >
+        <SafeAreaView style={{ flex: 1 }} edges={['top']}>
 
-        {/* ---------- RESPONSIVE TOP IMAGES ---------- */}
-        <Image
-          source={require("../../../assets/images/style.png")}
-          style={{
-            width: "100%",
+          {/* ---------- RESPONSIVE TOP IMAGES ---------- */}
+          <Image
+            source={require("../../../assets/images/style.png")}
+            style={{
+              width: "100%",
+              height: hp(10),
+              position: "absolute",
+              top: 0,
+              resizeMode: "contain",
+            }}
+          />
 
-            position: "absolute",
-            top: 0,
-            resizeMode: "stretch",
-          }}
-        />
 
+          {/* ----------------------------------------------------------- */}
 
-        {/* ----------------------------------------------------------- */}
-
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 30 : 0}
-          style={{ flex: 1 }}
-        >
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ flexGrow: 1 }}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 30 : 0}
+            style={{ flex: 1 }}
           >
-            <View style={{ flex: 1, paddingTop: hp(22) }}>
-              <View style={styles.verifyOTPView}>
-                <Image
-                  source={require("../../../assets/images/lemon.png")}
-                  style={{
-                    position: "absolute",
-                    top: hp(-8),
-                    left: wp(5),
-                    width: wp(18),
-                    height: wp(18),
-                    resizeMode: "contain",
-                  }}
-                />
-
-                <Image
-                  source={require("../../../assets/images/peas.png")}
-                  style={{
-                    position: "absolute",
-                    top: hp(5),
-                    right: wp(5),
-                    width: wp(30),
-                    height: wp(20),
-                    resizeMode: "contain",
-                  }}
-                />
-                <TextView style={styles.titleText}>
-                  A 4 Digit OTP has Sent to Your Number
-                </TextView>
-                <View style={styles.numberRow}>
-                  <TextView style={styles.numberText}>+91 {route?.params?.number}</TextView>
-                  <TextView
-                    style={styles.editText}
-                    onPress={() => navigation.navigate("Signin")}
-                  >
-                    edit
-                  </TextView>
-                </View>
-
-                <View style={styles.otpView}>
-                  <OtpInput
-                    numberOfInputs={4}
-                    onOTPComplete={(otp: any) => setCode(otp)}
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ flexGrow: 1 }}
+            >
+              <View style={{ flex: 1, paddingTop: hp(22) }}>
+                <View style={styles.verifyOTPView}>
+                  <Image
+                    source={require("../../../assets/images/lemon.png")}
+                    style={{
+                      position: "absolute",
+                      top: hp(-8),
+                      left: wp(1),
+                      width: wp(18),
+                      height: wp(16),
+                      resizeMode: "contain",
+                    }}
                   />
-                </View>
-              </View>
 
-              <View style={{ marginTop: hp(0.5) }}>
-                {canResend && (
+                  <Image
+                    source={require("../../../assets/images/peas.png")}
+                    style={{
+                      position: "absolute",
+                      top: hp(-8),
+                      right: wp(1),
+                      width: wp(24),
+                      height: wp(20),
+                      resizeMode: "contain",
+                    }}
+                  />
+                  <TextView style={styles.titleText}>
+                    A 4 Digit OTP has Sent to Your Number
+                  </TextView>
+                  <View style={styles.numberRow}>
+                    <TextView style={styles.numberText}>+91 {route?.params?.number}</TextView>
+                    <TextView
+                      style={styles.editText}
+                      onPress={() => navigation.navigate("Signin")}
+                    >
+                      edit
+                    </TextView>
+                  </View>
+
+                  <View style={styles.otpView}>
+                    <OtpInput
+                      numberOfInputs={4}
+                      onOTPComplete={(otp: any) => setCode(otp)}
+                    />
+                  </View>
+                </View>
+
+                <View style={{ marginTop: hp(0.5) }}>
+                  {canResend && (
+                    <Button
+                      title="Resend"
+                      style={styles.actionButton}
+                      buttonColor={Colors.PRIMARY[300]}
+                      titleStyle={styles.actionButtonTitle}
+                      onPress={handleResendOTP}
+                    />
+                  )}
+
                   <Button
-                    title="Resend"
-                    style={styles.actionButton}
+                    title="Submit"
+                    style={[
+                      styles.actionButton,
+                      { marginTop: canResend ? hp(2) : hp(4) },
+                    ]}
                     buttonColor={Colors.PRIMARY[300]}
                     titleStyle={styles.actionButtonTitle}
-                    onPress={handleResendOTP}
+                    onPress={attempVerify}
                   />
-                )}
-
-                <Button
-                  title="Submit"
-                  style={[
-                    styles.actionButton,
-                    { marginTop: canResend ? hp(2) : hp(4) },
-                  ]}
-                  buttonColor={Colors.PRIMARY[300]}
-                  titleStyle={styles.actionButtonTitle}
-                  onPress={attempVerify}
-                />
-              </View>
-
-              {!canResend && (
-                <View style={styles.bottomView}>
-                  <TextView style={styles.timerText}>
-                    Resend OTP in{" "}
-                    <TextView style={styles.secText}>{globalTimer}</TextView> sec
-                  </TextView>
                 </View>
-              )}
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
 
-        {/* ---------- RESPONSIVE BOTTOM IMAGES - HIDE WHEN KEYBOARD VISIBLE ---------- */}
-        {!isKeyboardVisible && (
-          <>
-            <Image
-              source={require("../../../assets/images/style3.png")}
-              style={{
-                width: wp(35),
-                height: hp(12),
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                resizeMode: "contain",
-              }}
-            />
+                {!canResend && (
+                  <View style={styles.bottomView}>
+                    <TextView style={styles.timerText}>
+                      Resend OTP in{" "}
+                      <TextView style={styles.secText}>{globalTimer}</TextView> sec
+                    </TextView>
+                  </View>
+                )}
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
 
-            <Image
-              source={require("../../../assets/images/beetroot.png")}
-              style={{
-                position: "absolute",
-                bottom: hp(3),
-                left: wp(8),
-                width: wp(18),
-                height: hp(12),
-                resizeMode: "contain",
-              }}
-            />
+          {/* ---------- RESPONSIVE BOTTOM IMAGES - HIDE WHEN KEYBOARD VISIBLE ---------- */}
+          {!isKeyboardVisible && (
+            <>
+              <Image
+                source={require("../../../assets/images/beetroot.png")}
+                style={{
+                  position: "absolute",
+                  bottom: hp(1),
+                  left: wp(8),
+                  width: wp(18),
+                  height: hp(12),
+                  resizeMode: "contain",
+                }}
+              />
+              <Image
+                source={require("../../../assets/images/style3.png")}
+                style={{
+                  width: wp(34),
+                  height: hp(10),
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  resizeMode: "contain",
+                }}
+              />
 
-            <Image
-              source={require("../../../assets/images/tomato.png")}
-              style={{
-                position: "absolute",
-                bottom: hp(18),
-                right: wp(2),
-                width: wp(12),
-                height: hp(10),
-                resizeMode: "contain",
-              }}
-            />
 
-            <Image
-              source={require("../../../assets/images/style2.png")}
-              style={{
-                width: wp(35),
-                height: hp(12),
-                position: "absolute",
-                bottom: 0,
-                right: 0,
-                resizeMode: "contain",
-              }}
-            />
-          </>
-        )}
-        {/* ----------------------------------------------------------- */}
 
-      </SafeAreaView>
+              <Image
+                source={require("../../../assets/images/tomato.png")}
+                style={{
+                  position: "absolute",
+                  bottom: hp(18),
+                  right: 0,
+                  width: wp(10),
+                  height: hp(10),
+                  resizeMode: "contain",
+                }}
+              />
+
+              <Image
+                source={require("../../../assets/images/style2.png")}
+                style={{
+                  width: wp(34),
+                  height: hp(10),
+                  position: "absolute",
+                  bottom: 0,
+                  right: 0,
+                  resizeMode: "contain",
+                }}
+              />
+            </>
+          )}
+          {/* ----------------------------------------------------------- */}
+
+        </SafeAreaView>
+      </LinearGradient>
     </TouchableWithoutFeedback>
   );
 };

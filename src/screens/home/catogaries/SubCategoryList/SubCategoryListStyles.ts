@@ -63,11 +63,10 @@ export default StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.PRIMARY[600],
+    backgroundColor: '#C7E6AB',
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: Colors.PRIMARY[100],
+    
   },
 
   // Illustration when search is active
@@ -91,34 +90,34 @@ export default StyleSheet.create({
   },
 
   leftPane: {
-    width: 75,
+    width: wp(18),
     backgroundColor: "#fff",
-    paddingTop: 12,
+    paddingTop: hp(1.5),
   },
 
   subItem: {
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 8,
+    paddingVertical: hp(1.8),
+    paddingHorizontal: wp(2),
   },
   subItemActive: {
     backgroundColor: "#fff",
     
   },
   subImage: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: wp(10.5),
+    height: wp(10.5),
+    borderRadius: wp(5.25),
     backgroundColor: "#e0e0e0",
   },
   subImageActive: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: wp(13.5),
+    height: wp(13.5),
+    borderRadius: wp(6.75),
   },
   subTitle: {
-    marginTop: 8,
-    fontSize: 9.6,
+    marginTop: 6,
+    fontSize: 9,
     color: "#228B22",
     textAlign: "center",
   },
@@ -127,8 +126,8 @@ export default StyleSheet.create({
     fontWeight: "700",
   },
   activeUnderline: {
-    marginTop: 6,
-    width: 50,
+    marginTop: 5,
+    width: wp(12),
     height: 3,
     borderRadius: 2,
     backgroundColor: "#1B5E20",
@@ -136,21 +135,20 @@ export default StyleSheet.create({
 
   rightPane: {
     flex: 1,
-    paddingTop: 6,
-    paddingHorizontal: -4, 
-    marginLeft:-7,
-    paddingBottom: hp(3),
+    paddingTop: hp(0.5),
+    
+    marginLeft: -8,
+    paddingBottom: 0,
     
   },
   sortFilterContainer: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: wp(2.5),
+    paddingVertical: hp(1),
     marginBottom: 4,
   },
   productCardWrapper: {
-    width: "50%",           // 2 cards perfect fit
-   
-    paddingHorizontal: -4,
+    width: "49%",
+  
   },
 searchHeader: {
   flexDirection: "row",
@@ -186,9 +184,7 @@ noResultContainer: {
 },
 
   loaderContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    
   },
   shimmerGrid: {
     flexDirection: "row",
@@ -249,14 +245,15 @@ noResultContainer: {
   // Floating Cart Button
   floatingCartButton: {
     position: "absolute",
-    bottom: hp(1.5), // Position above bottom tab bar (tab bar height ~80px = ~hp(10))
+    bottom: hp(7), // lifted above bottom tab bar to match Figma spacing
     alignSelf: "center",
-    backgroundColor: "#1B5E20",
+    zIndex: 1000,
+  },
+  cartGradient: {
     borderRadius: 30,
-    borderWidth: 2,
-    borderColor: "#4CAF50",
-    paddingHorizontal: wp(2),
-    paddingVertical: hp(1),
+    paddingLeft: wp(7), // space for overlapping image
+    paddingRight: wp(3),
+    paddingVertical: hp(1.1),
     minWidth: wp(45),
     maxWidth: wp(90),
     shadowColor: "#000",
@@ -267,7 +264,6 @@ noResultContainer: {
     shadowOpacity: 0.3,
     shadowRadius: 4.65,
     elevation: 8,
-    zIndex: 1000,
   },
   cartButtonContent: {
     flexDirection: "row",
@@ -284,7 +280,7 @@ noResultContainer: {
   stackedImagesContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginLeft: wp(2),
+    marginLeft: -wp(4), // pull image outside left edge
   },
   cartProductImageContainer: {
     width: 40,
@@ -293,7 +289,7 @@ noResultContainer: {
     overflow: "hidden",
     backgroundColor: "#fff",
     borderWidth: 2,
-    borderColor: "#4CAF50",
+    borderColor: "#015304",
   },
   stackedImage: {
     marginLeft: -wp(6),
@@ -322,11 +318,6 @@ noResultContainer: {
     fontFamily: "Poppins-SemiBold",
   },
   arrowCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
+    
   },
 });

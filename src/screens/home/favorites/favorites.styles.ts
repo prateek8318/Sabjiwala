@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
   },
   offerView: {
     // backgroundColor: '#E53935',        
-    backgroundColor: '#27AE60',
+    backgroundColor: '#C7E6AB',
     borderRadius: 50,
     width: 40,
     alignItems: 'center',
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   },
 
   offerTxt: {
-    color: '#FFFFFF',                
+    color: '#000',                
     ...Typography.BodyMedium12,
     fontWeight: '400',
     fontSize: 8,

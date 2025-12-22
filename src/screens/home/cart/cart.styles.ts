@@ -39,10 +39,10 @@ const styles: any = StyleSheet.create({
 
   freeDeliveryContainer: {
     width: '100%',
-    backgroundColor: '#D7ECA8',   
+    backgroundColor: '#C7E6AB',   
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#8BC34A',
+    borderColor: '#015304',
     padding: 10,
     paddingHorizontal: wp(5),
     paddingVertical: hp(1.5),
@@ -58,9 +58,10 @@ const styles: any = StyleSheet.create({
   },
 
   freeDeliveryText: {
-    color: '#2E7D32',
-    fontSize: 14,
+    color: '#055508',
+    fontSize: 17,
     fontWeight: '600',
+    fontFamily: 'Poppins-Regular',
 
     
   },
@@ -78,42 +79,118 @@ const styles: any = StyleSheet.create({
     marginTop: hp(1.5),
     backgroundColor: '#fff',
     borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#C7E6AB',
     padding: hp(1.7),
-    elevation: 4,
+    elevation: 2,
     shadowColor: '#000',
-    shadowOpacity: 0.10,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
   },
 
   itemImage: {
-    width: wp(14),
-    height: wp(14),
+    width: wp(18),
+    height: wp(18),
     borderRadius: 10,
+    backgroundColor: '#f5f5f5',
   },
 
   itemInfo: {
     flex: 1,
     marginLeft: wp(3),
+    justifyContent: 'space-between',
   },
 
   itemName: {
     fontSize: hp(2),
     fontWeight: '700',
     color: '#000',
+    marginBottom: 4,
   },
 
   itemWeight: {
-    fontSize: hp(1.7),
-    color: '#777',
-    marginTop: 2,
+    fontSize: hp(1.6),
+    color: '#000',
+    marginBottom: 6,
+  },
+
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
 
   itemPrice: {
     fontSize: hp(2.2),
     fontWeight: '700',
-    marginTop: hp(1),
     color: '#000',
+  },
+
+  itemOriginalPrice: {
+    fontSize: hp(1.6),
+    fontWeight: '400',
+    color: '#999',
+    textDecorationLine: 'line-through',
+  },
+
+  itemActions: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingLeft: wp(2),
+    gap: 12,
+  },
+
+  deleteButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#C7E6AB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  quantityContainerWrapper: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+
+  quantityContainerGradient: {
+    borderRadius: 20,
+    padding: 1,
+  },
+
+  quantityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 19,
+    paddingHorizontal: 2,
+    paddingVertical: 2,
+    minWidth: 40,
+    justifyContent: 'space-between',
+  },
+
+  quantityButton: {
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  quantityButtonText: {
+    fontSize: hp(2.2),
+    fontWeight: '600',
+    color: '#02214C',
+  },
+
+  quantityNumber: {
+    marginHorizontal: 12,
+    fontWeight: '800',
+    fontSize: hp(1.9),
+    color: '#02214C',
+    minWidth: 20,
+    textAlign: 'center',
   },
 
   qtyContainer: {
@@ -127,12 +204,12 @@ const styles: any = StyleSheet.create({
 
   qtyButtonText: {
     fontSize: hp(3),
-    paddingHorizontal: 10,
+    paddingHorizontal: 5,
     color: '#000',
   },
 
   qtyNumber: {
-    marginHorizontal: 12,
+    marginHorizontal: 6,
     fontWeight: '700',
     fontSize: hp(2),
     color: '#000',
@@ -147,13 +224,8 @@ const styles: any = StyleSheet.create({
     alignItems: 'center',
   },
 
-  deleteButton: {
-    marginLeft: wp(2),
-    justifyContent: 'center',
-  },
-
   couponButton: {
-    backgroundColor: '#D7ECA8',
+    backgroundColor: '#C7E6AB',
     marginHorizontal: wp(4),
     marginTop: hp(2),
     padding: hp(1),
@@ -166,11 +238,11 @@ const styles: any = StyleSheet.create({
   couponText: {
     fontSize: hp(2),
     fontWeight: '700',
-    color: '#000',
+    color: '#055508',
   },
 
   paymentBox: {
-    backgroundColor: '#D7ECA8',
+    backgroundColor: '#C7E6AB',
     
     padding: hp(2),
     
@@ -180,7 +252,7 @@ const styles: any = StyleSheet.create({
   paymentLabel: {
     fontSize: hp(2),
     fontWeight: '800',
-    color: '#000',
+    color: '#055508',
     marginBottom: hp(1.2),
   },
 
@@ -193,13 +265,13 @@ const styles: any = StyleSheet.create({
   grandTotalRow: {
     borderTopWidth: 2,
     borderStyle: 'dashed',
-    borderColor: '#bbb',
+    borderColor: '#587AA8',
     paddingTop: hp(1.5),
     marginTop: hp(1),
   },
 
   savingsBox: {
-    backgroundColor: '#F4EFFF',
+    backgroundColor: '#F5F0FF',
     
     padding: hp(1.5),
     
@@ -215,7 +287,7 @@ const styles: any = StyleSheet.create({
   },
 
   tipBox: {
-    backgroundColor: '#D7ECA8',
+    backgroundColor: '#C7E6AB',
     
     padding: 14,
     
@@ -224,13 +296,13 @@ const styles: any = StyleSheet.create({
 
   tipTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#000',
     marginBottom: 6,
   },
 
   tipDescription: {
-    fontSize: 13,
+    fontSize: 16,
     color: '#000',
     marginBottom: 12,
     lineHeight: 18,
@@ -238,8 +310,10 @@ const styles: any = StyleSheet.create({
 
   tipButtonsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: hp(1),
+    alignItems: 'center',
+    paddingVertical: hp(0.5),
+    paddingHorizontal: 2,
+    gap: 8,
   },
 
   tipButton: {
@@ -260,6 +334,48 @@ const styles: any = StyleSheet.create({
     fontWeight: '700',
     fontSize: hp(1.8),
     color: "#000",
+  },
+
+  customTipRow: {
+    marginTop: hp(1),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  customTipLabel: {
+    fontSize: 13,
+    color: '#000',
+    fontWeight: '500',
+  },
+
+  customTipInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#fff',
+    minWidth: wp(24),
+    justifyContent: 'center',
+  },
+
+  customTipPrefix: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#000',
+    marginRight: 4,
+  },
+
+  customTipInput: {
+    minWidth: wp(10),
+    textAlign: 'center',
+    fontSize: 14,
+    color: '#000',
+    padding: 0,
+    margin: 0,
   },
 
   emptyContainer: {
@@ -325,7 +441,7 @@ const styles: any = StyleSheet.create({
   placeOrderButton: {
     backgroundColor: '#1B5E20',
     paddingHorizontal: 30,
-    paddingVertical: 13,
+    paddingVertical: 16,
     borderRadius: 30,
     flexDirection: 'row',
     alignItems: 'center',

@@ -13,7 +13,7 @@ import {
 import { TextView } from '../../../components';
 import styles from './myOrder.styles';
 import ApiService from '../../../service/apiService';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../../constant';
 
 
@@ -41,6 +41,13 @@ const MyOrder = () => {
   useEffect(() => {
     fetchOrders();
   }, []);
+
+  // Refresh orders when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchOrders();
+    }, [])
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

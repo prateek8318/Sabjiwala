@@ -1,6 +1,5 @@
 import React, { FC, useState, useEffect } from 'react';
 import {
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   View,
@@ -9,6 +8,7 @@ import {
   ScrollView,
   Keyboard,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import styles from './signin.styles';
 import { AuthStackProps } from '../../../@types';
 import { useNavigation } from '@react-navigation/native';
@@ -20,6 +20,7 @@ import { Colors } from '../../../constant';
 import InputText from '../../../components/InputText/TextInput';
 import ApiService from '../../../service/apiService';
 import Toast from 'react-native-toast-message';
+import LinearGradient from 'react-native-linear-gradient';
 
 type SigninScreenNavigationType = NativeStackNavigationProp<
   AuthStackProps,
@@ -85,160 +86,169 @@ const Signin: FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <LinearGradient
+      colors={['#015304', '#5A875C']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1.5, y: 1.5 }}
+      style={styles.container}>
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
 
-      {/* ⭐ FIXED TOP IMAGES */}
-      <Image
-        source={require('../../../assets/images/style.png')}
-        style={{
-          width: '100%',
-          position: 'absolute',
-          top: 0,
-          resizeMode: 'stretch',
-        }}
-      />
-
-
-
-
-
-      {/* ⭐ WRAP ENTIRE CONTENT SO NO ERRORS */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        <ScrollView
-          contentContainerStyle={{
-            flexGrow: 1,
-            justifyContent: 'center',
-            paddingHorizontal: wp(5),
-            paddingBottom: isKeyboardVisible ? hp(0) : hp(10), // padding to avoid overlap with images
+        {/* ⭐ FIXED TOP IMAGES */}
+        <Image
+          source={require('../../../assets/images/style.png')}
+          style={{
+            width: '100%',
+            height: hp(10),
+            position: 'absolute',
+            top: 0,
+            resizeMode: 'contain',
           }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+        />
+
+
+
+
+
+        {/* ⭐ WRAP ENTIRE CONTENT SO NO ERRORS */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
         >
-          <View
-            style={{
-              maxHeight: hp(40),
+          <ScrollView
+            contentContainerStyle={{
+              flexGrow: 1,
               justifyContent: 'center',
+              paddingHorizontal: wp(5),
+              paddingBottom: isKeyboardVisible ? hp(0) : hp(10), // padding to avoid overlap with images
             }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
-            <View style={styles.txtLoginView}>
-              <Image
-                source={require('../../../assets/images/lemon.png')}
-                style={{
-                  position: 'absolute',
-                  top: hp(-5),
-                  left: wp(5),
-                  width: wp(18),
-                  height: wp(18),
-                  resizeMode: 'contain',
-                }}
-              />
-              <Text style={styles.txtLogin}>Login</Text>
-              <Image
-                source={require('../../../assets/images/peas.png')}
-                style={{
-                  position: 'absolute',
-                  top: hp(11),
-                  right: wp(5),
-                  width: wp(28),
-                  height: wp(18),
-                  resizeMode: 'contain',
-                }}
-              />
-            </View>
+            <View
+              style={{
+                maxHeight: hp(40),
+                justifyContent: 'center',
+              }}
+            >
+              <View style={styles.txtLoginView}>
+                <Image
+                  source={require('../../../assets/images/lemon.png')}
+                  style={{
+                    position: 'absolute',
+                    top: hp(-5),
+                    left: wp(5),
+                    width: wp(18),
+                    height: wp(14),
+                    resizeMode: 'contain',
+                  }}
+                />
+                <Text style={styles.txtLogin}>Login</Text>
+                <Image
+                  source={require('../../../assets/images/peas.png')}
+                  style={{
+                    position: 'absolute',
+                    top: hp(11),
+                    right: wp(5),
+                    width: wp(24),
+                    height: wp(18),
+                    resizeMode: 'contain',
+                  }}
+                />
+              </View>
 
-            <InputText
-              value={number}
-              //@ts-ignore
-              inputStyle={[styles.inputView]}
-              keyboardType="number-pad"
-              maxLength={10}
-              placeHolderTextStyle={Colors.FLOATINGINPUT[100]}
-              placeholder="Mobile Number"
-              onChangeText={(value: string) =>
-                setNumber(value.replace(/[^0-9]/g, ''))
-              }
+              <InputText
+                value={number}
+                //@ts-ignore
+                inputStyle={[styles.inputView]}
+                keyboardType="number-pad"
+                maxLength={10}
+                placeHolderTextStyle={Colors.FLOATINGINPUT[100]}
+                placeholder="Mobile Number"
+                onChangeText={(value: string) =>
+                  setNumber(value.replace(/[^0-9]/g, ''))
+                }
+              />
+
+              <Button
+                title={'Get OTP'}
+                style={styles.actionButton}
+                buttonColor={Colors.PRIMARY[300]}
+                titleStyle={styles.actionButtonTitle}
+                onPress={attemptSignIn}
+              />
+
+              <View style={styles.txtView}>
+                <TextView style={styles.txtWhite}>
+                  By continuing, you agree to our{' '}
+                  <TextView style={styles.txtYellow} onPress={openTerms}>
+                    Terms of Use
+                  </TextView>
+                  <TextView style={styles.txtWhite}> and </TextView>
+                  <TextView style={styles.txtYellow} onPress={openPrivacy}>
+                    Privacy Policy
+                  </TextView>
+                </TextView>
+              </View>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+
+        {/* ⭐ FIXED BOTTOM IMAGES - HIDE ON KEYBOARD VISIBLE */}
+        {!isKeyboardVisible && (
+          <>
+
+            <Image
+              source={require('../../../assets/images/beetroot.png')}
+              style={{
+                position: 'absolute',
+                bottom: hp(2),
+                left: wp(7),
+                width: wp(18),
+                height: hp(12),
+                resizeMode: 'contain',
+              }}
+            />
+            <Image
+              source={require('../../../assets/images/style3.png')}
+              style={{
+                width: wp(32),
+                height: hp(10),
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                resizeMode: 'contain',
+              }}
             />
 
-            <Button
-              title={'Get OTP'}
-              style={styles.actionButton}
-              buttonColor={Colors.PRIMARY[300]}
-              titleStyle={styles.actionButtonTitle}
-              onPress={attemptSignIn}
+
+
+            <Image
+              source={require('../../../assets/images/tomato.png')}
+              style={{
+                position: 'absolute',
+                bottom: hp(17),
+                right: 0,
+                width: wp(12),
+                height: hp(10),
+                resizeMode: 'contain',
+              }}
             />
 
-            <View style={styles.txtView}>
-              <TextView style={styles.txtWhite}>
-                By continuing, you agree to our{' '}
-                <TextView style={styles.txtYellow} onPress={openTerms}>
-                  Terms of Use
-                </TextView>
-                <TextView style={styles.txtWhite}> and </TextView>
-                <TextView style={styles.txtYellow} onPress={openPrivacy}>
-                  Privacy Policy
-                </TextView>
-              </TextView>
-            </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-
-      {/* ⭐ FIXED BOTTOM IMAGES - HIDE ON KEYBOARD VISIBLE */}
-      {!isKeyboardVisible && (
-        <>
-          <Image
-            source={require('../../../assets/images/style3.png')}
-            style={{
-              width: wp(35),
-              height: hp(14),
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              resizeMode: 'contain',
-            }}
-          />
-
-          <Image
-            source={require('../../../assets/images/beetroot.png')}
-            style={{
-              position: 'absolute',
-              bottom: hp(4),
-              left: wp(7),
-              width: wp(20),
-              height: hp(12),
-              resizeMode: 'contain',
-            }}
-          />
-
-          <Image
-            source={require('../../../assets/images/tomato.png')}
-            style={{
-              position: 'absolute',
-              bottom: hp(17),
-              right: 0,
-              width: wp(15),
-              height: hp(10),
-              resizeMode: 'contain',
-            }}
-          />
-
-          <Image
-            source={require('../../../assets/images/style2.png')}
-            style={{
-              width: wp(35),
-              height: hp(14),
-              position: 'absolute',
-              bottom: 0,
-              right: 0,
-              resizeMode: 'contain',
-            }}
-          />
-        </>
-      )}
-    </SafeAreaView>
+            <Image
+              source={require('../../../assets/images/style2.png')}
+              style={{
+                width: wp(32),
+                height: hp(10),
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
+                resizeMode: 'contain',
+              }}
+            />
+          </>
+        )}
+      </SafeAreaView>
+    </LinearGradient>
   );
 };
 

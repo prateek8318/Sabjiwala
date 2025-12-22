@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   FlatList,
   Pressable,
-  SafeAreaView,
   View,
   Image,
   Dimensions,
@@ -10,6 +9,7 @@ import {
   StyleSheet,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Header, TextView } from '../../../components';
 import styles from './catogaries.styles';
 import { useNavigation } from '@react-navigation/native';
@@ -168,27 +168,32 @@ const Catogaries = () => {
   const renderCat = ({ item }: { item: Category }) => <CategoryCard item={item} />;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Header title="Categories" isBack={true} />
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: Colors.PRIMARY[100] }}
+      edges={['top']}
+    >
+      <View style={styles.container}>
+        <Header title="Categories" isBack={true} />
 
-      {loading ? (
-        renderShimmerGrid()
-      ) : (
-        <FlatList
-          data={categories}
-          numColumns={2}
-          keyExtractor={item => item._id}
-          renderItem={renderCat}
-          contentContainerStyle={styles.flatListContent}
-          columnWrapperStyle={styles.columnWrapper}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <TextView style={styles.emptyText}>No categories found</TextView>
-            </View>
-          }
-        />
-      )}
+        {loading ? (
+          renderShimmerGrid()
+        ) : (
+          <FlatList
+            data={categories}
+            numColumns={2}
+            keyExtractor={item => item._id}
+            renderItem={renderCat}
+            contentContainerStyle={styles.flatListContent}
+            columnWrapperStyle={styles.columnWrapper}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <TextView style={styles.emptyText}>No categories found</TextView>
+              </View>
+            }
+          />
+        )}
+      </View>
     </SafeAreaView>
   );
 };

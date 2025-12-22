@@ -9,10 +9,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.PRIMARY[300],
+    marginBottom: 0,
+    paddingBottom: 0,
   },
   headerContainer: {
     width: wp(100),
-    backgroundColor: Colors.PRIMARY[100],
+    backgroundColor: "#015304",
+  },
+  stickyHeaderContainer: {
+    width: wp(100),
+    backgroundColor: "#015304",
+    paddingTop: hp(0.6),
+    
+    zIndex: 5,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
   },
   headerMainView: {
     width: wp(100),
@@ -21,7 +35,7 @@ const styles = StyleSheet.create({
   headerView: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: hp(1),
+    
   },
   profilePicView: {
     width: 40,
@@ -69,7 +83,7 @@ const styles = StyleSheet.create({
   inputView: {
     ...Typography.BodyRegular14,
     color: Colors.PRIMARY[100],
-    width: wp(30),
+    width: wp(65),
     
     paddingLeft: hp(1),
   },
@@ -95,11 +109,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   catListView: {
-    marginTop: hp(3),
+    marginTop: hp(1.4),
   },
   divider: {
     width: 2,
-    height: hp(4),
+    height: hp(2),
     backgroundColor: Colors.PRIMARY[300],
     borderRadius: 12,
     margin: hp(2),
@@ -112,6 +126,9 @@ const styles = StyleSheet.create({
   itemCat: {
     color: Colors.PRIMARY[300],
     ...Typography.BodyRegular14,
+    fontFamily: 'Poppins-Regular',
+    fontWeight: '400',
+    FontVariants: 'Poppins-Regular',
   },
   groceryCard: {
     width: wp(100),
@@ -152,13 +169,15 @@ const styles = StyleSheet.create({
   },
   listProduct: {
     flex: 1,
-    marginBottom: hp(0),
+    marginBottom: 0,
+    paddingBottom: 0,
     marginTop: hp(-5),
   },
   buttonView: {
     marginTop: hp(-4),
+    marginBottom: hp(1),
     width: wp(35),
-    paddingVertical: hp(1.2), // control vertical space instead of fixed height
+    paddingVertical: hp(1.2),
     borderRadius: 50,
     alignSelf: 'center',
   },
@@ -179,6 +198,7 @@ const styles = StyleSheet.create({
     width: wp(100),
     paddingVertical: hp(1.2),
     paddingHorizontal: hp(2),
+    marginBottom: 0,
   },
   productHeadingHeadingView: {
     flexDirection: 'row',
@@ -292,20 +312,22 @@ const styles = StyleSheet.create({
   imgBanner: {
     width: wp(95),
     height: hp(25),
+    marginTop: hp(-2),
     resizeMode: 'contain',
     alignSelf: 'center',
     
   },
   floatingCartButton: {
     position: 'absolute',
-    bottom: hp(1.5),
+    bottom: hp(1),
     alignSelf: 'center',
-    backgroundColor: '#1B5E20',
+    zIndex: 1000,
+  },
+  cartGradient: {
     borderRadius: 28,
-    borderWidth: 1.6,
-    borderColor: '#4CAF50',
-    paddingHorizontal: wp(3.4),
-    paddingVertical: hp(0.8),
+    paddingLeft: wp(7), // extra space for overlapping image
+    paddingRight: wp(3.4),
+    paddingVertical: hp(0.9),
     minWidth: wp(42),
     maxWidth: wp(90),
     shadowColor: '#000',
@@ -313,7 +335,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.28,
     shadowRadius: 4.5,
     elevation: 10,
-    zIndex: 1000,
   },
   cartButtonContent: {
     flexDirection: 'row',
@@ -324,19 +345,19 @@ const styles = StyleSheet.create({
   stackedImagesContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: wp(1),
+    marginLeft: -wp(4), // pull image outside left edge of pill
   },
   cartProductImageContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     overflow: 'hidden',
     backgroundColor: '#fff',
-    borderWidth: 1.6,
-    borderColor: '#4CAF50',
+    borderWidth: 2,
+    borderColor: '#015304',
   },
   stackedImage: {
-    marginLeft: -wp(5),
+    marginLeft: -wp(6),
   },
   cartProductImage: {
     width: '100%',
@@ -368,12 +389,10 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.Medium,
   },
   arrowCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#fff',
+    // No circle background – just a small wrapper to align the arrow icon
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: wp(1),
   },
 });
 

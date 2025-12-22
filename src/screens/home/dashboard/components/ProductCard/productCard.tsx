@@ -9,8 +9,9 @@ import {
   Text,
   Modal,
   Pressable,
+  Animated,
 } from 'react-native';
-import { FC } from 'react';
+import { FC, useRef } from 'react';
 import _ from 'lodash';
 import {
   widthPercentageToDP as wp,
@@ -22,7 +23,7 @@ import { TextView } from '../../../../../components';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useState, useEffect, useCallback } from 'react';
-import ApiService from '../../../../../service/apiService';
+import ApiService, { IMAGE_BASE_URL } from '../../../../../service/apiService';
 interface ProductCardProps {
   cardArray?: any;
   type?: string;
@@ -30,6 +31,62 @@ interface ProductCardProps {
   numOfColumn?: number;
   onProductAdded?: (product: any) => void;
 }
+
+// 🔹 Small image carousel component – shows up to 2 images with auto fade
+const ProductImageCarousel: FC<{ images?: string[]; fallbackImage?: string }> = ({
+  images,
+  fallbackImage,
+}) => {
+  const validImages = (images && images.length > 0 ? images : []).filter(Boolean);
+  const [index, setIndex] = useState(0);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (!validImages.length) {
+      return;
+    }
+
+    const maxImages = Math.min(validImages.length, 3); // sirf 2 image auto carousel
+
+    const interval = setInterval(() => {
+      Animated.timing(fadeAnim, {
+        toValue: 0.6,
+        duration: 600,
+        useNativeDriver: true,
+      }).start(() => {
+        setIndex(prev => (prev + 1) % maxImages);
+        fadeAnim.setValue(0);
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }).start();
+      });
+    }, 3000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [fadeAnim, validImages.length]);
+
+  const currentUri =
+    validImages[index] ||
+    validImages[0] ||
+    fallbackImage ||
+    '';
+
+  if (!currentUri) {
+    return <View style={styles.cardProductImage} />;
+  }
+
+  return (
+    <Animated.Image
+      source={{ uri: currentUri }}
+      style={[styles.cardProductImage, { opacity: fadeAnim }]}
+      resizeMode="cover"
+    />
+  );
+};
 
 const ProductCard: FC<ProductCardProps> = ({
   cardArray,
@@ -47,6 +104,15 @@ const ProductCard: FC<ProductCardProps> = ({
   // Store variant info for each product in cart: productId -> { variantId, variantData, quantity }
   const [cartVariantMap, setCartVariantMap] = useState<{ [key: string]: { variantId?: string; variantData?: any; quantity: number } }>({});
   // Wishlist is the single source of truth for favorites
+
+  const buildImageUrl = (path?: string) => {
+    if (!path) return '';
+    if (typeof path !== 'string') return '';
+    if (path.startsWith('http')) return path;
+    const clean = path.replace(/\\/g, '/');
+    const normalized = clean.startsWith('/') ? clean.slice(1) : clean;
+    return `${IMAGE_BASE_URL}${normalized}`;
+  };
 
   // Load cart function
   const loadCart = useCallback(async () => {
@@ -123,16 +189,23 @@ const ProductCard: FC<ProductCardProps> = ({
         const res = await ApiService.getWishlist();
         console.log('Dashboard ProductCard - Wishlist response:', res?.data);
 
-        // Handle different response structures
-        let items = [];
-        if (res?.data?.wishlist?.items) {
+        // Handle different response structures (keep in sync with Favorites screen)
+        let items: any[] = [];
+        if (res?.data?.wishlist?.items && Array.isArray(res.data.wishlist.items)) {
+          // Case: res.data.wishlist.items (array)
           items = res.data.wishlist.items;
         } else if (res?.data?.wishlist && Array.isArray(res.data.wishlist)) {
+          // Case: res.data.wishlist is array directly
           items = res.data.wishlist;
-        } else if (res?.data?.items) {
-          items = res.data.items;
-        } else if (res?.data?.data?.items) {
+        } else if (res?.data?.wishlist?.products && Array.isArray(res.data.wishlist.products)) {
+          // Case: res.data.wishlist.products
+          items = res.data.wishlist.products;
+        } else if (res?.data?.data?.items && Array.isArray(res.data.data.items)) {
           items = res.data.data.items;
+        } else if (res?.data?.items && Array.isArray(res.data.items)) {
+          items = res.data.items;
+        } else if (Array.isArray(res?.data)) {
+          items = res.data;
         }
 
         const ids = extractWishlistIds(items);
@@ -173,13 +246,19 @@ const ProductCard: FC<ProductCardProps> = ({
       // On error, reload wishlist to sync with server
       try {
         const res = await ApiService.getWishlist();
-        let items = [];
-        if (res?.data?.wishlist?.items) {
+        let items: any[] = [];
+        if (res?.data?.wishlist?.items && Array.isArray(res.data.wishlist.items)) {
           items = res.data.wishlist.items;
         } else if (res?.data?.wishlist && Array.isArray(res.data.wishlist)) {
           items = res.data.wishlist;
-        } else if (res?.data?.items) {
+        } else if (res?.data?.wishlist?.products && Array.isArray(res.data.wishlist.products)) {
+          items = res.data.wishlist.products;
+        } else if (res?.data?.data?.items && Array.isArray(res.data.data.items)) {
+          items = res.data.data.items;
+        } else if (res?.data?.items && Array.isArray(res.data.items)) {
           items = res.data.items;
+        } else if (Array.isArray(res?.data)) {
+          items = res.data;
         }
         const ids = extractWishlistIds(items);
         setWishlist(new Set(ids));
@@ -292,45 +371,45 @@ const ProductCard: FC<ProductCardProps> = ({
     const cartQty = productId ? cartMap[productId] || 0 : 0;
     // Get cart variant info if product is in cart
     const cartVariantInfo = productId ? cartVariantMap[productId] : undefined;
-    
+
     // 👉 Variant logic: agar 0 variants hai to simple ADD button,
     // warna option button (modal open karega)
     const hasVariants =
       (item?.variants && item.variants.length > 0) ||
       (item?.ProductVarient && item.ProductVarient.length > 0);
-    
+
     // Get selected variant from cart, or use first variant, or undefined
     const selectedVariant = cartVariantInfo?.variantId
       ? [...(item?.ProductVarient || []), ...(item?.variants || [])].find(
-          (v: any) => v._id === cartVariantInfo.variantId
-        )
+        (v: any) => v._id === cartVariantInfo.variantId
+      )
       : undefined;
-    
+
     // For products without variants, variantId should be undefined
     const firstVariantId = hasVariants
       ? (selectedVariant?._id ||
-         item?.variantId ||
-         item?.ProductVarient?.[0]?._id ||
-         item?.variants?.[0]?._id ||
-         undefined)
+        item?.variantId ||
+        item?.ProductVarient?.[0]?._id ||
+        item?.variants?.[0]?._id ||
+        undefined)
       : undefined;
 
     // Use selected variant data if in cart, otherwise use default
     const displayVariant = selectedVariant || item?.ProductVarient?.[0] || item?.variants?.[0] || {};
-    
+
     // Display price from selected variant if in cart, otherwise from item
     // cartVariantInfo?.variantData can have price/mrp directly, or we need to use selectedVariant
-    const displayPrice = cartVariantInfo?.variantData?.price 
-      || selectedVariant?.price 
-      || item?.price 
+    const displayPrice = cartVariantInfo?.variantData?.price
+      || selectedVariant?.price
+      || item?.price
       || 0;
-    const displayOldPrice = cartVariantInfo?.variantData?.originalPrice 
-      || cartVariantInfo?.variantData?.mrp 
-      || selectedVariant?.originalPrice 
-      || selectedVariant?.mrp 
-      || item?.oldPrice 
+    const displayOldPrice = cartVariantInfo?.variantData?.originalPrice
+      || cartVariantInfo?.variantData?.mrp
+      || selectedVariant?.originalPrice
+      || selectedVariant?.mrp
+      || item?.oldPrice
       || 0;
-    
+
     // Calculate discount - format it properly as "₹X OFF"
     const calculateDiscount = () => {
       // First check if discount is already formatted (contains "OFF" or "₹")
@@ -346,7 +425,7 @@ const ProductCard: FC<ProductCardProps> = ({
         }
         return variantDiscount;
       }
-      
+
       // Check item discount
       if (item?.discount) {
         if (typeof item.discount === 'string' && (item.discount.includes('OFF') || item.discount.includes('₹'))) {
@@ -357,16 +436,16 @@ const ProductCard: FC<ProductCardProps> = ({
         }
         return item.discount;
       }
-      
+
       // Calculate discount from price difference
       if (displayOldPrice > displayPrice) {
         const discountAmount = Math.round(displayOldPrice - displayPrice);
         return discountAmount > 0 ? `₹${discountAmount} OFF` : '';
       }
-      
+
       return '';
     };
-    
+
     const displayDiscount = calculateDiscount();
 
     // Ensure weight always shows (even if API missed it for some cards)
@@ -377,7 +456,7 @@ const ProductCard: FC<ProductCardProps> = ({
         const unitValue = selectedVariant?.unit ?? 'kg';
         return `${weightValue} ${unitValue}`.trim();
       }
-      
+
       // Prefer explicit weight if present
       if (item?.weight) return item.weight;
 
@@ -403,7 +482,7 @@ const ProductCard: FC<ProductCardProps> = ({
         }
       >
         <View style={{ position: 'relative' }}>
-          <Image source={{ uri: item.image }} style={styles.cardProductImage} />
+          <ProductImageCarousel images={item.images} fallbackImage={item.image} />
 
           {type === 'LIMITED' && (
             <View style={styles.imgFlashView}>
@@ -463,7 +542,7 @@ const ProductCard: FC<ProductCardProps> = ({
 
         <View style={styles.quantityView}>
           <View>
-            <TextView style={{ ...Typography.BodyRegular13, fontSize: 12,fontWeight: '700' }}>
+            <TextView style={{ ...Typography.BodyRegular13, fontSize: 12, fontWeight: '700' }}>
               {weightText}
             </TextView>
             <View style={styles.ratingView}>
@@ -589,7 +668,7 @@ const ProductCard: FC<ProductCardProps> = ({
                   }}
                 >
                   <LinearGradient
-                    colors={[Colors.PRIMARY[200], Colors.PRIMARY[100]]}
+                    colors={['#5A875C', '#015304']}
                     style={styles.addButtonView}
                     start={{ x: 0, y: 0.5 }}
                     end={{ x: 1, y: 0 }}
@@ -626,7 +705,7 @@ const ProductCard: FC<ProductCardProps> = ({
                 }}
               >
                 <LinearGradient
-                  colors={[Colors.PRIMARY[200], Colors.PRIMARY[100]]}
+                  colors={['#5A875C', '#015304']}
                   style={styles.addProductButon}
                   start={{ x: 0, y: 0.5 }}
                   end={{ x: 1, y: 0 }}
@@ -744,7 +823,7 @@ const ProductCard: FC<ProductCardProps> = ({
                       }}
                     >
                       <LinearGradient
-                        colors={[Colors.PRIMARY[200], Colors.PRIMARY[100]]}
+                        colors={['#5A875C', '#015304']}
                         style={styles.addButtonView}
                         start={{ x: 0, y: 0.5 }}
                         end={{ x: 1, y: 0 }}
@@ -782,7 +861,7 @@ const ProductCard: FC<ProductCardProps> = ({
                     }}
                   >
                     <LinearGradient
-                      colors={[Colors.PRIMARY[200], Colors.PRIMARY[100]]}
+                      colors={['#5A875C', '#015304']}
                       style={styles.addProductButon}
                       start={{ x: 0, y: 0.5 }}
                       end={{ x: 1, y: 0 }}
@@ -841,116 +920,232 @@ const ProductCard: FC<ProductCardProps> = ({
         visible={showVariantModal}
         transparent
         animationType="slide"
+        statusBarTranslucent
       >
-        <View style={{
-          flex: 1,
-          justifyContent: 'flex-end',
-          backgroundColor: 'rgba(0,0,0,0.4)'
-        }}>
-
-          {/* Close Button */}
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'flex-end',
+            backgroundColor: 'rgba(0,0,0,0.4)',
+          }}
+        >
+          {/* Backdrop tap to close */}
           <Pressable
+            style={{ flex: 1 }}
             onPress={() => setShowVariantModal(false)}
+          />
+
+          {/* Variant List + Close button (styled like Figma) */}
+          <View
             style={{
-              height: 60,
-              alignItems: 'center',
-              justifyContent: 'center',
-              flex: 1,
-            }}
-
-          >
-            <View style={{
-              height: 40,
-              width: 40,
-              borderRadius: 20,
               backgroundColor: '#fff',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderWidth: 2,
-              borderColor: Colors.PRIMARY[200]
-            }}>
-              <Icon name="close" family="AntDesign" size={18} color="green" />
-            </View>
-          </Pressable>
 
-          {/* Variant List */}
-          <View style={{
-            backgroundColor: '#fff',
-            // Modal container should stay squared; radius moved to actions
-            borderTopLeftRadius: 0,
-            borderTopRightRadius: 0,
-            maxHeight: hp(80),        // ← responsive max height
-            paddingBottom: hp(4),
-          }}>
-            {[...(selectedProduct?.ProductVarient || []), ...(selectedProduct?.variants || [])].map((v: any, index: number) => (
+              maxHeight: hp(80), // ← responsive max height
+              paddingBottom: hp(4),
+              paddingTop: hp(3),
+              paddingHorizontal: 16,
+            }}
+          >
+            {/* Floating Close button */}
+            <Pressable
+              onPress={() => setShowVariantModal(false)}
+              style={{
+                position: 'absolute',
+                top: -hp(9.5),
+                alignSelf: 'center',
+              }}
+            >
               <View
-                key={index}
                 style={{
-                  flexDirection: 'row',
+                  height: 46,
+                  width: 46,
+                  borderRadius: 26,
+                  backgroundColor: '#fff',
                   alignItems: 'center',
-                  padding: 12,
-                  borderWidth: 1,
-                  borderColor: '#DFF0D8',
-                  borderRadius: 10,
-                  marginBottom: 12
+                  justifyContent: 'center',
+                  borderWidth: 2,
+                  borderColor: Colors.PRIMARY[200],
+                  elevation: 6,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.18,
+                  shadowRadius: 4,
                 }}
               >
-                {/* Product Image */}
-                <Image
-                  source={{ uri: selectedProduct?.image }}
-                  style={{ width: 60, height: 60, borderRadius: 8 }}
+                <Icon
+                  name="close"
+                  family="AntDesign"
+                  size={20}
+                  color={Colors.PRIMARY[400]}
                 />
+              </View>
+            </Pressable>
+            {[...(selectedProduct?.ProductVarient || []), ...(selectedProduct?.variants || [])].map((v: any, index: number) => {
+              const firstVariantImage =
+                Array.isArray(v?.images) && v.images.length > 0
+                  ? buildImageUrl(v.images[0])
+                  : '';
+              const fallbackProductImage = selectedProduct?.image || '';
+              const finalImageUri = firstVariantImage || fallbackProductImage;
 
-                {/* Variant Info */}
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <TextView style={{ color: '#000' }}>{selectedProduct.name}</TextView>
-                  <TextView style={{ color: '#000' }}>{v.stock} {v.unit}</TextView>
-
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <TextView style={{ color: '#000' }}>₹{v.price}</TextView>
-                    {v.originalPrice && (
-                      <TextView
-                        style={{
-                          color: '#000',
-                          textDecorationLine: 'line-through',
-                          marginLeft: 8
-                        }}
-                      >
-                        ₹{v.originalPrice}
-                      </TextView>
-                    )}
-                  </View>
-                </View>
-
-                {/* Add Button */}
-                <Pressable
-                  onPress={async () => {
-                    const pid = getProductId(selectedProduct);
-                    const vid = v?._id;
-                    if (!pid) return;
-                    // Optimistically update variant map
-                    setCartVariantMap(prev => ({
-                      ...prev,
-                      [pid]: {
-                        variantId: vid,
-                        variantData: v,
-                        quantity: 1,
-                      },
-                    }));
-                    await updateCartQty(pid, vid, 1, selectedProduct);
-                    setShowVariantModal(false);
-                  }}
+              return (
+                <View
+                  key={index}
                   style={{
-                    paddingHorizontal: 18,
-                    paddingVertical: 6,
-                    backgroundColor: 'green',
-                    borderRadius: 20,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    padding: 12,
+                    borderWidth: 1,
+                    borderColor: '#DFF0D8',
+                    borderRadius: 10,
+                    marginBottom:
+                      index ===
+                        ([...(selectedProduct?.ProductVarient || []), ...(selectedProduct?.variants || [])].length - 1)
+                        ? 0
+                        : 12,
+                    gap: 16
                   }}
                 >
-                  <TextView style={{ color: '#fff' }}>Add</TextView>
-                </Pressable>
-              </View>
-            ))}
+                  {/* Product Image */}
+                  <Image
+                    source={finalImageUri ? { uri: finalImageUri } : undefined}
+                    style={{ width: 60, height: 50, borderRadius: 8 }}
+                  />
+
+                  {/* Variant Info */}
+                  <View style={{ flex: 1 }}>
+                    <TextView style={{ color: '#000' }}>{selectedProduct.name}</TextView>
+
+                    {/* Weight and Price in same row */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+                      <TextView style={{ color: '#000' }}>
+                        {v.name || `${v.stock || ''} ${v.unit || ''}`.trim()}
+                      </TextView>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <TextView style={{ color: '#000', fontWeight: '700' }}>₹{v.price}</TextView>
+                        {v.originalPrice && (
+                          <TextView
+                            style={{
+                              color: '#000',
+                              textDecorationLine: 'line-through',
+                              marginLeft: 6
+                            }}
+                          >
+                            ₹{v.originalPrice}
+                          </TextView>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Quantity Controls or Add Button */}
+                  {(() => {
+                    const pid = getProductId(selectedProduct);
+                    const vid = v?._id;
+                    const cartItem = pid ? cartVariantMap[pid] : null;
+                    const isCurrentVariant = cartItem?.variantId === vid;
+                    const quantity = isCurrentVariant ? cartItem.quantity : 0;
+
+                    if (quantity > 0) {
+                      return (
+                        <LinearGradient
+                          colors={['#5A875C', '#015304']}
+                          start={{ x: 0, y: 0.5 }}
+                          end={{ x: 1, y: 0 }}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 6,
+                            borderRadius: 20,
+                            paddingHorizontal: 2,
+                            paddingVertical: 4,
+                            minWidth: 60,
+                            justifyContent: 'space-between'
+                          }}>
+                          <Pressable
+                            onPress={() => {
+                              if (!pid) return;
+                              updateCartQty(pid, vid, quantity - 1, selectedProduct);
+                            }}
+                            style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: 12,
+                              backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              borderWidth: 1,
+                              borderColor: 'rgba(255, 255, 255, 0.5)',
+                            }}
+                          >
+                            <Text style={{ fontSize: 16, color: '#fff', fontWeight: 'bold' }}>-</Text>
+                          </Pressable>
+
+                          <Text style={{ minWidth: 20, textAlign: 'center', fontWeight: '700', color: '#fff', fontSize: 14 }}>
+                            {quantity}
+                          </Text>
+
+                          <Pressable
+                            onPress={() => {
+                              if (!pid) return;
+                              updateCartQty(pid, vid, quantity + 1, selectedProduct);
+                            }}
+                            style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: 12,
+                              backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              borderWidth: 1,
+                              borderColor: 'rgba(255, 255, 255, 0.5)',
+                            }}
+                          >
+                            <Text style={{ fontSize: 16, color: '#fff', fontWeight: 'bold' }}>+</Text>
+                          </Pressable>
+                        </LinearGradient>
+                      );
+                    }
+
+                    return (
+                      <Pressable
+                        onPress={async () => {
+                          if (!pid) return;
+                          // Optimistically update variant map
+                          setCartVariantMap(prev => ({
+                            ...prev,
+                            [pid]: {
+                              variantId: vid,
+                              variantData: v,
+                              quantity: 1,
+                            },
+                          }));
+                          await updateCartQty(pid, vid, 1, selectedProduct);
+                        }}
+                      >
+                        <LinearGradient
+                          colors={['#5A875C', '#015304']}
+                          start={{ x: 0, y: 0.5 }}
+                          end={{ x: 1, y: 0 }}
+                          style={{
+                            paddingHorizontal: 14,
+                            paddingVertical: 6,
+                            borderRadius: 20,
+                            minWidth: 60,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
+                            Add
+                          </Text>
+                        </LinearGradient>
+                      </Pressable>
+                    );
+                  })()}
+                </View>
+              )
+            })}
           </View>
         </View>
       </Modal>

@@ -1,6 +1,5 @@
 import React, { FC, useState, useEffect, useCallback, useRef } from 'react';
 import {
-  SafeAreaView,
   View,
   Image,
   TouchableOpacity,
@@ -11,6 +10,7 @@ import {
   Modal,
   Animated,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import styles from './dashboard.styles';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -20,6 +20,7 @@ import {
   CommonLoader,
   TextView,
   LinearButton,
+  BannerCarousel,
 } from '../../../components';
 import {
   widthPercentageToDP as wp,
@@ -35,12 +36,26 @@ export const CategoryIcons: Record<string, any> = {
   egg: require('../../../assets/images/catogaries/egg.png'),
 };
 
+// 🔹 Static rotating search placeholders (can be extended if needed)
+const SEARCH_PLACEHOLDERS = [
+  'Search for Grocery',
+  'Search for Beverages',
+  'Search for Dairy & Bakery',
+];
+
+const TAB_BAR_BASE_STYLE = {
+  height: 80,
+  borderTopWidth: 0,
+  backgroundColor: 'transparent',
+};
+
 import InputText from '../../../components/InputText/TextInput';
 import ProductCard from './components/ProductCard/productCard';
 import ApiService, { IMAGE_BASE_URL } from '../../../service/apiService';
 import { Product, ProductCardItem, SubCategory } from '../../../@types';
 import { LocalStorage } from '../../../helpers/localstorage';
 import { reverseGeocode } from '../../../helpers/geocoding';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type DashboardScreenNavigationType = NativeStackNavigationProp<any, 'Dashboard'>;
 
@@ -50,9 +65,9 @@ const Dashboard: FC = () => {
   const [categories, setCategories] = useState<SubCategory[]>([]);
   const [selectedCat, setSelectedCat] = useState<string>('all');
   const [products, setProducts] = useState<ProductCardItem[]>([]);
-  const [banners, setBanners] = useState<any[]>([]);
+  const [banners, setBanners] = useState<string[]>([]);
   const [exploreSections, setExploreSections] = useState<any[]>([]);
-  const [dealBanner, setDealBanner] = useState<string>('');
+  const [dealBanner, setDealBanner] = useState<string[]>([]);
 
 
   const [dealOfTheDay, setDealOfTheDay] = useState<ProductCardItem[]>([]);
@@ -77,11 +92,14 @@ const Dashboard: FC = () => {
   const [recentlyAddedProducts, setRecentlyAddedProducts] = useState<any[]>([]);
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const bounceValue = useRef(new Animated.Value(0)).current;
+  const [isTabHidden, setIsTabHidden] = useState(false);
+  const lastScrollY = useRef(0);
+  const [searchPlaceholderIndex, setSearchPlaceholderIndex] = useState(0);
+  const searchPlaceholderAnim = useRef(new Animated.Value(1)).current;
 
   // Build clean image URL from API response (PURA "public/..." path rakhna hai)
   const buildCategoryImageUrl = (rawPath?: string) => {
     if (!rawPath) {
-      console.log('Category Image: NO rawPath');
       return null;
     }
 
@@ -89,10 +107,39 @@ const Dashboard: FC = () => {
       .replace(/\\/g, '/')
       .replace(/^\//, '');
 
-    const finalUrl = `${IMAGE_BASE_URL}${cleaned}`;
-    console.log('Category Image → raw:', rawPath, '| cleaned:', cleaned, '| final:', finalUrl);
-    return finalUrl;
+    return `${IMAGE_BASE_URL}${cleaned}`;
   };
+
+  // 🔹 Rotate search placeholder with fade-up animation
+  useEffect(() => {
+    if (SEARCH_PLACEHOLDERS.length <= 1) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      // Fade out current text
+      Animated.timing(searchPlaceholderAnim, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+      }).start(() => {
+        // Change text
+        setSearchPlaceholderIndex(prev => (prev + 1) % SEARCH_PLACEHOLDERS.length);
+
+        // Fade in new text
+        searchPlaceholderAnim.setValue(0);
+        Animated.timing(searchPlaceholderAnim, {
+          toValue: 1,
+          duration: 220,
+          useNativeDriver: true,
+        }).start();
+      });
+    }, 3000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [searchPlaceholderAnim]);
 
   // Prefer dynamic image from API; fallback to local icon map + "All"
   const getCategoryImageSource = (item: SubCategory) => {
@@ -169,11 +216,11 @@ const Dashboard: FC = () => {
     try {
       console.log('Fetching user profile...');
       const res = await ApiService.getUserProfile();
-  
+
       console.log('Full Response:', JSON.stringify(res.data, null, 2));
-  
+
       const user = res.data.user || res.data;
-  
+
       if (!user) {
         console.log('No user data found');
         if (!hasResolvedAddress) {
@@ -185,13 +232,13 @@ const Dashboard: FC = () => {
       if (user.profileImage) {
         setProfileImage(user.profileImage);
       }
-  
+
       const lat = user.lat || user.location?.coordinates?.[1];
       const lng = user.long || user.location?.coordinates?.[0];
-  
+
       console.log('Extracted Lat:', lat);
       console.log('Extracted Lng:', lng);
-  
+
       if (!lat || !lng) {
         console.log('No coordinates found in user data');
         if (!hasResolvedAddress) {
@@ -199,14 +246,14 @@ const Dashboard: FC = () => {
         }
         return;
       }
-  
+
       // Agar backend ne address diya ho
       if (user.address && user.address.trim()) {
         console.log('Address from backend:', user.address);
         setUserAddress(user.address);
         return;
       }
-  
+
       const geoData = await reverseGeocode(Number(lat), Number(lng));
       const shortAddress =
         geoData.landmark ||
@@ -216,7 +263,7 @@ const Dashboard: FC = () => {
 
       setUserAddress(shortAddress);
       setHasResolvedAddress(true);
-  
+
     } catch (err: any) {
       console.error('fetchUserLocation FAILED:', err);
       console.error('Error message:', err.message);
@@ -283,6 +330,25 @@ const Dashboard: FC = () => {
     }
     navigation.navigate('Notifications');
   }, [navigation]);
+
+  useEffect(() => {
+    const tabNavigator = navigation.getParent?.()?.getParent?.();
+    if (!tabNavigator) return;
+
+    if (isTabHidden) {
+      tabNavigator.setOptions({
+        tabBarStyle: [{ ...TAB_BAR_BASE_STYLE }, { display: 'none' }],
+      });
+    } else {
+      tabNavigator.setOptions({
+        tabBarStyle: TAB_BAR_BASE_STYLE,
+      });
+    }
+
+    return () => {
+      tabNavigator.setOptions({ tabBarStyle: TAB_BAR_BASE_STYLE });
+    };
+  }, [isTabHidden, navigation]);
   // Fetch Static Home Content (Banners + Categories + Explore)
   const fetchStaticContent = async (isRefresh = false) => {
     try {
@@ -291,8 +357,13 @@ const Dashboard: FC = () => {
 
       const data = response.data.data;
 
-      // Banners
-      setBanners(data.banners || []);
+      // Banners - Process and build full URLs
+      const processedBanners = (data.banners || []).map((banner: any) => {
+        const raw = banner?.image || '';
+        const cleaned = raw.replace(/\\/g, '/').replace(/^\//, '');
+        return cleaned ? `${IMAGE_BASE_URL}${cleaned}` : '';
+      }).filter((url: string) => url !== '');
+      setBanners(processedBanners);
 
       // Categories (SubCategories)
       const apiCats: SubCategory[] = data.categories || [];
@@ -315,14 +386,31 @@ const Dashboard: FC = () => {
       // Explore Sections
       setExploreSections(data.explore || []);
 
-      // Deal Banner
-      if (data.dealBanner?.image) {
-        const raw = data.dealBanner.image;
-        const cleaned = raw.replace(/\\/g, '/').replace(/^\//, '');
-        const finalUrl = `${IMAGE_BASE_URL}${cleaned}`;
-        console.log('DealBanner Image → raw:', raw, '| final:', finalUrl);
-        setDealBanner(finalUrl);
+      // Deal Banner - Handle both single object and array
+      let processedDealBanners: string[] = [];
+      if (data.dealBanner) {
+        // If dealBanner is an array
+        if (Array.isArray(data.dealBanner)) {
+          processedDealBanners = data.dealBanner
+            .map((banner: any) => {
+              const raw = banner?.image || '';
+              const cleaned = raw.replace(/\\/g, '/').replace(/^\//, '');
+              return cleaned ? `${IMAGE_BASE_URL}${cleaned}` : '';
+            })
+            .filter((url: string) => url !== '');
+        }
+        // If dealBanner is a single object
+        else if (data.dealBanner.image) {
+          const raw = data.dealBanner.image;
+          const cleaned = raw.replace(/\\/g, '/').replace(/^\//, '');
+          const finalUrl = cleaned ? `${IMAGE_BASE_URL}${cleaned}` : '';
+          if (finalUrl) {
+            processedDealBanners = [finalUrl];
+          }
+        }
       }
+      console.log('DealBanner Images → processed:', processedDealBanners);
+      setDealBanner(processedDealBanners);
     } catch (error) {
       console.error('Static content error:', error);
     } finally {
@@ -352,8 +440,14 @@ const Dashboard: FC = () => {
             ? product.images
             : []);
 
+        const normalizedImages =
+          (preferredImages || [])
+            .map((img: string) => (img || '').replace(/\\/g, '/').replace(/^\//, ''))
+            .filter(Boolean)
+            .map((img: string) => `${IMAGE_BASE_URL}${img}`);
+
         const rawImage = preferredImages?.[0] || '';
-        const normalizedImage = rawImage ? rawImage.replace(/\\/g, '/') : '';
+        const normalizedImage = rawImage ? rawImage.replace(/\\/g, '/').replace(/^\//, '') : '';
         const fullImageUrl = normalizedImage ? IMAGE_BASE_URL + normalizedImage : '';
 
         const weightValue =
@@ -368,6 +462,7 @@ const Dashboard: FC = () => {
           id: product?._id || '',
           name: product?.productName || product?.name || 'Product',
           image: fullImageUrl,
+          images: normalizedImages,
           price: variant?.price || product?.price || 0,
           oldPrice: variant?.originalPrice || product?.mrp || 0,
           discount: variant?.discount ? `₹${variant.discount} OFF` : '',
@@ -463,16 +558,32 @@ const Dashboard: FC = () => {
         res?.data?.items ||
         res?.data?.data?.items ||
         [];
-      setCartItems(Array.isArray(cartData) ? cartData : []);
-
-      if (recentlyAddedProducts.length > 0) {
+      
+      const newCartItems = Array.isArray(cartData) ? cartData : [];
+      setCartItems(newCartItems);
+      
+      // Clear recently added products if cart is empty
+      if (newCartItems.length === 0) {
+        setRecentlyAddedProducts([]);
+      } else if (recentlyAddedProducts.length > 0) {
         setTimeout(() => setRecentlyAddedProducts([]), 1200);
       }
     } catch (err) {
-      console.log('Dashboard cart load error:', err);
+      console.log('Cart load error:', err);
+      setCartItems([]);
+      setRecentlyAddedProducts([]);
     }
   }, [recentlyAddedProducts.length]);
 
+  // Refresh cart when screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadCart();
+    });
+    return unsubscribe;
+  }, [navigation, loadCart]);
+
+  // Also load cart on initial mount
   useFocusEffect(
     useCallback(() => {
       loadCart();
@@ -525,8 +636,8 @@ const Dashboard: FC = () => {
         name: product.name,
         images: [
           product.image ||
-            product?.variants?.[0]?.images?.[0] ||
-            product?.ProductVarient?.[0]?.images?.[0],
+          product?.variants?.[0]?.images?.[0] ||
+          product?.ProductVarient?.[0]?.images?.[0],
         ].filter(Boolean),
       },
       quantity: 1,
@@ -579,6 +690,7 @@ const Dashboard: FC = () => {
           styles.itemCatView,
           {
             borderBottomWidth: isSelected ? 4 : 0,
+            
             borderBottomColor: isSelected ? Colors.PRIMARY[300] : 'transparent',
             alignItems: 'center',
             justifyContent: 'center',
@@ -608,7 +720,7 @@ const Dashboard: FC = () => {
     const exploreSectionName = item.name;
     const discountValue = item.discountValue || 0;
     const discountType = item.discountType || 'percentage';
-    
+
     // Build image URL - match existing pattern
     const rawImage = item.image || '';
     const normalizedImage = rawImage ? rawImage.replace('public\\', '').replace(/\\/g, '/') : '';
@@ -755,347 +867,208 @@ const Dashboard: FC = () => {
   // warna IMAGE_BASE_URL + relative path (jo '@user.profileImage' me aa raha hai)
   const headerProfileImage = profileImage
     ? (profileImage.startsWith('http') || profileImage.startsWith('file:')
-        ? profileImage
-        : `${IMAGE_BASE_URL}${profileImage}`)
+      ? profileImage
+      : `${IMAGE_BASE_URL}${profileImage}`)
     : 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ4YreOWfDX3kK-QLAbAL4ufCPc84ol2MA8Xg&s';
   const cartItemCount = (cartItems || []).reduce(
     (sum, item) => sum + (item?.quantity || 1),
     0,
   ) || recentlyAddedProducts.length;
 
+  const searchPlaceholderAnimatedStyle = {
+    opacity: searchPlaceholderAnim,
+    transform: [
+      {
+        translateY: searchPlaceholderAnim.interpolate({
+          inputRange: [0, 2],
+          outputRange: [4, 0], // हल्का सा fade-up effect
+        }),
+      },
+    ],
+  };
+
+  const handleScroll = useCallback(
+    (event: any) => {
+      const currentOffset = event?.nativeEvent?.contentOffset?.y ?? 0;
+      const diff = currentOffset - lastScrollY.current;
+
+      if (currentOffset <= 10) {
+        if (isTabHidden) setIsTabHidden(false);
+        lastScrollY.current = currentOffset;
+        return;
+      }
+
+      if (diff > 8 && !isTabHidden) {
+        setIsTabHidden(true);
+      } else if (diff < -8 && isTabHidden) {
+        setIsTabHidden(false);
+      }
+
+      lastScrollY.current = currentOffset;
+    },
+    [isTabHidden],
+  );
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: hp(6) }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {/* 🔹 Header */}
-        <View style={styles.headerContainer}>
-          <View style={styles.headerMainView}>
-            <View style={styles.headerView}>
-              <Pressable
-                style={styles.profilePicView}
-                onPress={() => navigation.navigate('Profile')}
-              >
-                <Image source={{ uri: headerProfileImage }} style={styles.profilePic} />
-              </Pressable>
-              <Pressable onPress={() => setShowAddressPicker(true)}>
-                <TextView style={styles.txtDelivery}>{deliveryTime}</TextView>
-                <View style={styles.addressView}>
-                  <Icon family="EvilIcons" name="location" color={Colors.PRIMARY[300]} size={24} />
-                  <TextView style={styles.txtAddress} numberOfLines={1}>
-                    {userAddress}
-                  </TextView>
-                  <Icon family="Entypo" name="chevron-down" color={Colors.PRIMARY[300]} size={24} />
-                </View>
-              </Pressable>
-              <View style={styles.actionButtonView}>
-                <Pressable onPress={() => navigation.navigate('Wallet')}>
-                  <Image
-                    source={Images.ic_wallet}
-                    style={[styles.actionButton, { marginRight: hp(0.8) }]}
-                  />
-                </Pressable>
-                <Pressable onPress={handleNotificationPress}>
-                  <Image
-                    source={Images.ic_notificaiton}
-                    style={[styles.actionButton, { marginLeft: hp(0.5),marginRight: hp(0.5) }]}
-                  />
-                </Pressable>
-              </View>
-            </View>
-          </View>
-
-          {/* 🔹 Search bar */}
-          <View style={styles.searchBox} pointerEvents="box-none">
-            <Pressable
-              style={[styles.searchView, { flex: 1 }]}
-              hitSlop={{ top: 0, bottom: 0, left: 0, right: 0 }}
-              onPress={() => navigation.navigate('Search')}
-            >
-              <Icon
-                family="EvilIcons"
-                name="search"
-                color={Colors.PRIMARY[300]}
-                size={34}
-                style={{ marginTop: hp(-1) }}
-              />
-              <InputText
-                value={''}
-                inputStyle={styles.inputView}
-                editable={false}
-                placeHolderTextStyle={Colors.PRIMARY[300]}
-                placeholder="Search"
-              />
-            </Pressable>
-            <Pressable
-              style={styles.micView}
-              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-              onPress={() => navigation.navigate('Search', { startVoice: true })}
-            >
-              <View style={styles.divider} />
-              <Icon
-                family="FontAwesome"
-                name="microphone"
-                color={Colors.PRIMARY[300]}
-                size={24}
-              />
-            </Pressable>
-          </View>
-
-          {/* 🔹 Category List */}
-          <View style={styles.catListView}>
-            <FlatList
-              data={categories}
-              renderItem={renderCategoryItem}
-              keyExtractor={(item) => item._id}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-            />
-          </View>
-        </View>
-
-        {/* Products */}
-        <View>
-          <View style={styles.groceryCard}>
-            <View style={styles.cardMainView}>
-              <View>
-                <TextView style={styles.txtOffer}>
-                  50% OFF on {'\n'}Fresh grocery
-                </TextView>
-                <Image source={Images.ic_code} style={styles.imgCode} />
-              </View>
-              <View>
-                <Image
-                  source={Images.ic_vegatable}
-                  style={styles.imgVegatable}
-                />
-              </View>
-            </View>
-            {/* 🔹 Product List */}
-          <ProductCard
-            cardArray={products}
-            type="OFFER"
-            horizontal
-            onProductAdded={handleProductAdded}
-          />
-        
-          </View>
-        </View>
-
-
-
-        
-
-        {/*  EXPLORE BUTTON */}
-        <View style={styles.buttonView}>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() =>
-              navigation.navigate('BottomStackNavigator', { screen: 'Catogaries' })
-            }
-            style={{
-              width: '100%', // follow responsive width from buttonView so not too wide on tablets
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: '#1B5E20',
-              borderWidth: 3,
-              borderColor: '#1B5E20',
-              borderRadius: 30,
-              paddingVertical: hp(1.2), // responsive height
-              paddingHorizontal: wp(3),
-              elevation: 12,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.2,
-              shadowRadius: 10,
-            }}
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: Colors.PRIMARY[100] }}
+      edges={['top']}
+    >
+      <View style={styles.container}>
+        <Animated.ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: hp(6) }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          stickyHeaderIndices={[1]}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+        >
+          {/* 🔹 Header */}
+          <View
+            style={[
+              styles.headerContainer,
+              { paddingTop: hp(0) },
+            ]}
           >
-            <TextView
-              style={{
-                color: '#FFFFFF',
-                fontSize: wp(4.2), // responsive font size
-                fontWeight: '400',
-                marginLeft: wp(1.2),
-              }}
-            >
-              Explore
-            </TextView>
-
-            <Icon
-              name="chevron-right"
-              size={24}
-              color="#ffffff"
-              family="MaterialCommunityIcons"
-              style={{ marginLeft: wp(1.2) }}
-            />
-          </TouchableOpacity>
-        </View>
-        {/* 🔹 Grocery Section */}
-        <View>{renderGroceryKitchen()}</View>
-
-
-        {/* Frequently Bought */}
-        <View>
-          <View style={styles.productHeadingMainView}>
-            <View style={styles.productHeadingHeadingView}>
-              <TextView style={styles.txtProductHeading}>Frequently Bought</TextView>
-              <Pressable
-                onPress={() =>
-                  navigation.navigate('TypeProductList', {
-                    type: 'frequentlyBought',
-                    title: 'Frequently Bought',
-                  })
-                }
-                style={{
-                  backgroundColor: "#1B5E20",
-                  paddingHorizontal: 6, // chhota size
-                  paddingVertical: 4,    // chhota height
-                  borderRadius: 25,
-                  marginTop: hp(0),
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderWidth: 1,
-                  borderColor: "#A5D6A7",
-                }}
-              >
-                <TextView style={{ color: "#ffff", fontSize: 10, fontWeight: "700" }}>
-                  View All
-                </TextView>
-                <Icon
-                  name="chevron-right"
-                  color="#ffffff"
-                  family="MaterialCommunityIcons"
-                />
-              </Pressable>
-            </View>
-          </View>
-          <ProductCard
-            cardArray={favorite}
-            horizontal
-            type="BOUGHT"
-            onProductAdded={handleProductAdded}
-          />
-        </View>
-
-
-        {/* 🔹 Deal Of The Day - Explore Sections */}
-        <View>
-          <Image source={Images.img_deal} style={styles.imgDeal} />
-          <FlatList
-            data={exploreSections.slice(0, 6)}                    // ← Max 6 explore sections
-            renderItem={renderDealProduct}
-            contentContainerStyle={{ alignSelf: 'center', marginTop: hp(2) }}
-            numColumns={3}
-            keyExtractor={(item) => item._id}
-          />
-        </View>
-
-        {/* Deal Banner */}
-        <View>
-          <Image source={Images.img_banner} style={styles.imgBanner} />
-        </View>
-
-
-
-        {/* 🔹 Popular Products */}
-        <View>
-          <View style={styles.productHeadingMainView}>
-            <View style={styles.productHeadingHeadingView}>
-              <TextView style={styles.txtProductHeading}>Popular Products</TextView>
-              <Pressable
-                onPress={() =>
-                  navigation.navigate('TypeProductList', {
-                    type: 'popularProduct',
-                    title: 'Popular Products',
-                  })
-                }
-                style={{
-                  backgroundColor: "#1B5E20",
-                  paddingHorizontal: 6, // chhota size
-                  paddingVertical: 4,    // chhota height
-                  borderRadius: 25,
-                  marginTop: hp(0),
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderWidth: 1,
-                  borderColor: "#A5D6A7",
-                }}
-              >
-                <TextView style={{ color: "#ffff", fontSize: 10, fontWeight: "700" }}>
-                  View All
-                </TextView>
-                <Icon
-                  name="chevron-right"
-                  color="#ffffff"
-                  family="MaterialCommunityIcons"
-                />
-              </Pressable>
-            </View>
-          </View>
-        <ProductCard
-          cardArray={recommended}
-          horizontal
-          type="BOUGHT"
-          onProductAdded={handleProductAdded}
-        />
-        </View>
-
-        {/* Fresh Fruits Section */}
-        <View style={{ marginTop: hp(2) }}>
-          <View style={styles.productHeadingMainView}>
-            <View style={styles.productHeadingHeadingView}>
-              <TextView style={styles.txtProductHeading}>Fresh Fruits</TextView>
-              <Pressable
-                onPress={() =>
-                  navigation.navigate('TypeProductList', {
-                    type: 'freshFruits',
-                    title: 'Fresh Fruits',
-                  })
-                }
-                style={{
-                  backgroundColor: "#1B5E20",
-                  paddingHorizontal: 6, // chhota size
-                  paddingVertical: 4,    // chhota height
-                  borderRadius: 25,
-                  marginTop: hp(0),
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderWidth: 1,
-                  borderColor: "#A5D6A7",
-                }}
-              >
-                <TextView style={{ color: "#ffff", fontSize: 10, fontWeight: "700" }}>
-                  View All
-                </TextView>
-                <Icon
-                  name="chevron-right"
-                  color="#ffffff"
-                  family="MaterialCommunityIcons"
-                />
-              </Pressable>
+            <Image
+                      source={require('../../../assets/images/style.png')}
+                      style={{
+                        width: '100%',
+                        height: hp(9),
+                        opacity: 0.6,
+                        position: 'absolute',
+                        top: 0,
+                        resizeMode: 'contain',
+                      }}
+                    />
+            <View style={styles.headerMainView}>
+              <View style={styles.headerView}>
+                
+                <Pressable
+                  style={styles.profilePicView}
+                  onPress={() => navigation.navigate('Profile')}
+                >
+                  <Image source={{ uri: headerProfileImage }} style={styles.profilePic} />
+                </Pressable>
+                <Pressable onPress={() => setShowAddressPicker(true)}>
+                  <TextView style={styles.txtDelivery}>{deliveryTime}</TextView>
+                  <View style={styles.addressView}>
+                    <Icon family="EvilIcons" name="location" color={Colors.PRIMARY[300]} size={24} />
+                    <TextView style={styles.txtAddress} numberOfLines={1}>
+                      {userAddress}
+                    </TextView>
+                    <Icon family="Entypo" name="chevron-down" color={Colors.PRIMARY[300]} size={24} />
+                  </View>
+                </Pressable>
+                <View style={styles.actionButtonView}>
+                  <Pressable onPress={() => navigation.navigate('Wallet')}>
+                    <Image
+                      source={Images.ic_wallet}
+                      style={[styles.actionButton, { marginRight: hp(0.8) }]}
+                    />
+                  </Pressable>
+                  <Pressable onPress={handleNotificationPress}>
+                    <Image
+                      source={Images.ic_notificaiton}
+                      style={[styles.actionButton, { marginLeft: hp(0.5), marginRight: hp(0.5) }]}
+                    />
+                  </Pressable>
+                </View>
+              </View>
             </View>
           </View>
 
-          {/* Dynamic Data from API */}
-          <ProductCard
-            cardArray={freshFood}
-            horizontal
-            type="FRUITS"
-            onProductAdded={handleProductAdded}
-          />
-        </View>
+          {/* 🔹 Sticky Search + Categories (with gradient background) */}
+          <LinearGradient
+            colors={['#5A875C', '#015304']}
+            start={{ x: 1, y: 1.3 }}
+            end={{ x: 1, y: 0.2 }}
+            style={styles.stickyHeaderContainer}
+          >
+            <View style={styles.searchBox} pointerEvents="box-none">
+              <Pressable
+                style={[styles.searchView, { flex: 1 }]}
+                hitSlop={{ top: 0, bottom: 0, left: 0, right: 0 }}
+                onPress={() => navigation.navigate('Search')}
+              >
+                <Icon
+                  family="EvilIcons"
+                  name="search"
+                  color={Colors.PRIMARY[300]}
+                  size={34}
+                  style={{ marginTop: hp(-1) }}
+                />
+                <Animated.View style={[{ flex: 1 }, searchPlaceholderAnimatedStyle]}>
+                  <InputText
+                    value={''}
+                    inputStyle={styles.inputView}
+                    editable={false}
+                    placeHolderTextStyle={Colors.PRIMARY[300]}
+                    placeholder={SEARCH_PLACEHOLDERS[searchPlaceholderIndex]}
+                  />
+                </Animated.View>
+              </Pressable>
+              <Pressable
+                style={styles.micView}
+                hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                onPress={() => navigation.navigate('Search', { startVoice: true })}
+              >
+                <View style={styles.divider} />
+                <Icon
+                  family="FontAwesome"
+                  name="microphone"
+                  color={Colors.PRIMARY[300]}
+                  size={20}
+                />
+              </Pressable>
+            </View>
 
-        {/* Bottom Banner with Explore */}
-        <View>
-          <Image source={Images.img_banner_off} style={styles.imgBanner} />
+            {/* 🔹 Category List */}
+            <View style={styles.catListView}>
+              <FlatList
+                data={categories}
+                renderItem={renderCategoryItem}
+                keyExtractor={(item) => item._id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+              />
+            </View>
+          </LinearGradient>
+
+          {/* Products */}
+          <View>
+            <View style={styles.groceryCard}>
+              <View style={styles.cardMainView}>
+                <View>
+                  <TextView style={styles.txtOffer}>
+                    50% OFF on {'\n'}Fresh grocery
+                  </TextView>
+                  <Image source={Images.ic_code} style={styles.imgCode} />
+                </View>
+                <View>
+                  <Image
+                    source={Images.ic_vegatable}
+                    style={styles.imgVegatable}
+                  />
+                </View>
+              </View>
+              {/* 🔹 Product List */}
+              <ProductCard
+                cardArray={products}
+                type="OFFER"
+                horizontal
+                onProductAdded={handleProductAdded}
+              />
+
+            </View>
+          </View>
+
+
+
+
+
           {/*  EXPLORE BUTTON */}
           <View style={styles.buttonView}>
             <TouchableOpacity
@@ -1103,257 +1076,497 @@ const Dashboard: FC = () => {
               onPress={() =>
                 navigation.navigate('BottomStackNavigator', { screen: 'Catogaries' })
               }
-              style={{
-                width: '100%', // follow responsive width from buttonView so not too wide on tablets
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#1B5E20',
-                borderWidth: 3,
-                marginTop: hp(-1.5),
-                borderColor: '#1B5E20',
-                borderRadius: 30,
-                paddingVertical: hp(1.2), // responsive height
-                paddingHorizontal: wp(3),
-                elevation: 12,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.2,
-                shadowRadius: 10,
-              }}
             >
-              <TextView
+              <LinearGradient
+                colors={['#5A875C', '#015304']}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0 }}
                 style={{
-                  color: '#FFFFFF',
-                  fontSize: wp(4.2), // responsive font size
-                  fontWeight: '400',
-                  marginLeft: wp(1.2),
+                  width: '100%', // follow responsive width from buttonView so not too wide on tablets
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 999,
+                  paddingVertical: hp(1.5), // responsive height
+                  paddingHorizontal: wp(1),
+                  elevation: 12,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 6 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 10,
                 }}
               >
-                Explore
-              </TextView>
-
-              <Icon
-                name="chevron-right"
-                size={24}
-                color="#ffffff"
-                family="MaterialCommunityIcons"
-                style={{ marginLeft: wp(1.2) }}
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* 🔹 Limited Time deals */}
-        <View>
-          <View style={styles.productHeadingMainView}>
-            <View style={styles.productHeadingHeadingView}>
-              <TextView style={styles.txtProductHeading}>
-                Limited Time deals
-              </TextView>
-              <Pressable
-                onPress={() =>
-                  navigation.navigate('TypeProductList', {
-                    type: 'limitedDeals',
-                    title: 'Limited Time Deals',
-                  })
-                }
-                style={{
-                  backgroundColor: "#1B5E20",
-                  paddingHorizontal: 6, // chhota size
-                  paddingVertical: 4,    // chhota height
-                  borderRadius: 25,
-                    marginTop: hp(0),
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderWidth: 1,
-                  borderColor: "#A5D6A7",
-                }}
-              >
-                <TextView style={{ color: "#ffff", fontSize: 10, fontWeight: "700" }}>
-                  View All
+                <TextView
+                  style={{
+                    color: '#FFFFFF',
+                    fontFamily: 'Poppins-Regular',
+                    fontSize: wp(4.5), // responsive font size
+                    fontWeight: '400',
+                    marginLeft: wp(1.2),
+                  }}
+                >
+                  Explore
                 </TextView>
+
                 <Icon
                   name="chevron-right"
-                  color="#ffffff"
                   family="MaterialCommunityIcons"
+                  size={22}
+                  color="#FFFFFF"
+                  style={{ marginLeft: wp(1.5) }}
                 />
-              </Pressable>
-            </View>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
-          <ProductCard
-            cardArray={dealOfTheDay}
-            type="LIMITED"
-            horizontal
-            onProductAdded={handleProductAdded}
-          />
-        </View>
-      </ScrollView>
+          {/* 🔹 Grocery Section */}
+          <View>{renderGroceryKitchen()}</View>
 
-      {(cartItems.length > 0 || recentlyAddedProducts.length > 0) && (
-        <Pressable
-          onPress={() =>
-            navigation.navigate('BottomStackNavigator', { screen: 'Cart' })
-          }
-          style={styles.floatingCartButton}
-        >
-          <View style={styles.cartButtonContent}>
-            <View style={styles.stackedImagesContainer}>
-              {(() => {
-                let productsToShow: any[] = [];
 
-                if (recentlyAddedProducts.length > 0) {
-                  // newest product should appear at the front
-                  productsToShow = recentlyAddedProducts
-                    .slice(-3)
-                    .reverse()
-                    .map(p => ({
-                    image:
-                      p?.image ||
-                      p?.variants?.[0]?.images?.[0] ||
-                      p?.ProductVarient?.[0]?.images?.[0] ||
-                      p?.primary_image?.[0],
-                  }));
-                } else if (cartItems.length > 0) {
-                  productsToShow = cartItems
-                    .slice(-3)
-                    .reverse()
-                    .map(item => {
-                    const product = item?.productId || item?.product;
-                    return {
-                      image:
-                        product?.images?.[0] ||
-                        product?.primary_image?.[0] ||
-                        product?.image ||
-                        item?.image,
-                    };
-                  });
-                }
-
-                return productsToShow.map((product, index) => {
-                  const imageUri = product?.image
-                    ? ApiService.getImage(product.image)
-                    : null;
-                  const Container: any = index === 0 ? Animated.View : View;
-
-                  return (
-                    <Container
-                      key={index}
-                      style={[
-                        styles.cartProductImageContainer,
-                        index > 0 && styles.stackedImage,
-                        index === 0 && { transform: [{ translateY: bounceValue }] },
-                        { zIndex: 10 - index },
-                      ]}
-                    >
-                      {imageUri ? (
-                        <Image
-                          source={{ uri: imageUri }}
-                          style={styles.cartProductImage}
-                          resizeMode="cover"
-                        />
-                      ) : (
-                        <View style={styles.cartProductImagePlaceholder} />
-                      )}
-                    </Container>
-                  );
-                });
-              })()}
+          {/* Frequently Bought → recommendedProducts */}
+          <View>
+            <View style={styles.productHeadingMainView}>
+              <View style={styles.productHeadingHeadingView}>
+                <TextView style={styles.txtProductHeading}>Frequently Bought</TextView>
+                <Pressable
+                  onPress={() =>
+                    navigation.navigate('TypeProductList', {
+                      type: 'frequentlyBought',
+                      title: 'Frequently Bought',
+                    })
+                  }
+                  style={{
+                    backgroundColor: "#1B5E20",
+                    paddingHorizontal: 6, // chhota size
+                    paddingVertical: 4,    // chhota height
+                    borderRadius: 25,
+                    marginTop: hp(0),
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderWidth: 1,
+                    borderColor: "#A5D6A7",
+                  }}
+                >
+                  <TextView style={{ color: "#ffff", fontSize: 10, fontWeight: "700" }}>
+                    View All
+                  </TextView>
+                  <Icon
+                    name="chevron-right"
+                    color="#ffffff"
+                    family="MaterialCommunityIcons"
+                  />
+                </Pressable>
+              </View>
             </View>
-
-            <View style={styles.cartTextBlock}>
-              <TextView style={styles.cartButtonText}>View Cart</TextView>
-              <TextView style={styles.cartButtonSubText}>
-                {cartItemCount} item{cartItemCount === 1 ? '' : 's'}
-              </TextView>
-            </View>
-            <View style={styles.arrowCircle}>
-              <Icon
-                name="chevron-forward"
-                family="Ionicons"
-                size={16}
-                color="#1B5E20"
-              />
-            </View>
-          </View>
-        </Pressable>
-      )}
-
-      {/* Address Picker */}
-      <Modal
-        visible={showAddressPicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowAddressPicker(false)}
-      >
-        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' }} onPress={() => setShowAddressPicker(false)}>
-          <View
-            style={{
-              backgroundColor: '#fff',
-              marginTop: hp(12),
-              marginHorizontal: wp(4),
-              borderRadius: 14,
-              padding: wp(4),
-              maxHeight: hp(50),
-            }}
-          >
-            <TextView style={{ fontSize: 18, fontWeight: '700', color: '#000', marginBottom: hp(1) }}>
-              Select delivery address
-            </TextView>
-
-            <ScrollView>
-              {addressList.map((addr) => {
-                const isSelected = selectedAddressId === addr._id;
-                return (
-                  <Pressable
-                    key={addr._id}
-                    onPress={() => handleAddressSelect(addr)}
-                    style={{
-                      paddingVertical: hp(1.6),
-                      borderBottomWidth: 1,
-                      borderColor: '#eee',
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: wp(2),
-                    }}
-                  >
-                    <Icon
-                      family="MaterialCommunityIcons"
-                      name={isSelected ? 'checkbox-marked' : 'checkbox-blank-outline'}
-                      size={22}
-                      color={isSelected ? Colors.PRIMARY[100] : '#999'}
-                    />
-                    <View style={{ flex: 1 }}>
-                      <TextView style={{ color: '#000', fontWeight: '700' }}>
-                        {addr.addressType || 'Home'}
-                      </TextView>
-                      <TextView style={{ color: '#555', marginTop: 2 }}>
-                        {formatAddress(addr)}
-                      </TextView>
-                    </View>
-                  </Pressable>
-                );
-              })}
-
-              {addressList.length === 0 && (
-                <TextView style={{ color: '#666', marginTop: hp(1) }}>
-                  No saved addresses. Add one first.
-                </TextView>
-              )}
-            </ScrollView>
-
-            <LinearButton
-              title="Add Address"
-              onPress={() => {
-                setShowAddressPicker(false);
-                navigation.navigate('AddAddress');
-              }}
-              style={{ marginTop: hp(2) }}
+            <ProductCard
+              // API: recommendedProducts
+              cardArray={recommended}
+              horizontal
+              type="BOUGHT"
+              onProductAdded={handleProductAdded}
             />
           </View>
-        </Pressable>
-      </Modal>
+
+
+          {/* 🔹 Deal Of The Day - Explore Sections */}
+          <View>
+            <Image source={Images.img_deal} style={styles.imgDeal} />
+            <FlatList
+              data={exploreSections.slice(0, 6)}                    // ← Max 6 explore sections
+              renderItem={renderDealProduct}
+              contentContainerStyle={{ alignSelf: 'center', marginTop: hp(2) }}
+              numColumns={3}
+              keyExtractor={(item) => item._id}
+            />
+          </View>
+          
+
+          {/* Dynamic Banner Below Deal of the Day */}
+          {banners.length > 0 && (
+            <View style={{ marginTop: hp(-2) }}>
+              <BannerCarousel
+                banners={banners}
+                height={hp(25)}
+                autoScrollInterval={3000}
+              />
+            </View>
+          )}
+
+          {/* 🔹 Popular Products → favoriteProducts */}
+          <View>
+            <View style={styles.productHeadingMainView}>
+              <View style={styles.productHeadingHeadingView}>
+                <TextView style={styles.txtProductHeading}>Popular Products</TextView>
+                <Pressable
+                  onPress={() =>
+                    navigation.navigate('TypeProductList', {
+                      type: 'popularProduct',
+                      title: 'Popular Products',
+                    })
+                  }
+                  style={{
+                    backgroundColor: "#1B5E20",
+                    paddingHorizontal: 6, // chhota size
+                    paddingVertical: 4,    // chhota height
+                    borderRadius: 25,
+                    marginTop: hp(0),
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderWidth: 1,
+                    borderColor: "#A5D6A7",
+                  }}
+                >
+                  <TextView style={{ color: "#ffff", fontSize: 10, fontWeight: "700" }}>
+                    View All
+                  </TextView>
+                  <Icon
+                    name="chevron-right"
+                    color="#ffffff"
+                    family="MaterialCommunityIcons"
+                  />
+                </Pressable>
+              </View>
+            </View>
+            <ProductCard
+              // API: favoriteProducts
+              cardArray={favorite}
+              horizontal
+              type="BOUGHT"
+              onProductAdded={handleProductAdded}
+            />
+          </View>
+
+          {/* Fresh Fruits Section */}
+          <View style={{ marginTop: hp(2) }}>
+            <View style={styles.productHeadingMainView}>
+              <View style={styles.productHeadingHeadingView}>
+                <TextView style={styles.txtProductHeading}>Fresh Fruits</TextView>
+                <Pressable
+                  onPress={() =>
+                    navigation.navigate('TypeProductList', {
+                      type: 'freshFruits',
+                      title: 'Fresh Fruits',
+                    })
+                  }
+                  style={{
+                    backgroundColor: "#1B5E20",
+                    paddingHorizontal: 6, // chhota size
+                    paddingVertical: 4,    // chhota height
+                    borderRadius: 25,
+                    marginTop: hp(0),
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderWidth: 1,
+                    borderColor: "#A5D6A7",
+                  }}
+                >
+                  <TextView style={{ color: "#ffff", fontSize: 10, fontWeight: "700" }}>
+                    View All
+                  </TextView>
+                  <Icon
+                    name="chevron-right"
+                    color="#ffffff"
+                    family="MaterialCommunityIcons"
+                  />
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Dynamic Data from API */}
+            <ProductCard
+              cardArray={freshFood}
+              horizontal
+              type="FRUITS"
+              onProductAdded={handleProductAdded}
+            />
+          </View>
+
+          {/* Bottom Banner with Explore */}
+          <View>
+            {dealBanner.length > 0 && (
+              <View style={{ marginTop: hp(-2) }}>
+                <BannerCarousel
+                  banners={dealBanner}
+                  height={hp(25)}
+                  autoScrollInterval={3000}
+                />
+              </View>
+            )}
+            {/*  EXPLORE BUTTON */}
+            <View style={styles.buttonView}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() =>
+                  navigation.navigate('BottomStackNavigator', { screen: 'Catogaries' })
+                }
+              >
+                <LinearGradient
+                  colors={['#5A875C', '#015304']}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{
+                    width: '100%', // follow responsive width from buttonView so not too wide on tablets
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 30,
+                    paddingVertical: hp(1.5), // responsive height
+                    paddingHorizontal: wp(3),
+                    elevation: 12,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 6 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 10,
+                    marginTop: hp(-1.5),
+                  }}
+                >
+                  <TextView
+                    style={{
+                      color: '#FFFFFF',
+                      fontSize: wp(4.5), // responsive font size
+                      fontFamily: 'Poppins-Regular',
+                      fontWeight: '400',
+                      marginLeft: wp(1.2),
+                    }}
+                  >
+                    Explore
+                  </TextView>
+
+                  <Icon
+                    name="chevron-right"
+                    size={24}
+                    color="#ffffff"
+                    family="MaterialCommunityIcons"
+                    style={{ marginLeft: wp(1.2) }}
+                  />
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Deal Banner Above Limited Time Deals */}
+
+
+          {/* 🔹 Limited Time deals */}
+          <View>
+            <View style={styles.productHeadingMainView}>
+              <View style={styles.productHeadingHeadingView}>
+                <TextView style={styles.txtProductHeading}>
+                  Limited Time deals
+                </TextView>
+                <Pressable
+                  onPress={() =>
+                    navigation.navigate('TypeProductList', {
+                      type: 'limitedDeals',
+                      title: 'Limited Time Deals',
+                    })
+                  }
+                  style={{
+                    backgroundColor: "#1B5E20",
+                    paddingHorizontal: 6, // chhota size
+                    paddingVertical: 4,    // chhota height
+                    borderRadius: 25,
+                    marginTop: hp(0),
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderWidth: 1,
+                    borderColor: "#A5D6A7",
+                  }}
+                >
+                  <TextView style={{ color: "#ffff", fontSize: 10, fontWeight: "700" }}>
+                    View All
+                  </TextView>
+                  <Icon
+                    name="chevron-right"
+                    color="#ffffff"
+                    family="MaterialCommunityIcons"
+                  />
+                </Pressable>
+              </View>
+            </View>
+            <ProductCard
+              cardArray={dealOfTheDay}
+              type="LIMITED"
+              horizontal
+              onProductAdded={handleProductAdded}
+            />
+          </View>
+        </Animated.ScrollView>
+
+        {(cartItems.length > 0 || recentlyAddedProducts.length > 0) && (
+          <Pressable
+            onPress={() =>
+              navigation.navigate('BottomStackNavigator', { screen: 'Cart' })
+            }
+            style={styles.floatingCartButton}
+          >
+            <LinearGradient
+              colors={['#5A875C', '#015304']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.cartGradient}
+            >
+              <View style={styles.cartButtonContent}>
+                <View style={styles.stackedImagesContainer}>
+                  {(() => {
+                    let productsToShow: any[] = [];
+
+                    if (recentlyAddedProducts.length > 0) {
+                      // newest product should appear at the front
+                      productsToShow = recentlyAddedProducts
+                        .slice(-3)
+                        .reverse()
+                        .map(p => ({
+                          image:
+                            p?.image ||
+                            p?.variants?.[0]?.images?.[0] ||
+                            p?.ProductVarient?.[0]?.images?.[0] ||
+                            p?.primary_image?.[0],
+                        }));
+                    } else if (cartItems.length > 0) {
+                      productsToShow = cartItems
+                        .slice(-3)
+                        .reverse()
+                        .map(item => {
+                          const product = item?.productId || item?.product;
+                          return {
+                            image:
+                              product?.images?.[0] ||
+                              product?.primary_image?.[0] ||
+                              product?.image ||
+                              item?.image,
+                          };
+                        });
+                    }
+
+                    return productsToShow.map((product, index) => {
+                      const imageUri = product?.image
+                        ? ApiService.getImage(product.image)
+                        : null;
+                      const Container: any = index === 0 ? Animated.View : View;
+
+                      return (
+                        <Container
+                          key={index}
+                          style={[
+                            styles.cartProductImageContainer,
+                            index > 0 && styles.stackedImage,
+                            index === 0 && { transform: [{ translateY: bounceValue }] },
+                            { zIndex: 10 - index },
+                          ]}
+                        >
+                          {imageUri ? (
+                            <Image
+                              source={{ uri: imageUri }}
+                              style={styles.cartProductImage}
+                              resizeMode="cover"
+                            />
+                          ) : (
+                            <View style={styles.cartProductImagePlaceholder} />
+                          )}
+                        </Container>
+                      );
+                    });
+                  })()}
+                </View>
+
+                <View style={styles.cartTextBlock}>
+                  <TextView style={styles.cartButtonText}>View Cart</TextView>
+                  <TextView style={styles.cartButtonSubText}>
+                    {cartItemCount} item{cartItemCount === 1 ? '' : 's'}
+                  </TextView>
+                </View>
+                <View style={styles.arrowCircle}>
+                  <Icon
+                    name="chevron-forward"
+                    family="Ionicons"
+                    size={18}
+                    color="#fff"
+                  />
+                </View>
+              </View>
+            </LinearGradient>
+          </Pressable>
+        )}
+
+        {/* Address Picker */}
+        <Modal
+          visible={showAddressPicker}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowAddressPicker(false)}
+        >
+          <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' }} onPress={() => setShowAddressPicker(false)}>
+            <View
+              style={{
+                backgroundColor: '#fff',
+                marginTop: hp(12),
+                marginHorizontal: wp(4),
+                borderRadius: 14,
+                padding: wp(4),
+                maxHeight: hp(50),
+              }}
+            >
+              <TextView style={{ fontSize: 18, fontWeight: '700', color: '#000', marginBottom: hp(1) }}>
+                Select delivery address
+              </TextView>
+
+              <ScrollView>
+                {addressList.map((addr) => {
+                  const isSelected = selectedAddressId === addr._id;
+                  return (
+                    <Pressable
+                      key={addr._id}
+                      onPress={() => handleAddressSelect(addr)}
+                      style={{
+                        paddingVertical: hp(1.6),
+                        borderBottomWidth: 1,
+                        borderColor: '#eee',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: wp(2),
+                      }}
+                    >
+                      <Icon
+                        family="MaterialCommunityIcons"
+                        name={isSelected ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                        size={22}
+                        color={isSelected ? Colors.PRIMARY[100] : '#999'}
+                      />
+                      <View style={{ flex: 1 }}>
+                        <TextView style={{ color: '#000', fontWeight: '700' }}>
+                          {addr.addressType || 'Home'}
+                        </TextView>
+                        <TextView style={{ color: '#555', marginTop: 2 }}>
+                          {formatAddress(addr)}
+                        </TextView>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+
+                {addressList.length === 0 && (
+                  <TextView style={{ color: '#666', marginTop: hp(1) }}>
+                    No saved addresses. Add one first.
+                  </TextView>
+                )}
+              </ScrollView>
+
+              <LinearButton
+                title="Add Address"
+                onPress={() => {
+                  setShowAddressPicker(false);
+                  navigation.navigate('AddAddress');
+                }}
+                style={{ marginTop: hp(2) }}
+              />
+            </View>
+          </Pressable>
+        </Modal>
+      </View>
     </SafeAreaView>
   );
 };
@@ -1361,7 +1574,7 @@ const Dashboard: FC = () => {
 export default Dashboard;
 
 // 🔹 Transform API product → ProductCardItem
-  const transformProductToCard = (product: Product): ProductCardItem => {
+const transformProductToCard = (product: Product): ProductCardItem => {
   const variant =
     (product as any)?.ProductVarient?.[0] ||
     (product as any)?.variants?.[0] ||
@@ -1377,9 +1590,15 @@ export default Dashboard;
       ? (product as any)?.images
       : []);
 
-    const imageUrl = preferredImages?.[0] || '';
-    const normalizedImage = imageUrl ? imageUrl.replace(/\\/g, '/') : '';
-    const fullImageUrl = normalizedImage ? IMAGE_BASE_URL + normalizedImage : '';
+  const normalizedImages =
+    (preferredImages || [])
+      .map((img: string) => (img || '').replace(/\\/g, '/').replace(/^\//, ''))
+      .filter(Boolean)
+      .map((img: string) => `${IMAGE_BASE_URL}${img}`);
+
+  const imageUrl = preferredImages?.[0] || '';
+  const normalizedImage = imageUrl ? imageUrl.replace(/\\/g, '/').replace(/^\//, '') : '';
+  const fullImageUrl = normalizedImage ? IMAGE_BASE_URL + normalizedImage : '';
 
   const weightValue =
     variant?.weight ??
@@ -1393,6 +1612,7 @@ export default Dashboard;
     id: (product as any)?._id || '',
     name: (product as any)?.productName || (product as any)?.name || 'Product',
     image: fullImageUrl,
+    images: normalizedImages,
     price: variant?.price || (product as any)?.price || 0,
     oldPrice: variant?.originalPrice || (product as any)?.mrp || 0,
     discount: variant?.discount ? `₹${variant.discount} OFF` : '',

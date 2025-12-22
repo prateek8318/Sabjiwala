@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import LinearGradient from 'react-native-linear-gradient';
 import {
   View,
   Text,
@@ -178,13 +179,20 @@ const Reorder = () => {
           <TouchableOpacity
             onPress={() => handleAddToCart(item)}
             disabled={isAdding}
-            style={[styles.addButton, isAdding && styles.addButtonDisabled]}
+            style={isAdding && styles.addButtonDisabled}
           >
-            {isAdding ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.addButtonText}>Add to Cart</Text>
-            )}
+            <LinearGradient
+              colors={['#5A875C', '#015304']}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.addButton}
+            >
+              {isAdding ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.addButtonText}>Add to Cart</Text>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </View>

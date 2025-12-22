@@ -8,6 +8,7 @@ import LinearButton from './LinearButton/linearButton';
 import Header from './Header/Header';
 import CheckBox from './CheckBox/checkbox';
 import RadioButton from './RadioButton/radioButton';
+import BannerCarousel from './BannerCarousel/bannerCarousel';
 export {
   CommonLoader,
   Header,
@@ -18,5 +19,6 @@ export {
   Button,
   LinearButton,
   CheckBox,
-  RadioButton
+  RadioButton,
+  BannerCarousel
 };

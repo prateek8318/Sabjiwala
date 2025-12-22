@@ -8,7 +8,6 @@ import { Fonts, Typography, Colors } from '../../../constant';
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.PRIMARY[100],
   },
   verifyOTPView: {
     marginTop: hp(8),

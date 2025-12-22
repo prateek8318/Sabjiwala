@@ -8,7 +8,6 @@ import {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.PRIMARY[100],
   },
   txtLoginView: {
     padding: hp(4),

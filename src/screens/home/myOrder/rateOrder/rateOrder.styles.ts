@@ -139,8 +139,8 @@ export default StyleSheet.create({
     shadowRadius: 4,
   },
   submitButton: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 12,
+    backgroundColor: '#015304',
+    borderRadius: 50,
     paddingVertical: hp(2),
     alignItems: 'center',
     justifyContent: 'center',

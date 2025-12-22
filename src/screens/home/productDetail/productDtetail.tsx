@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Image,
@@ -38,6 +38,7 @@ const ProductDetail = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [expandedSections, setExpandedSections] = useState({ highlights: true, info: true });
+  const carouselRef = useRef<FlatList<string> | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -65,10 +66,13 @@ const ProductDetail = () => {
           const options = rawVariants.length
             ? rawVariants.map((v: any, index: number) => ({
                 id: index,
-                label: `${v.weight || v.stock || 1} ${v.unit || 'kg'}`,
+                // Use variant name primarily (e.g. "500g", "1kg", "packof2"),
+                // fallback to weight + unit if name is missing
+                label: v.name || `${v.weight || v.stock || 1} ${v.unit || 'kg'}`,
                 price: v.price || 0,
                 mrp: v.mrp || v.originalPrice || v.price || 0,
                 variantId: v._id,
+                images: Array.isArray(v.images) ? v.images : [],
               }))
             : [fallbackOption];
 
@@ -202,31 +206,30 @@ const ProductDetail = () => {
     })();
   }, [productId]);
 
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" color="#4CAF50" />;
-  if (!product) return <Text style={{ flex: 1, textAlign: 'center', marginTop: 50 }}>Product not found</Text>;
-
-
+  // Auto-slide product images carousel every 3 seconds
   const selectedVariant = qtyOptions[selectedQty] || qtyOptions[0] || {};
 
-  // Safe price fallback – variant → product fallback → 0
+  // Safe price fallback – variant → product (null-safe) → 0
   const price = selectedVariant.price
     ? selectedVariant.price
-    : product.price
+    : product?.price
       ? product.price
-      : product.variants?.[0]?.price || 0;
+      : product?.variants?.[0]?.price || 0;
 
   const mrp = selectedVariant.mrp
     ? selectedVariant.mrp
-    : product.mrp
+    : product?.mrp
       ? product.mrp
       : selectedVariant.price
         ? selectedVariant.price
-        : product.price || 0;
+        : product?.price || 0;
 
-  const weight = selectedVariant.label ||
-    (product.variants?.[0]
+  const weight =
+    selectedVariant.label ||
+    (product?.variants?.[0]
       ? `${product.variants[0].weight || 1} ${product.variants[0].unit || 'kg'}`
       : '1 kg');
+
   const buildImageUrl = (path?: string) => {
     if (!path) return '';
     if (path.startsWith('http')) return path;
@@ -237,31 +240,71 @@ const ProductDetail = () => {
     return `${IMAGE_BASE_URL}${normalized}`;
   };
 
-  const fallbackImg = buildImageUrl(product.images?.[0]);
-
-  // Get product images for carousel; if only one image, duplicate so carousel still scrolls
-  const baseImages = product?.images?.length > 0
-    ? product.images.map((image: string) => buildImageUrl(image)).filter(Boolean)
-    : fallbackImg
-      ? [fallbackImg]
+  // Prefer images of currently selected variant, then fall back to product images
+  const variantImages =
+    Array.isArray((selectedVariant as any)?.images) && (selectedVariant as any).images.length > 0
+      ? (selectedVariant as any).images
+          .map((img: string) => buildImageUrl(img))
+          .filter(Boolean)
       : [];
 
-  const productImages = baseImages.length > 1
-    ? baseImages
-    : baseImages.length === 1
-      ? [baseImages[0], baseImages[0]]
+  const productBaseImages =
+    Array.isArray((product as any)?.images) && (product as any).images.length > 0
+      ? (product as any).images
+          .map((img: string) => buildImageUrl(img))
+          .filter(Boolean)
       : [];
 
-  const info = product.info || {};
-  const details = product.details || {};
+  const fallbackImg = productBaseImages[0] || '';
+
+  // Final list of images for main carousel
+  const productImages =
+    variantImages.length > 0
+      ? variantImages
+      : productBaseImages.length > 0
+        ? productBaseImages
+        : fallbackImg
+          ? [fallbackImg]
+          : [];
+
+  // Null-safe info/details when product is not yet loaded
+  const info = product?.info || {};
+  const details = product?.details || {};
+
+  useEffect(() => {
+    const totalImages = productImages.length;
+
+    if (totalImages <= 1) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prevIndex) => {
+        const nextIndex = (prevIndex + 1) % totalImages;
+        if (carouselRef.current) {
+          try {
+            carouselRef.current.scrollToIndex({ index: nextIndex, animated: true });
+          } catch (e) {
+            // ignore scroll errors
+          }
+        }
+        return nextIndex;
+      });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [productImages.length]);
+
+  if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" color="#4CAF50" />;
+  if (!product) return <Text style={{ flex: 1, textAlign: 'center', marginTop: 50 }}>Product not found</Text>;
 
   const highlightRows = [
     { label: 'Unit', value: weight },
     { label: 'Storage Tips', value: info.storageTips || details.storageTips },
     { label: 'Nutrient Value & Benefits', value: details.nutrientValue || info.nutrientValue },
-    { label: 'About', value: details.about || product.about },
-    { label: 'Description', value: details.description || product.description },
-    { label: 'Health Benefits', value: details.healthBenefits || product.healthBenefits },
+    { label: 'About', value: details.about || product?.about },
+    { label: 'Description', value: details.description || product?.description },
+    { label: 'Health Benefits', value: details.healthBenefits || product?.healthBenefits },
   ];
 
   const infoRows = [
@@ -438,6 +481,7 @@ const ProductDetail = () => {
         {/* Product Image Carousel */}
         <View style={styles.imgContainer}>
           <FlatList
+            ref={carouselRef}
             data={productImages}
             renderItem={renderCarouselImage}
             keyExtractor={(item, index) => index.toString()}
@@ -586,16 +630,20 @@ const ProductDetail = () => {
         ) : null}
       </ScrollView>
 
-      {/* Bottom Add to Cart Bar – Untouched */}
+      {/* Bottom Add to Cart Bar */}
       <View style={styles.bottomCartBar}>
         <LinearGradient colors={['#FFFFFF', '#FFFFFF']} style={styles.cartGradient}>
           {cartQty === 0 ? (
-            <Pressable
-              onPress={handleAddToCart}
-              style={[styles.addToCartBtn, { flex: 1, backgroundColor: '#1B5E20' }]}
-            >
-              <Text style={[styles.addToCartText, { color: '#fff' }]}>Add to Cart</Text>
-              <Icon name="chevron-right" family="Entypo" size={26} color="#fff" />
+            <Pressable onPress={handleAddToCart} style={{ flex: 1 }}>
+              <LinearGradient
+                colors={['#5A875C', '#015304']}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0 }}
+                style={[styles.addToCartBtn, { flex: 1 }]}
+              >
+                <Text style={[styles.addToCartText, { color: '#fff' }]}>Add to Cart</Text>
+                <Icon name="chevron-right" family="Entypo" size={26} color="#fff" />
+              </LinearGradient>
             </Pressable>
           ) : (
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1, padding: 10 }}>

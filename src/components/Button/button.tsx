@@ -10,6 +10,7 @@ import { FC } from 'react';
 import { Colors, Icon } from '../../constant';
 import TextView from '../TextView/textView';
 import _ from 'lodash';
+import LinearGradient from 'react-native-linear-gradient';
 
 interface ButtonProps {
   onPress?: () => void;
@@ -64,45 +65,97 @@ const Button: FC<ButtonProps> = ({
       onPress={() => handleClick()}
       disabled={isLoading === true ? true : disabled}
     >
-      <View
-        style={[
-          disabled ? disabledButtonContainer : buttonContainer,
-          {
-            backgroundColor: buttonColor
-              ? buttonColor
-              : disabled
-              ? Colors.PRIMARY[200]
-              : Colors.PRIMARY[100],
-          },
-        ]}
-      >
-        <View style={touchableOpacityStyle}>
-          {isLoading ? (
-            <View style={buttonView}>
-              <View style={indicatorStyle}>
-                <ActivityIndicator color={indicatorColor} />
+      {disabled ? (
+        <View style={disabledButtonContainer}>
+          <View style={touchableOpacityStyle}>
+            {isLoading ? (
+              <View style={buttonView}>
+                <View style={indicatorStyle}>
+                  <ActivityIndicator color={indicatorColor} />
+                </View>
               </View>
-            </View>
-          ) : (
-            <View style={buttonView}>
-              <TextView
-                style={[buttonText, titleStyle, disabled && disabledBtnText]}
-              >
-                {title}
-              </TextView>
+            ) : (
+              <View style={buttonView}>
+                <TextView
+                  style={[buttonText, titleStyle, disabled && disabledBtnText]}
+                >
+                  {title}
+                </TextView>
 
-              {showIcon && (
-                <Icon
-                  family={iconFamily}
-                  name={icon || 'help-outline'}
-                  size={20}
-                  color={Colors.PRIMARY[300]}
-                />
-              )}
-            </View>
-          )}
+                {showIcon && (
+                  <Icon
+                    family={iconFamily}
+                    name={icon || 'help-outline'}
+                    size={20}
+                    color={Colors.PRIMARY[300]}
+                  />
+                )}
+              </View>
+            )}
+          </View>
         </View>
-      </View>
+      ) : buttonColor ? (
+        // Solid-color button when a custom buttonColor is provided
+        <View style={[buttonContainer, { backgroundColor: buttonColor }]}>
+          <View style={touchableOpacityStyle}>
+            {isLoading ? (
+              <View style={buttonView}>
+                <View style={indicatorStyle}>
+                  <ActivityIndicator color={indicatorColor} />
+                </View>
+              </View>
+            ) : (
+              <View style={buttonView}>
+                <TextView style={[buttonText, titleStyle]}>
+                  {title}
+                </TextView>
+
+                {showIcon && (
+                  <Icon
+                    family={iconFamily}
+                    name={icon || 'help-outline'}
+                    size={20}
+                    color={Colors.PRIMARY[300]}
+                  />
+                )}
+              </View>
+            )}
+          </View>
+        </View>
+      ) : (
+        <LinearGradient
+          // Global primary button gradient
+          colors={['#5A875C', '#015304']}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0 }}
+          style={buttonContainer}
+        >
+          <View style={touchableOpacityStyle}>
+            {isLoading ? (
+              <View style={buttonView}>
+                <View style={indicatorStyle}>
+                  <ActivityIndicator color={indicatorColor} />
+                </View>
+              </View>
+            ) : (
+              <View style={buttonView}>
+                <TextView style={[buttonText, titleStyle]}>
+                  {title}
+                </TextView>
+
+                {showIcon && (
+                  <Icon
+                    family={iconFamily}
+                    name={icon || 'help-outline'}
+                    size={20}
+                    color={Colors.PRIMARY[300]}
+                  />
+                )}
+              </View>
+            )}
+          </View>
+        </LinearGradient>
+      )}
     </TouchableOpacity>
   );
 };

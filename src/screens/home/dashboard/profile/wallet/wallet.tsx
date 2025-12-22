@@ -1,6 +1,5 @@
 import React, { FC, useState, useEffect } from 'react';
 import {
-  SafeAreaView,
   View,
   Image,
   ScrollView,
@@ -13,6 +12,7 @@ import {
   Alert,
   FlatList,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import styles from './wallet.styles';
 import { HomeStackProps } from '../../../../../@types';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
@@ -214,7 +214,7 @@ const Wallet: FC = () => {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View>
           <Header title="Wallet" />
         </View>

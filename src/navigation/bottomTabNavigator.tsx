@@ -2,13 +2,12 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Dashboard, Catogaries, Favorites, MyOrder, Cart, RateOrder, Reorder, OrderTracking, ReturnOrder, TypeProductList } from '../screens';
-import { Colors, Fonts } from '../constant';
+import { Colors, Fonts, Images } from '../constant';
 import LinearGradient from 'react-native-linear-gradient';
-import { View, Text } from 'react-native';
+import { View, Text, Image } from 'react-native';
 import { useCart } from '../context/CartContext';
 import SubCategoryList from '../screens/home/catogaries/SubCategoryList';
 import ProductList from '../screens/home/catogaries/ProductList';
-import Icon from '../constant/Icon';
 
 
 const Stack = createNativeStackNavigator();
@@ -43,7 +42,13 @@ const MyOrderPageStack = () => (
 );
 const CartPageStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="Cart" component={Cart} />
+    <Stack.Screen 
+      name="Cart" 
+      component={Cart}
+      options={{
+        tabBarStyle: { display: 'none' }
+      }}
+    />
   </Stack.Navigator>
 );
 
@@ -54,51 +59,49 @@ const BottomStackNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={{
-        headerShown: false,   // <-- ⭐⭐ THE MAIN FIX ⭐⭐
+        headerShown: false,
         tabBarBackground: () => (
-          <>
-            <LinearGradient
-              colors={[Colors.PRIMARY[200], Colors.SECONDARY[300]]}
-              style={{ flex: 1 }}
-            />
-            <LinearGradient
-              colors={['rgba(0,0,0,0.2)', 'transparent']}
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 6 }}
-            />
-            <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.2)']}
-              style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 6 }}
-            />
-          </>
+          <LinearGradient
+            colors={['#5A875C', '#015304']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={{ flex: 1 }}
+          />
         ),
-        tabBarActiveTintColor: Colors.PRIMARY[300],
-        tabBarInactiveTintColor: Colors.FLOATINGINPUT[100],
-        tabBarLabelStyle: { fontFamily: Fonts.Medium, fontSize: 12 },
-        tabBarStyle: { height: 80, borderTopWidth: 0, backgroundColor: 'transparent' },
+        tabBarActiveTintColor: '#FFFFFF',
+        tabBarInactiveTintColor: '#B0B0B0',
+        tabBarLabelStyle: { fontFamily: Fonts.Medium, fontSize: 12, marginTop: 3 },
+        tabBarIconStyle: { marginTop: 0 },
+        tabBarStyle: { 
+          height: 80, 
+          borderTopWidth: 0, 
+          backgroundColor: 'transparent',
+          paddingBottom: 8,
+          paddingTop: 4,
+        },
       }}
     >
       <Tab.Screen name="Home" component={HomePageStack}
         options={{
           tabBarIcon: ({ focused }) => (
-            <Icon
-              family="Ionicons"
-              name={focused ? 'home' : 'home-outline'}
-              size={28}
-              color={focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100]}
+            <Image
+              source={focused ? Images.ic_home_active : Images.ic_home}
+              style={{ width: 28, height: 28 }}
+              resizeMode="contain"
             />
           ),
         }}
       />
 
-      <Tab.Screen name="Catogaries" component={CatogariesPageStack}
+      <Tab.Screen 
+        name="Catogaries" 
+        component={CatogariesPageStack}
         options={{
-          unmountOnBlur: true,
           tabBarIcon: ({ focused }) => (
-            <Icon
-              family="Ionicons"
-              name={focused ? 'grid' : 'grid-outline'}
-              size={28}
-              color={focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100]}
+            <Image
+              source={focused ? Images.ic_catogary_active : Images.ic_catogary}
+              style={{ width: 28, height: 28 }}
+              resizeMode="contain"
             />
           ),
         }}
@@ -112,11 +115,10 @@ const BottomStackNavigator = () => {
       <Tab.Screen name="Favorites" component={FavoritesPageStack}
         options={{
           tabBarIcon: ({ focused }) => (
-            <Icon
-              family="Ionicons"
-              name={focused ? 'heart' : 'heart-outline'}
-              size={28}
-              color={focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100]}
+            <Image
+              source={focused ? Images.ic_heart_active : Images.ic_heart}
+              style={{ width: 28, height: 28 }}
+              resizeMode="contain"
             />
           ),
         }}
@@ -124,12 +126,12 @@ const BottomStackNavigator = () => {
 
       <Tab.Screen name="MyOrder" component={MyOrderPageStack}
         options={{
+          tabBarLabel: 'My Order',
           tabBarIcon: ({ focused }) => (
-            <Icon
-              family="Ionicons"
-              name={focused ? 'bag' : 'bag-outline'}
-              size={28}
-              color={focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100]}
+            <Image
+              source={focused ? Images.ic_order_active : Images.ic_order}
+              style={{ width: 28, height: 28 }}
+              resizeMode="contain"
             />
           ),
         }}
@@ -140,13 +142,13 @@ const BottomStackNavigator = () => {
         component={CartPageStack}
         options={{
           tabBarLabel: 'Cart',
+          tabBarStyle: { height: 0, overflow: 'hidden' },
           tabBarIcon: ({ focused }) => (
             <View>
-              <Icon
-                family="Ionicons"
-                name={focused ? 'cart' : 'cart-outline'}
-                size={28}
-                color={focused ? Colors.PRIMARY[300] : Colors.FLOATINGINPUT[100]}
+              <Image
+                source={focused ? Images.ic_cart_active : Images.ic_cart}
+                style={{ width: 28, height: 28 }}
+                resizeMode="contain"
               />
 
               {totalItems > 0 && (
