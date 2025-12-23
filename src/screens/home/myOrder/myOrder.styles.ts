@@ -55,28 +55,35 @@ export default StyleSheet.create({
 
   actionButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 6,
+    
     borderTopWidth: 1,
-    borderColor: '#eee',
-    paddingTop: 8,
+    borderColor: '#CCCCCC',
+    
   },
   actionBtn: {
     flex: 1,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#228B22',
-    borderRadius: 6,
-    marginHorizontal: 2,
     alignItems: 'center',
-    backgroundColor: '#fff',
+    paddingVertical: 8,
   },
   actionBtnDisabled: {
-    borderColor: '#ccc',
-    backgroundColor: '#f5f5f5',
+    opacity: 0.5,
   },
-  actionText: { fontSize: 13, color: '#228B22', fontWeight: '700' },
-  actionTextDisabled: { color: '#999', fontWeight: '400' },
+  actionText: { 
+    fontSize: 15, 
+    color: '#015304',
+    
+    fontWeight: '600' 
+  },
+  actionTextDisabled: { 
+    color: '#999', 
+    fontWeight: '400' 
+  },
+  separator: {
+    width: 1,
+    height: 36,
+    backgroundColor: '#CCCCCC',
+    
+  },
 
   empty: { alignItems: 'center', marginTop: hp(20) },
   emptyText: { fontSize: 18, color: '#999' },

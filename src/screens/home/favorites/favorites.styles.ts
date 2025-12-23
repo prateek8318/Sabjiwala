@@ -153,10 +153,98 @@ const styles = StyleSheet.create({
   quantityView: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     paddingHorizontal: wp(2),
-    paddingBottom: hp(1.2),   // thoda kam kiya
-          // pehle 1 tha
+    paddingBottom: hp(1.2),
+  },
+
+  // Add button styles
+  addButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: hp(0.5),
+  },
+ addButtonView: {
+    width: 75,
+    height: 20,
+    borderTopLeftRadius: 45,
+    borderTopRightRadius: 45,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addButtonText: {
+    color: '#fff',
+    ...Typography.BodyMedium14,
+    fontWeight: '600',
+    marginLeft: wp(1),
+  },
+  quantityButton: {
+    width: wp(8),
+    height: wp(8),
+    borderRadius: 20,
+    backgroundColor: '#015304',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: wp(1),
+  },
+  quantityText: {
+    color: '#fff',
+    ...Typography.H5Medium16,
+    fontWeight: 'bold',
+  },
+  quantityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 20,
+    padding: 2,
+  },
+  optionView: {
+    width: 75,
+    height: 17,
+    backgroundColor: Colors.PRIMARY[600],
+    borderBottomLeftRadius: 45,
+    borderBottomRightRadius: 45,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addProductButon: {
+    height: hp(3.5),
+    width: wp(22), // wider like original
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  txtOption: {
+    color: Colors.PRIMARY[400],
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  txtAdd: {
+    color: Colors.PRIMARY[300],
+    fontSize: 14,
+    
+  },
+  variantOptionsContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 10,
+    elevation: 5,
+    zIndex: 10,
+  },
+  variantOption: {
+    padding: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  variantOptionText: {
+    ...Typography.BodyRegular14,
+    color: Colors.PRIMARY[400],
   },
 
   txtWeight: {
@@ -185,32 +273,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  optionView: {
-    width: 66,
-    height: 20,
-    backgroundColor: Colors.PRIMARY[600],
-    borderBottomLeftRadius: 50,
-    borderBottomRightRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  txtOption: {
-    color: Colors.PRIMARY[400],
-    fontSize: 11,
-    fontWeight: '600',
-  },
-
-  txtAdd: {
-    color: Colors.PRIMARY[300],
-    fontSize: 14,
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    includeFontPadding: false,
-  },
-  addButton: {
-    width: 80,
-    height: 120,
-  },
+  
   
   cartButton: {
     height: hp(3),

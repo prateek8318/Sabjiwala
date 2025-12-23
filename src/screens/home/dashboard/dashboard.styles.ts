@@ -227,12 +227,14 @@ const styles = StyleSheet.create({
   txtGrocery: {
     color: Colors.PRIMARY[400],
     ...Typography.BodyMedium13,
-    marginTop: hp(1),
+    fontWeight: '800',  
+    alignSelf: 'center',
+    marginTop: hp(0.5),
   },
   groceryCard1: {
     width: wp(40),
     height: hp(16),
-    elevation:5,
+    elevation:3,
     marginLeft: hp(0.5),
     backgroundColor: '#E8FAA8',
     borderRadius: 12,
@@ -240,7 +242,7 @@ const styles = StyleSheet.create({
   groceryCard2: {
     width: wp(40),
     height: hp(16),
-     elevation:5,
+     elevation:3,
     
     backgroundColor: '#E3E3E3',
     borderRadius: 12,

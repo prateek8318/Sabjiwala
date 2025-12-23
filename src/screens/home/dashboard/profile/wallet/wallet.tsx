@@ -11,6 +11,8 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Modal,
+  StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import styles from './wallet.styles';
@@ -55,6 +57,8 @@ const Wallet: FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [processingPayment, setProcessingPayment] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [showPaymentMethods, setShowPaymentMethods] = useState<boolean>(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('Razorpay UPI');
 
   // Fetch wallet history + balance
   const fetchWalletHistory = async (isRefresh = false) => {
@@ -64,10 +68,12 @@ const Wallet: FC = () => {
       } else {
         setLoading(true);
       }
-      const [historyRes, balanceRes] = await Promise.all([
-        ApiService.getWalletHistory(),
-        ApiService.getWalletBalance(),
-      ]);
+      
+      // First get the balance
+      const balanceRes = await ApiService.getWalletBalance();
+      
+      // Then get the transaction history
+      const historyRes = await ApiService.getWalletHistory();
 
       // Handle history response (show most recent first)
       if (historyRes?.data?.success && historyRes.data.data) {
@@ -81,22 +87,30 @@ const Wallet: FC = () => {
           history = historyRes.data.data.transactions;
         }
 
+        // Filter out any transactions that don't have the required fields
+        history = history.filter(tx => 
+          tx && 
+          tx._id && 
+          tx.amount !== undefined && 
+          tx.balance_after_action !== undefined &&
+          tx.createdAt
+        );
+
+        // Sort by date (newest first)
         const sortedHistory = [...history].sort((a, b) => {
-          const aTime = new Date(a.createdAt).getTime();
-          const bTime = new Date(b.createdAt).getTime();
-          return bTime - aTime;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         });
+        
         setWalletHistory(sortedHistory);
       } else {
         setWalletHistory([]);
       }
 
       // Handle balance response
-      // Extract balance from multiple possible response shapes
-      let currentBalance = balance;
       const balancePayload = balanceRes?.data ?? {};
       const balanceData = balancePayload.data ?? balancePayload;
 
+      // Extract balance from multiple possible response shapes
       const extractedBalance =
         (typeof balanceData === 'number' ? balanceData : undefined) ??
         balanceData?.balance ??
@@ -106,22 +120,14 @@ const Wallet: FC = () => {
         balanceData?.wallet?.currentBalance;
 
       if (extractedBalance !== undefined) {
-        currentBalance = Number(extractedBalance) || 0;
-      } else if (
-        historyRes?.data?.success &&
-        Array.isArray(historyRes.data.data) &&
-        historyRes.data.data.length > 0
-      ) {
-        // History may arrive unsorted; use latest by createdAt
-        const sorted = [...historyRes.data.data].sort((a: any, b: any) => {
-          const aTime = new Date(a.createdAt).getTime();
-          const bTime = new Date(b.createdAt).getTime();
-          return bTime - aTime;
-        });
-        currentBalance = sorted[0].balance_after_action || 0;
+        setBalance(Number(extractedBalance) || 0);
+      } else if (walletHistory.length > 0) {
+        // If no balance from API but we have history, use the latest balance
+        const latestTx = walletHistory[0];
+        setBalance(latestTx.balance_after_action || 0);
+      } else {
+        setBalance(0);
       }
-
-      setBalance(currentBalance);
     } catch (error) {
       console.log('Wallet history fetch error:', error);
       setBalance(0);
@@ -321,32 +327,62 @@ const Wallet: FC = () => {
               </View>
             ) : walletHistory.length === 0 ? (
               <View style={styles.emptyContainer}>
+                <Icon 
+                  name="receipt" 
+                  size={40} 
+                  color={Colors.PRIMARY[200]} 
+                  style={{ marginBottom: 10 }}
+                  family="MaterialCommunityIcons"
+                />
                 <TextView style={styles.emptyText}>No transactions yet</TextView>
+                <TextView style={[styles.emptyText, { fontSize: wp(3.5), marginTop: 5 }]}>
+                  Your transaction history will appear here
+                </TextView>
               </View>
             ) : (
-              /* Ye naya FlatList laga do – perfect scroll karega */
               <FlatList
                 data={walletHistory}
                 keyExtractor={(item) => item._id}
                 showsVerticalScrollIndicator={false}
                 scrollEnabled={true}
                 bounces={true}
-                contentContainerStyle={{ paddingBottom: hp(12) }}  /* bottom button ke liye space */
+                contentContainerStyle={{ paddingBottom: hp(16) }}
                 renderItem={({ item }) => (
                   <View style={styles.historyItem}>
                     <View style={styles.historyItemLeft}>
-                      <TextView style={styles.historyAction}>
-                        {item.action === 'credit' ? 'Credit' : 'Debit'}
-                      </TextView>
+                      <View style={styles.historyHeader}>
+                        <View style={[
+                          styles.historyIcon,
+                          item.action === 'credit' ? styles.creditIcon : styles.debitIcon
+                        ]}>
+                          <Icon
+                            name={item.action === 'credit' ? 'arrow-down' : 'arrow-up'}
+                            size={16}
+                            color={Colors.PRIMARY[300]}
+                            family="Feather"
+                          />
+                        </View>
+                        <TextView style={styles.historyAction}>
+                          {item.action === 'credit' ? 'Money Added' : 'Money Spent'}
+                        </TextView>
+                      </View>
                       <TextView style={styles.historyDate}>
                         {new Date(item.createdAt).toLocaleDateString('en-IN', {
                           day: '2-digit',
                           month: 'short',
                           year: 'numeric',
                         })}
+                        {' • '}
+                        {new Date(item.createdAt).toLocaleTimeString('en-IN', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        })}
                       </TextView>
                       {item.description ? (
-                        <TextView style={styles.historyDescription}>{item.description}</TextView>
+                        <TextView style={styles.historyDescription} numberOfLines={1}>
+                          {item.description}
+                        </TextView>
                       ) : null}
                     </View>
                     <View style={styles.historyItemRight}>
@@ -358,7 +394,7 @@ const Wallet: FC = () => {
                         {item.action === 'credit' ? '+' : '-'}₹ {item.amount.toFixed(2)}
                       </TextView>
                       <TextView style={styles.historyBalance}>
-                        Balance: ₹ {item.balance_after_action.toFixed(2)}
+                        ₹{item.balance_after_action.toFixed(2)}
                       </TextView>
                     </View>
                   </View>
@@ -372,11 +408,14 @@ const Wallet: FC = () => {
         <View style={styles.bottomView}>
           {addMoney ? (
             <>
-              <View style={styles.payModeView}>
-                <Image source={Images.ic_gpay} style={styles.imgPayMode} />
+              <TouchableOpacity 
+                style={styles.payModeView}
+                onPress={() => setShowPaymentMethods(true)}
+                activeOpacity={0.8}
+              >
                 <View>
                   <TextView style={styles.txtPayMode}>Pay Using</TextView>
-                  <TextView style={styles.txtPayVia}>Razorpay (UPI / Card)</TextView>
+                  <TextView style={styles.txtPayVia}>{selectedPaymentMethod}</TextView>
                 </View>
                 <Icon
                   family="FontAwesome6"
@@ -384,7 +423,7 @@ const Wallet: FC = () => {
                   color={Colors.PRIMARY[400]}
                   size={24}
                 />
-              </View>
+              </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={handlePayNow}
@@ -429,6 +468,147 @@ const Wallet: FC = () => {
             </View>
           )}
         </View>
+
+        {/* Payment Methods Modal */}
+        <Modal
+          visible={showPaymentMethods}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setShowPaymentMethods(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Choose Payment Method</Text>
+                <TouchableOpacity onPress={() => setShowPaymentMethods(false)}>
+                  <Icon name="close" size={24} color={Colors.PRIMARY[400]} family="MaterialCommunityIcons" />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.paymentMethodsList}>
+                {/* UPI Payment Methods */}
+                <View style={styles.paymentSection}>
+                  <Text style={styles.sectionTitle}>UPI Apps</Text>
+                  
+                  <TouchableOpacity 
+                    style={[styles.paymentMethod, styles.disabledPayment]}
+                    disabled={true}
+                  >
+                    <View style={styles.paymentMethodLeft}>
+                      <Icon 
+                        name="phone" 
+                        size={24} 
+                        color={Colors.PRIMARY[100]} 
+                        style={styles.paymentIcon}
+                        family="MaterialCommunityIcons"
+                      />
+                      <Text style={[styles.paymentMethodText, styles.disabledText]}>PhonePe</Text>
+                    </View>
+                    <Text style={[styles.comingSoonText, styles.disabledText]}>Coming Soon</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={[styles.paymentMethod, styles.disabledPayment]}
+                    disabled={true}
+                  >
+                    <View style={styles.paymentMethodLeft}>
+                      <Icon 
+                        name="wallet" 
+                        size={24} 
+                        color={Colors.PRIMARY[100]} 
+                        style={styles.paymentIcon}
+                        family="MaterialCommunityIcons"
+                      />
+                      <Text style={[styles.paymentMethodText, styles.disabledText]}>Paytm</Text>
+                    </View>
+                    <Text style={[styles.comingSoonText, styles.disabledText]}>Coming Soon</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={[styles.paymentMethod, styles.disabledPayment]}
+                    disabled={true}
+                  >
+                    <View style={styles.paymentMethodLeft}>
+                      <Icon 
+                        name="amazon" 
+                        size={24} 
+                        color={Colors.PRIMARY[100]} 
+                        style={styles.paymentIcon}
+                        family="MaterialCommunityIcons"
+                      />
+                      <Text style={[styles.paymentMethodText, styles.disabledText]}>Amazon Pay</Text>
+                    </View>
+                    <Text style={[styles.comingSoonText, styles.disabledText]}>Coming Soon</Text>
+                  </TouchableOpacity>
+                </View>
+                
+                {/* Other Payment Methods */}
+                <View style={styles.paymentSection}>
+                  <Text style={styles.sectionTitle}>Other Payment Methods</Text>
+                  
+                  <TouchableOpacity 
+                    style={[styles.paymentMethod, styles.selectedPayment]}
+                    onPress={() => {
+                      setSelectedPaymentMethod('Razorpay UPI');
+                      setShowPaymentMethods(false);
+                    }}
+                  >
+                    <View style={styles.paymentMethodLeft}>
+                      <Icon 
+                        name="bank-transfer" 
+                        size={24} 
+                        color={Colors.PRIMARY[100]} 
+                        style={styles.paymentIcon}
+                        family="MaterialCommunityIcons"
+                      />
+                      <Text style={styles.paymentMethodText}>Razorpay UPI</Text>
+                    </View>
+                    <Icon 
+                    name="check-circle" 
+                    size={24} 
+                    color={Colors.PRIMARY[100]} 
+                    family="MaterialCommunityIcons"
+                  />
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={[styles.paymentMethod, styles.disabledPayment]}
+                    disabled={true}
+                  >
+                    <View style={styles.paymentMethodLeft}>
+                      <Icon 
+                        name="credit-card" 
+                        size={24} 
+                        color={Colors.PRIMARY[100]} 
+                        style={styles.paymentIcon} 
+                        family="MaterialCommunityIcons"
+                      />
+                      <Text style={[styles.paymentMethodText, styles.disabledText]}>Credit/Debit Card</Text>
+                    </View>
+                    <Text style={[styles.comingSoonText, styles.disabledText]}>Coming Soon</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={[styles.paymentMethod, styles.disabledPayment]}
+                    disabled={true}
+                  >
+                    <View style={styles.paymentMethodLeft}>
+                      <Icon 
+                        name="bank" 
+                        size={24} 
+                        color={Colors.PRIMARY[100]} 
+                        style={styles.paymentIcon} 
+                        family="MaterialCommunityIcons"
+                      />
+                      <Text style={[styles.paymentMethodText, styles.disabledText]}>Net Banking</Text>
+                    </View>
+                    <Text style={[styles.comingSoonText, styles.disabledText]}>Coming Soon</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </TouchableWithoutFeedback>
   );

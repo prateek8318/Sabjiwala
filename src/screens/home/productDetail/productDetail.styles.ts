@@ -87,13 +87,21 @@ export default StyleSheet.create({
   },
 
   bottomCartBar: {
-    position: 'fixed',
-    bottom: hp(1),
+    position: 'absolute',
+    bottom: 0,
     left: 0,
     right: 0,
-    height: hp(6),
-   
-    
+    height: hp(10),
+    backgroundColor: '#fff',
+    paddingBottom: hp(1.5),
+    paddingHorizontal: wp(4),
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   qtyAdjustBtn: {
     backgroundColor: '#fff',
@@ -114,9 +122,34 @@ export default StyleSheet.create({
     fontWeight: 'bold',
   },
   
-  cartGradient: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: wp(5) },
+  cartGradient: { 
+    flex: 1, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between',
+    paddingHorizontal: wp(2),
+    paddingVertical: hp(0.5)
+  },
   cartLeft: { flexDirection: 'row', alignItems: 'center' },
   cartPrice: { fontSize: wp(6.5), fontFamily: Fonts.Bold, color: '#000', marginLeft: wp(3) },
-  addToCartBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', paddingVertical: hp(1.8), paddingHorizontal: wp(7), borderRadius: 50, elevation: 3 },
-  addToCartText: { fontSize: wp(4.8), fontFamily: Fonts.Medium, color: '#000', alignItems: 'center', justifyContent: 'center',textAlign: 'center', },
+  addToCartBtn: { 
+    flex: 1,
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    backgroundColor: '#fff', 
+    paddingVertical: hp(1.8), 
+    borderRadius: 50, 
+    elevation: 3,
+    height: hp(6.5),
+    maxWidth: '100%',
+    marginHorizontal: wp(1)
+  },
+  addToCartText: { 
+    fontSize: wp(4.5), 
+    fontFamily: Fonts.Medium, 
+    color: '#000', 
+    textAlign: 'center',
+    marginRight: wp(1)
+  },
 });

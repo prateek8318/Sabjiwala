@@ -228,7 +228,7 @@ const Profile: FC = () => {
         {/* Profile Header Card with Upload */}
         <View style={{ marginTop: hp(2), alignItems: 'center' }}>
           <LinearGradient
-            colors={[Colors.PRIMARY[100], Colors.PRIMARY[200]]}
+            colors={['#015304', '#5A875C']}
             style={styles.cardView}
             start={{ x: 0.5, y: 0.2 }}
             end={{ x: 0.5, y: 1 }}
@@ -263,7 +263,7 @@ const Profile: FC = () => {
         <View style={styles.otherCardView}>
           <Pressable onPress={() => navigation.navigate('BottomStackNavigator', { screen: 'MyOrder' })}>
             <LinearGradient
-              colors={[Colors.PRIMARY[100], Colors.PRIMARY[200]]}
+              colors={['#015304', '#5A875C']}
               style={[styles.otherCads, { flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }]}
             >
               <Image source={OrderIcon} style={{ width: 40, height: 40, marginBottom: 5 }} resizeMode="contain" />
@@ -273,7 +273,7 @@ const Profile: FC = () => {
 
           <Pressable onPress={() => navigation.navigate('Support')}>
             <LinearGradient
-              colors={[Colors.PRIMARY[100], Colors.PRIMARY[200]]}
+              colors={['#015304', '#5A875C']}
               style={[styles.otherCads, { flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }]}
             >
               <Image source={SupportIcon} style={{ width: 40, height: 40, marginBottom: 5 }} resizeMode="contain" />
@@ -287,7 +287,7 @@ const Profile: FC = () => {
           data={menu}
           renderItem={renderMenu}
           keyExtractor={(item) => item.name}
-          contentContainerStyle={{ alignSelf: 'center', marginBottom: hp(3) }}
+          contentContainerStyle={{ alignSelf: 'center', marginBottom: hp(3),}}
         />
       </ScrollView>
 

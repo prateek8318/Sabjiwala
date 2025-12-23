@@ -550,30 +550,31 @@ const Dashboard: FC = () => {
   );
 
   const loadCart = useCallback(async () => {
-    try {
-      const res = await ApiService.getCart();
-      const cartData =
-        res?.data?.cart?.products ||
-        res?.data?.products ||
-        res?.data?.items ||
-        res?.data?.data?.items ||
-        [];
-      
-      const newCartItems = Array.isArray(cartData) ? cartData : [];
-      setCartItems(newCartItems);
-      
-      // Clear recently added products if cart is empty
-      if (newCartItems.length === 0) {
-        setRecentlyAddedProducts([]);
-      } else if (recentlyAddedProducts.length > 0) {
-        setTimeout(() => setRecentlyAddedProducts([]), 1200);
-      }
-    } catch (err) {
-      console.log('Cart load error:', err);
-      setCartItems([]);
+  try {
+    const res = await ApiService.getCart();
+    const cartData =
+      res?.data?.cart?.products ||
+      res?.data?.products ||
+      res?.data?.items ||
+      res?.data?.data?.items ||
+      [];
+
+    const newCartItems = Array.isArray(cartData) ? cartData : [];
+    setCartItems(newCartItems);
+
+    // 🔹 Critical fix: Jab cart empty ho jaye, recentlyAddedProducts bhi clear kar do
+    if (newCartItems.length === 0) {
       setRecentlyAddedProducts([]);
+    } else if (recentlyAddedProducts.length > 0) {
+      // Sirf delay se clear karo jab cart me items ho (animation ke liye)
+      setTimeout(() => setRecentlyAddedProducts([]), 1200);
     }
-  }, [recentlyAddedProducts.length]);
+  } catch (err) {
+    console.log('Cart load error:', err);
+    setCartItems([]);
+    setRecentlyAddedProducts([]); // Error par bhi clear
+  }
+}, [recentlyAddedProducts.length]);
 
   // Refresh cart when screen comes into focus
   useEffect(() => {
@@ -690,7 +691,7 @@ const Dashboard: FC = () => {
           styles.itemCatView,
           {
             borderBottomWidth: isSelected ? 4 : 0,
-            
+
             borderBottomColor: isSelected ? Colors.PRIMARY[300] : 'transparent',
             alignItems: 'center',
             justifyContent: 'center',
@@ -776,20 +777,11 @@ const Dashboard: FC = () => {
         <Pressable
           onPress={() => navigation.navigate('BottomStackNavigator', { screen: 'Catogaries' })}
           style={{
-            backgroundColor: "#1B5E20",
-            paddingHorizontal: 6, // chhota size
-            paddingVertical: 4,    // chhota height
-            borderRadius: 25,
-            marginTop: hp(-3),
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            borderWidth: 1,
-            borderColor: "#A5D6A7",
+
           }}
         >
-          <TextView style={{ color: "#ffff", fontSize: 10, fontWeight: "700" }}>
-            View All
+          <TextView style={{ color: "#000", fontSize: 14, fontWeight: "800" }}>
+            view more
           </TextView>
           <Icon
             name="chevron-right"
@@ -933,19 +925,19 @@ const Dashboard: FC = () => {
             ]}
           >
             <Image
-                      source={require('../../../assets/images/style.png')}
-                      style={{
-                        width: '100%',
-                        height: hp(9),
-                        opacity: 0.6,
-                        position: 'absolute',
-                        top: 0,
-                        resizeMode: 'contain',
-                      }}
-                    />
+              source={require('../../../assets/images/style.png')}
+              style={{
+                width: '100%',
+                height: hp(9),
+                opacity: 0.6,
+                position: 'absolute',
+                top: 0,
+                resizeMode: 'contain',
+              }}
+            />
             <View style={styles.headerMainView}>
               <View style={styles.headerView}>
-                
+
                 <Pressable
                   style={styles.profilePicView}
                   onPress={() => navigation.navigate('Profile')}
@@ -1135,20 +1127,11 @@ const Dashboard: FC = () => {
                     })
                   }
                   style={{
-                    backgroundColor: "#1B5E20",
-                    paddingHorizontal: 6, // chhota size
-                    paddingVertical: 4,    // chhota height
-                    borderRadius: 25,
-                    marginTop: hp(0),
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderWidth: 1,
-                    borderColor: "#A5D6A7",
+
                   }}
                 >
-                  <TextView style={{ color: "#ffff", fontSize: 10, fontWeight: "700" }}>
-                    View All
+                  <TextView style={{ color: "#000", fontSize: 14, fontWeight: "800" }}>
+                    view more
                   </TextView>
                   <Icon
                     name="chevron-right"
@@ -1179,7 +1162,7 @@ const Dashboard: FC = () => {
               keyExtractor={(item) => item._id}
             />
           </View>
-          
+
 
           {/* Dynamic Banner Below Deal of the Day */}
           {banners.length > 0 && (
@@ -1205,20 +1188,11 @@ const Dashboard: FC = () => {
                     })
                   }
                   style={{
-                    backgroundColor: "#1B5E20",
-                    paddingHorizontal: 6, // chhota size
-                    paddingVertical: 4,    // chhota height
-                    borderRadius: 25,
-                    marginTop: hp(0),
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderWidth: 1,
-                    borderColor: "#A5D6A7",
+
                   }}
                 >
-                  <TextView style={{ color: "#ffff", fontSize: 10, fontWeight: "700" }}>
-                    View All
+                  <TextView style={{ color: "#000", fontSize: 14, fontWeight: "800" }}>
+                    view more
                   </TextView>
                   <Icon
                     name="chevron-right"
@@ -1250,20 +1224,11 @@ const Dashboard: FC = () => {
                     })
                   }
                   style={{
-                    backgroundColor: "#1B5E20",
-                    paddingHorizontal: 6, // chhota size
-                    paddingVertical: 4,    // chhota height
-                    borderRadius: 25,
-                    marginTop: hp(0),
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderWidth: 1,
-                    borderColor: "#A5D6A7",
+
                   }}
                 >
-                  <TextView style={{ color: "#ffff", fontSize: 10, fontWeight: "700" }}>
-                    View All
+                  <TextView style={{ color: "#000", fontSize: 14, fontWeight: "800" }}>
+                    view more
                   </TextView>
                   <Icon
                     name="chevron-right"
@@ -1364,20 +1329,11 @@ const Dashboard: FC = () => {
                     })
                   }
                   style={{
-                    backgroundColor: "#1B5E20",
-                    paddingHorizontal: 6, // chhota size
-                    paddingVertical: 4,    // chhota height
-                    borderRadius: 25,
-                    marginTop: hp(0),
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderWidth: 1,
-                    borderColor: "#A5D6A7",
+
                   }}
                 >
-                  <TextView style={{ color: "#ffff", fontSize: 10, fontWeight: "700" }}>
-                    View All
+                  <TextView style={{ color: "#000", fontSize: 14, fontWeight: "800" }}>
+                    view more
                   </TextView>
                   <Icon
                     name="chevron-right"
@@ -1396,7 +1352,7 @@ const Dashboard: FC = () => {
           </View>
         </Animated.ScrollView>
 
-        {(cartItems.length > 0 || recentlyAddedProducts.length > 0) && (
+        {cartItems.length > 0 && (
           <Pressable
             onPress={() =>
               navigation.navigate('BottomStackNavigator', { screen: 'Cart' })
@@ -1617,7 +1573,7 @@ const transformProductToCard = (product: Product): ProductCardItem => {
     oldPrice: variant?.originalPrice || (product as any)?.mrp || 0,
     discount: variant?.discount ? `₹${variant.discount} OFF` : '',
     weight: `${weightValue} ${unitValue}`.trim(),
-    rating: (product as any)?.rating || 4.5,
+    rating: parseFloat(Number((product as any)?.rating || 4.5).toFixed(2)),
     options: `${((product as any)?.ProductVarient || (product as any)?.variants || []).length} Option${(((product as any)?.ProductVarient || (product as any)?.variants || []).length || 0) > 1 ? 's' : ''}`,
     variantId:
       variant?._id ||

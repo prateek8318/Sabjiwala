@@ -235,38 +235,34 @@ const SubCategoryList = ({ route }: any) => {
   }, [categoryId]);
 
   // Load cart data for floating button
-  const loadCart = async () => {
-    try {
-      setCartLoading(true);
-      const res = await ApiService.getCart();
-      const cartData =
-        res?.data?.cart?.products ||
-        res?.data?.products ||
-        res?.data?.items ||
-        res?.data?.data?.items ||
-        [];
-      const fetchedItems = Array.isArray(cartData) ? cartData : [];
-      
-      // Merge with recently added products if cart is empty or update existing
-      if (fetchedItems.length > 0) {
-        setCartItems(fetchedItems);
-        // Clear recently added after successful fetch (they're now in cart)
-        if (recentlyAddedProducts.length > 0) {
-          setTimeout(() => {
-            setRecentlyAddedProducts([]);
-          }, 1000);
-        }
-      } else if (recentlyAddedProducts.length > 0) {
-        // Keep recently added products visible even if API cart is empty
-        // This handles the case where API hasn't updated yet
-      }
-    } catch (err) {
-      console.log("Cart load error:", err);
-      // Don't clear cart items on error, keep optimistic updates
-    } finally {
-      setCartLoading(false);
+const loadCart = async () => {
+  try {
+    setCartLoading(true);
+    const res = await ApiService.getCart();
+    const cartData =
+      res?.data?.cart?.products ||
+      res?.data?.products ||
+      res?.data?.items ||
+      res?.data?.data?.items ||
+      [];
+    const fetchedItems = Array.isArray(cartData) ? cartData : [];
+
+    if (fetchedItems.length > 0) {
+      setCartItems(fetchedItems);
+      // API mein items hain → recentlyAdded clear kar do (kyunki cart full hai)
+      setRecentlyAddedProducts([]);
+    } else {
+      // API cart empty → cartItems clear, lekin recentlyAdded mat clear karo
+      // (optimistic add ke liye button dikhega)
+      setCartItems([]);
+      // recentlyAddedProducts ko chhod do – add ke time set kiya hai
     }
-  };
+  } catch (err) {
+    console.log("Cart load error:", err);
+  } finally {
+    setCartLoading(false);
+  }
+};
 
   useEffect(() => {
     if (isFocused) {
@@ -373,54 +369,58 @@ const SubCategoryList = ({ route }: any) => {
 
   // Handle product added callback from ProductCard
   const handleProductAdded = (product: any) => {
-    // Extract image from product - handle all possible image sources
-    const getProductImage = (p: any) => {
-      return p?.image || 
-             p?.primary_image?.[0] ||
-             p?.images?.[0] ||
-             p?.variants?.[0]?.images?.[0] || 
-             p?.ProductVarient?.[0]?.images?.[0] ||
-             p?.variant?.images?.[0];
-    };
+  if (product?.removed) {
+    // Remove hone par recentlyAddedProducts se hatao
+    setRecentlyAddedProducts(prev =>
+      prev.filter(p => (p.id || p._id) !== (product.id || product._id))
+    );
+    return;
+  }
+
+  // Add hone par (normal case)
+  const getProductImage = (p: any) => {
+    return p?.image ||
+           p?.primary_image?.[0] ||
+           p?.images?.[0] ||
+           p?.variants?.[0]?.images?.[0] ||
+           p?.ProductVarient?.[0]?.images?.[0] ||
+           p?.variant?.images?.[0];
+  };
     
     const productImage = getProductImage(product);
-    const imageUrl = productImage ? (productImage.startsWith('http') ? productImage : ApiService.getImage(productImage)) : '';
-    
-    // Add to recently added products list with a ready-to-use image URL
-    const productWithImage = {
-      ...product,
-      image: imageUrl,
-    };
-    setRecentlyAddedProducts(prev => {
-      // Remove duplicate if exists and add to front
-      const filtered = prev.filter(p => (p.id || p._id) !== (product.id || product._id));
-      const newList = [productWithImage, ...filtered].slice(0, 3); // Keep only last 3 products
-      return newList;
-    });
+  const imageUrl = productImage
+    ? productImage.startsWith('http')
+      ? productImage
+      : ApiService.getImage(productImage)
+    : '';
+
+  const productWithImage = { ...product, image: imageUrl };
+
+  setRecentlyAddedProducts(prev => {
+    const filtered = prev.filter(p => (p.id || p._id) !== (product.id || product._id));
+    return [productWithImage, ...filtered].slice(0, 3);
+  });
     
     // Immediately update cart items optimistically
     const newCartItem = {
-      productId: {
-        _id: product.id || product._id,
-        name: product.name,
-        images: [product.image || product.variants?.[0]?.images?.[0] || product.ProductVarient?.[0]?.images?.[0]].filter(Boolean),
-      },
-      quantity: 1,
-    };
+    productId: {
+      _id: product.id || product._id,
+      name: product.name,
+      images: [product.image || product.variants?.[0]?.images?.[0] || product.ProductVarient?.[0]?.images?.[0]].filter(Boolean),
+    },
+    quantity: 1,
+  };
     setCartItems(prev => {
-      const existingIndex = prev.findIndex(
-        item => (item.productId?._id || item.productId) === (product.id || product._id)
-      );
-      if (existingIndex >= 0) {
-        const updated = [...prev];
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          quantity: (updated[existingIndex].quantity || 1) + 1,
-        };
-        return updated;
-      }
-      return [newCartItem, ...prev];
-    });
+    const existingIndex = prev.findIndex(
+      item => (item.productId?._id || item.productId) === (product.id || product._id)
+    );
+    if (existingIndex >= 0) {
+      const updated = [...prev];
+      updated[existingIndex].quantity += 1;
+      return updated;
+    }
+    return [newCartItem, ...prev];
+  });
     
     // Refresh cart from API in background
     loadCart();

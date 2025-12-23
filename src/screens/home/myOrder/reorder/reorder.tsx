@@ -164,18 +164,23 @@ const Reorder = () => {
       <View style={styles.productCard}>
         <Image source={imageSource} style={styles.productImage} />
         <View style={styles.productInfo}>
-          <Text style={styles.productName} numberOfLines={2}>
-            {product.name || 'Product'}
-          </Text>
+          <View style={styles.productName}>
+            <Text style={{ flex: 1 }} numberOfLines={1}>
+              {product.name || 'Product'}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ flex: 1, color:"#000", fontWeight:"700", fontSize:14, }} numberOfLines={1}>
+                {product.name || 'Product'}
+              </Text>
+              <Text style={styles.price}>₹{price}</Text>
+              {mrp > price && (
+                <Text style={styles.mrp}>₹{mrp}</Text>
+              )}
+            </View>
+          </View>
           <Text style={styles.productQuantity}>
             {weight} {unit} X {quantity} Unit
           </Text>
-          <View style={styles.priceContainer}>
-            <Text style={styles.price}>₹{price}</Text>
-            {mrp > price && (
-              <Text style={styles.mrp}>₹{mrp}</Text>
-            )}
-          </View>
           <TouchableOpacity
             onPress={() => handleAddToCart(item)}
             disabled={isAdding}
@@ -263,7 +268,7 @@ const Reorder = () => {
       {items.length > 0 && (
         <View style={styles.addAllContainer}>
           <TouchableOpacity onPress={handleAddAllToCart} style={styles.addAllButton}>
-            <Icon name="cart" size={20} color="#fff" />
+            <Icon name="cart" size={20} color="#015304" />
             <Text style={styles.addAllButtonText}>Add All to Cart</Text>
           </TouchableOpacity>
         </View>

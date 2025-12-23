@@ -14,6 +14,7 @@ export default StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop:hp(2),
     justifyContent: 'space-between',
     paddingHorizontal: wp(4),
     paddingVertical: hp(2),
@@ -44,7 +45,7 @@ export default StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E8F5E9',
-    padding: wp(4),
+    padding: wp(2),
     marginBottom: hp(2),
   },
   productImage: {
@@ -59,7 +60,7 @@ export default StyleSheet.create({
   },
   productHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     marginBottom: 4,
   },
@@ -88,13 +89,13 @@ export default StyleSheet.create({
   },
   priceContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    marginLeft: 10,
   },
   price: {
     fontSize: hp(2),
-    fontWeight: '700',
-    color: '#4CAF50',
+    fontWeight: '800',
+    color: '#000',
   },
   mrp: {
     fontSize: hp(1.6),
@@ -138,12 +139,17 @@ export default StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  submitButton: {
-    backgroundColor: '#015304',
+  submitButtonContainer: {
+    width: '100%',
     borderRadius: 50,
+    overflow: 'hidden',
+  },
+  gradientButton: {
+    width: '100%',
     paddingVertical: hp(2),
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 50,
   },
   submitButtonDisabled: {
     opacity: 0.6,

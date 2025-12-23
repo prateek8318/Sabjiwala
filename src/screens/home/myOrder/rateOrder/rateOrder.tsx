@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,8 @@ import {
   Modal,
   Animated,
 } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
+import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import ApiService from '../../../../service/apiService';
 import styles from './rateOrder.styles';
@@ -34,6 +35,23 @@ const RateOrder = () => {
     type: 'success' as 'success' | 'error' | 'info',
     onPress: () => {},
   });
+  const [showReviewInput, setShowReviewInput] = useState<{ [key: string]: boolean }>({});
+
+  useFocusEffect(
+    useCallback(() => {
+      // Hide bottom tab bar when screen is focused
+      navigation.getParent()?.setOptions({
+        tabBarStyle: { display: 'none' },
+      });
+
+      // Clean up function to show bottom tab bar when screen is unfocused
+      return () => {
+        navigation.getParent()?.setOptions({
+          tabBarStyle: { display: 'flex' },
+        });
+      };
+    }, [navigation])
+  );
 
   useEffect(() => {
     fetchOrderDetails();
@@ -236,7 +254,7 @@ const RateOrder = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4CAF50" />
+          <ActivityIndicator size="large" color="#1c6b1fff" />
         </View>
       </SafeAreaView>
     );
@@ -299,21 +317,18 @@ const RateOrder = () => {
               <Image source={imageSource} style={styles.productImage} />
               <View style={styles.productInfo}>
                 <View style={styles.productHeader}>
-                  <Text style={styles.productName}>{product.name || 'Product'}</Text>
-                  {hasExistingReview && (
-                    <View style={styles.editBadge}>
-                      <Text style={styles.editBadgeText}>Edit</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.productQuantity}>
-                  {weight} {unit} X {quantity} Unit
-                </Text>
-                <View style={styles.priceContainer}>
-                  <Text style={styles.price}>₹{price}</Text>
-                  {mrp > price && (
-                    <Text style={styles.mrp}>₹{mrp}</Text>
-                  )}
+                  <View>
+                    <Text style={styles.productName}>{product.name || 'Product'}</Text>
+                    <Text style={styles.productQuantity}>
+                      {weight} {unit} X {quantity} Unit
+                    </Text>
+                  </View>
+                  <View style={styles.priceContainer}>
+                    <Text style={styles.price}>₹{price}</Text>
+                    {mrp > price && (
+                      <Text style={styles.mrp}>₹{mrp}</Text>
+                    )}
+                  </View>
                 </View>
                 <View style={styles.ratingContainer}>
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -325,21 +340,23 @@ const RateOrder = () => {
                       <Icon
                         name={star <= currentRating ? 'star' : 'star-outline'}
                         size={24}
-                        color={star <= currentRating ? '#FFD700' : '#ddd'}
+                        color={star <= currentRating ? '#FFD700' : '#FFD700'}
                       />
                     </TouchableOpacity>
                   ))}
                 </View>
-                <TextInput
-                  style={styles.reviewInput}
-                  placeholder="Write your review..."
-                  placeholderTextColor="#999"
-                  value={currentReview}
-                  onChangeText={(text) => handleReviewChange(productId, text)}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                />
+                {currentRating > 0 && (
+                  <TextInput
+                    style={styles.reviewInput}
+                    placeholder="Write your review..."
+                    placeholderTextColor="#999"
+                    value={currentReview}
+                    onChangeText={(text) => handleReviewChange(productId, text)}
+                    multiline
+                    numberOfLines={3}
+                    textAlignVertical="top"
+                  />
+                )}
               </View>
             </View>
           );
@@ -351,15 +368,22 @@ const RateOrder = () => {
         <TouchableOpacity
           onPress={handleSubmit}
           disabled={submitting}
-          style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
+          style={[styles.submitButtonContainer, submitting && styles.submitButtonDisabled]}
         >
-          {submitting ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={styles.submitButtonText}>
-              {Object.keys(existingReviews).length > 0 ? 'Update Reviews' : 'Submit Reviews'}
-            </Text>
-          )}
+          <LinearGradient
+            colors={['#5A875C', '#015304']}
+            start={{x: 0, y: 0}}
+            end={{x: 1, y: 0}}
+            style={styles.gradientButton}
+          >
+            {submitting ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.submitButtonText}>
+                {Object.keys(existingReviews).length > 0 ? 'Update Reviews' : 'Submit'}
+              </Text>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
       </View>
 

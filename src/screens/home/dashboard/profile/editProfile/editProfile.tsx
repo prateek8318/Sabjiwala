@@ -184,7 +184,7 @@ const EditProfile: FC = () => {
           <Header title="Edit Profile" showBack />
 
           <LinearGradient
-            colors={[Colors.PRIMARY[100], Colors.PRIMARY[200]]}
+            colors={['#015304', '#5A875C']}
             style={styles.cardView}
             start={{ x: 0.5, y: 0.2 }}
             end={{ x: 0.5, y: 1 }}
@@ -205,51 +205,61 @@ const EditProfile: FC = () => {
           </LinearGradient>
 
           <View style={{ paddingHorizontal: wp(9), marginTop: hp(3) }}>
-            <TextView style={{ color: '#000', fontSize: 14 }}>Name:</TextView>
+           
             <InputText
               value={name}
               onChangeText={setName}
+              placeholder="Name"
+              borderColor="#015304"
+              placeHolderTextStyle="#015304"
               inputContainer={styles.inputContainer}
-              inputStyle={styles.inputView}
+              inputStyle={[styles.inputView, { color: '#015304' }]}
             />
 
-            <TextView style={{ color: '#000', fontSize: 14,  }}>
-              Mobile Number:
-            </TextView>
+            
             <InputText
               value={userData?.mobileNo ? `+91 ${userData.mobileNo}` : ''}
               editable={false}
               inputContainer={[styles.inputContainer, { backgroundColor: '#f5f5f5' }]}
-              inputStyle={[styles.inputView, { color: '#000' }]}
+              inputStyle={[styles.inputView, { color: '#015304' }]}
             />
 
-            <TextView style={{ color: '#000', fontSize: 14,  }}>
-              Email address (optional):
-            </TextView>
             <InputText
               value={email}
               onChangeText={setEmail}
+              placeholder="Email address (optional)"
+              placeHolderTextStyle="#015304"
               keyboardType="email-address"
               inputContainer={styles.inputContainer}
-              inputStyle={styles.inputView}
+              inputStyle={[styles.inputView, { color: '#000' }]}
             />
           </View>
 
           <View style={styles.buttonView}>
             <TouchableOpacity
               style={{
-                backgroundColor: Colors.PRIMARY[100],
                 height: hp(6),
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: 10,
+                borderRadius: 26,
                 marginTop: hp(2),
+                overflow: 'hidden',
               }}
               onPress={handleSubmit}
             >
-              <TextView style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>
-                Submit
-              </TextView>
+              <LinearGradient
+                colors={['#015304', '#5A875C']}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                start={{ x: 1, y: 0 }}
+                end={{ x: 0, y: 0 }}
+              >
+                <TextView style={styles.txtSubmit}>Submit</TextView>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </KeyboardAwareScrollView>

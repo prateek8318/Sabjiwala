@@ -208,7 +208,7 @@ const ProductCard: FC<ProductCardProps> = ({
                 color={Colors.PRIMARY[400]}
                 size={15}
               />
-              <TextView style={styles.txtRating}>{item.rating}</TextView>
+              <TextView style={styles.txtRating}>{Number(item.rating).toFixed(2)}</TextView>
             </View>
           </View>
           {type === 'OFFER' && (

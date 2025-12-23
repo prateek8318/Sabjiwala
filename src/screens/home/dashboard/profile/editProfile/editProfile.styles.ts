@@ -31,6 +31,7 @@ const styles = StyleSheet.create({
     marginTop: hp(0),
     ...Typography.BodyRegular13,
     alignSelf: 'center',
+    fontWeight: '700',
   },
   inputContainer: {
     flexDirection: 'row',
@@ -38,9 +39,18 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: hp(2),
     borderWidth: 1,
-    color: Colors.PRIMARY[400],
+    borderColor: '#015304',
+    backgroundColor: '#fff',
     alignItems: 'center',
     alignSelf: 'center',
+    shadowColor: '#015304',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   inputView: {
     ...Typography.BodyMedium14,
@@ -53,8 +63,7 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 60,
-    borderWidth: 2,
-    borderColor: "#fff",
+   
     resizeMode: 'cover',
     overflow: 'hidden',
   },
@@ -71,7 +80,7 @@ const styles = StyleSheet.create({
     height: hp(6),
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 10,
+    borderRadius: 26,
     marginTop: hp(2),
   },
   
@@ -91,6 +100,11 @@ const styles = StyleSheet.create({
   buttonTitle: {
     color: Colors.PRIMARY[200],
     ...Typography.H5Medium16,
+  },
+  txtSubmit: {
+    color: '#FFFFFF',
+    ...Typography.H5Medium16,
+    textAlign: 'center',
   },
 });
 

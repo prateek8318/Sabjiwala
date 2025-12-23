@@ -46,6 +46,9 @@ const Cart = ({ navigation }: any) => {
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [showAddAddressModal, setShowAddAddressModal] = useState(false);
+  const [minimumCartValue, setMinimumCartValue] = useState(0);
+  const [isFreeDelivery, setIsFreeDelivery] = useState(false);
+  const [remainingForFreeDelivery, setRemainingForFreeDelivery] = useState(0);
   const [addressForm, setAddressForm] = useState({
     addressType: "home",
     floor: "",
@@ -85,7 +88,6 @@ const Cart = ({ navigation }: any) => {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<{ variantId: string; productId: string; name?: string } | null>(null);
   const isFocused = useIsFocused();
-  
 
   // Hide bottom tab bar when Cart screen is focused
   useFocusEffect(
@@ -114,7 +116,46 @@ const Cart = ({ navigation }: any) => {
     }, [navigation])
   );
 
-  const effectiveGrandTotal = Math.max(0, (totals.grandTotal || 0) - couponDiscount);
+  // Update cart when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchCart();
+      fetchWalletBalance();
+      fetchAddresses();
+      fetchMinimumCartValue();
+    }, [])
+  );
+
+  // Fetch minimum cart value for free delivery
+  const fetchMinimumCartValue = async () => {
+    try {
+      const response = await ApiService.get('user/minimumCartValue');
+      if (response?.data?.data) {
+        setMinimumCartValue(Number(response.data.data));
+      }
+    } catch (error) {
+      console.error('Error fetching minimum cart value:', error);
+      // Set a default value in case of error
+      setMinimumCartValue(400);
+    }
+  };
+
+  // Update free delivery status when cart items or minimum cart value changes
+  useEffect(() => {
+    if (totals.itemPriceTotal >= minimumCartValue) {
+      setIsFreeDelivery(true);
+      setRemainingForFreeDelivery(0);
+    } else {
+      setIsFreeDelivery(false);
+      setRemainingForFreeDelivery(minimumCartValue - totals.itemPriceTotal);
+    }
+  }, [totals.itemPriceTotal, minimumCartValue]);
+
+  // Calculate grand total excluding delivery charge when free delivery is active
+  const effectiveGrandTotal = isFreeDelivery 
+    ? Math.max(0, (totals.itemPriceTotal + totals.handlingCharge || 0) - couponDiscount)
+    : Math.max(0, (totals.grandTotal || 0) - couponDiscount);
+    
   const payableAmount = effectiveGrandTotal + (selectedTip || 0);
 
   const formatAddress = (addr: any) => {
@@ -161,7 +202,11 @@ const Cart = ({ navigation }: any) => {
     if (isFocused) {
       fetchCart(true); // Force update on focus
       fetchAddresses();
-      fetchWalletBalance();
+      // Fetch wallet balance with a small delay to ensure token is available
+      const timer = setTimeout(() => {
+        fetchWalletBalance();
+      }, 500);
+      return () => clearTimeout(timer);
     }
   }, [isFocused]);
   
@@ -188,64 +233,42 @@ const Cart = ({ navigation }: any) => {
     }
   };
 
-  // FETCH WALLET BALANCE (direct balance endpoint with fallbacks)
+  // FETCH WALLET BALANCE - Direct API call to get wallet balance
   const fetchWalletBalance = async () => {
     try {
-      const response = await ApiService.getWalletBalance();
+      const response = await ApiService.get('user/getWalletBalance');
+      console.log('Wallet balance response:', JSON.stringify(response, null, 2));
+      
+      let balance = 0;
+      
       if (response?.data?.success) {
-        const data = response.data?.data;
-        if (typeof data === "number") {
-          setWalletBalance(data);
-          return;
-        }
-        if (data?.balance !== undefined) {
-          setWalletBalance(data.balance);
-          return;
-        }
-        if (data?.currentBalance !== undefined) {
-          setWalletBalance(data.currentBalance);
-          return;
-        }
-      }
-
-      // Fallback to history if balance not present
-      try {
-        const historyRes = await ApiService.getWalletHistory();
-        if (historyRes?.data?.success && historyRes.data.data) {
-          const historyData = historyRes.data.data;
-          let currentBalance = 0;
-          if (Array.isArray(historyData) && historyData.length > 0) {
-            const sorted = [...historyData].sort((a, b) => {
-              const aTime = new Date(a.createdAt).getTime();
-              const bTime = new Date(b.createdAt).getTime();
-              return bTime - aTime;
-            });
-            currentBalance = sorted[0].balance_after_action || 0;
-          } else if (historyData.walletHistory && historyData.walletHistory.length > 0) {
-            const sorted = [...historyData.walletHistory].sort((a, b) => {
-              const aTime = new Date(a.createdAt).getTime();
-              const bTime = new Date(b.createdAt).getTime();
-              return bTime - aTime;
-            });
-            currentBalance = sorted[0].balance_after_action || 0;
-          } else if (historyData.transactions && historyData.transactions.length > 0) {
-            const sorted = [...historyData.transactions].sort((a, b) => {
-              const aTime = new Date(a.createdAt).getTime();
-              const bTime = new Date(b.createdAt).getTime();
-              return bTime - aTime;
-            });
-            currentBalance = sorted[0].balance_after_action || 0;
+        // Try different possible response formats
+        const responseData = response.data.data;
+        
+        if (typeof responseData === 'number') {
+          balance = responseData;
+        } else if (responseData?.balance !== undefined) {
+          balance = Number(responseData.balance);
+        } else if (responseData?.currentBalance !== undefined) {
+          balance = Number(responseData.currentBalance);
+        } else if (typeof responseData === 'object' && responseData !== null) {
+          // If data is an object, try to find any numeric value
+          const numericValue = Object.values(responseData).find(
+            val => typeof val === 'number' && !isNaN(Number(val))
+          );
+          if (numericValue !== undefined) {
+            balance = Number(numericValue);
           }
-          setWalletBalance(currentBalance);
-          return;
         }
-      } catch (err) {
-        console.log("Wallet history fallback error:", err);
       }
-
-      setWalletBalance(0);
+      
+      // Ensure we have a valid number, default to 0 if not
+      const finalBalance = isNaN(balance) ? 0 : balance;
+      console.log('Setting wallet balance to:', finalBalance);
+      setWalletBalance(finalBalance);
+      
     } catch (error) {
-      console.log("Wallet balance fetch error:", error);
+      console.error('Error fetching wallet balance:', error);
       setWalletBalance(0);
     }
   };
@@ -840,11 +863,19 @@ const Cart = ({ navigation }: any) => {
 
         {/* FREE DELIVERY BANNER */}
         {items.length > 0 && (
-          <View style={styles.freeDeliveryContainer}>
-
+          <View style={[
+            styles.freeDeliveryContainer,
+            isFreeDelivery && { backgroundColor: '#C7E6AB' }
+          ]}>
             <View style={styles.freeDeliveryLeft}>
-              <Text style={styles.freeDeliveryText}>
-                You're almost there! Add ₹60 and unlock free delivery!
+              <Text style={[
+                styles.freeDeliveryText,
+                isFreeDelivery && { color: '#2E7D32', fontWeight: '700' }
+              ]}>
+                {isFreeDelivery 
+                  ? '🎉 You\'ve unlocked FREE delivery!'
+                  : `You're almost there! Add ₹${remainingForFreeDelivery} more to unlock free delivery!`
+                }
               </Text>
             </View>
 
@@ -1088,7 +1119,11 @@ const Cart = ({ navigation }: any) => {
               <Text style={styles.paymentLabel}>Payment Details</Text>
               <Row label="Items Total" value={`₹${Number(totals.itemPriceTotal || 0).toFixed(2)}`} />
               <Row label="Handling Charge" value={`₹${Number(totals.handlingCharge || 0).toFixed(2)}`} />
-              <Row label="Delivery Charge" value={`₹${Number(totals.deliveryCharge || 0).toFixed(2)}`} />
+              <Row 
+                label="Delivery Charge" 
+                value={isFreeDelivery ? 'FREE' : `₹${Number(totals.deliveryCharge || 0).toFixed(2)}`} 
+                style={isFreeDelivery ? { color: '#2E7D32', fontWeight: '600' } : {}}
+              />
               {appliedCoupon && (
                 <Row label="Coupon Discount" value={`-₹${couponDiscount.toFixed(2)}`} />
               )}
@@ -2329,14 +2364,16 @@ const Cart = ({ navigation }: any) => {
         overflow: "hidden",
       }}>
         {/* Header */}
-        <View style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: 16,
-          paddingVertical: 16,
-          borderBottomWidth: 1,
-          borderBottomColor: "#E0E0E0",
-        }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 16,
+            paddingVertical: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: "#E0E0E0",
+          }}
+        >
           <TouchableOpacity
             onPress={() => setShowPaymentSelectionModal(false)}
             style={{ paddingRight: 12 }}
@@ -2589,8 +2626,14 @@ const Cart = ({ navigation }: any) => {
   );
 };
 
-type RowProps = { label: string; value: string; bold?: boolean; fontSize?: number };
-const Row = ({ label, value, bold, fontSize }: RowProps) => (
+interface RowProps {
+  label: string;
+  value: string;
+  bold?: boolean;
+  fontSize?: number;
+  style?: any;
+};
+const Row = ({ label, value, bold, fontSize = 14, style = {} }: RowProps) => (
   <View style={styles.paymentRow}>
     <Text style={{ fontSize: fontSize || (bold ? 18 : 16), fontWeight: bold ? "700" : "500", color: "#000" }}>
       {label}

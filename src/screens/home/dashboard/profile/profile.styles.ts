@@ -100,7 +100,11 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: hp(1),
     marginTop: hp(2),
-    borderColor: Colors.PRIMARY[400],
+     shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.12,
+  shadowRadius: 4,
+  borderColor: '#015304',
     justifyContent: 'space-between',
   },
   txtMenu: {
@@ -126,6 +130,7 @@ const styles = StyleSheet.create({
   txtSure: {
     color: Colors.PRIMARY[400],
     fontFamily: Fonts.Medium,
+    fontWeight:"700",
     fontSize: wp(5),
     textAlign: 'center',
   },

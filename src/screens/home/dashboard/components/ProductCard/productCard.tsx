@@ -269,90 +269,77 @@ const ProductCard: FC<ProductCardProps> = ({
   };
 
   // Update cart qty
-  const updateCartQty = async (
-    productId: string,
-    variantId: string | undefined,
-    qty: number,
-    productItem?: any,
-  ) => {
-    try {
-      const pid = productId?.toString();
-      if (!pid) {
-        console.log('updateCartQty: No productId provided');
-        return;
-      }
-      // variantId can be undefined for products without variants
-      const vid = variantId ? variantId.toString() : undefined;
+ const updateCartQty = async (
+  productId: string,
+  variantId: string | undefined,
+  qty: number,
+  productItem?: any,
+) => {
+  try {
+    const pid = productId?.toString();
+    if (!pid) {
+      console.log('updateCartQty: No productId provided');
+      return;
+    }
+    const vid = variantId ? variantId.toString() : undefined;
 
-      if (qty > 0) {
-        // Optimistically update UI first for instant response
-        setCartMap(prev => ({ ...prev, [pid]: qty }));
-        // Update variant map if we have variant info
-        if (vid && productItem) {
-          // Find variant data from productItem
-          const variantData = [...(productItem?.ProductVarient || []), ...(productItem?.variants || [])].find(
-            (v: any) => v._id === vid
-          );
-          if (variantData) {
-            setCartVariantMap(prev => ({
-              ...prev,
-              [pid]: {
-                variantId: vid,
-                variantData: variantData,
-                quantity: qty,
-              },
-            }));
-          }
-        } else if (!vid && productItem) {
-          // For products without variants, still update variant map to track
+    if (qty > 0) {
+      // Optimistic add/update
+      setCartMap(prev => ({ ...prev, [pid]: qty }));
+
+      if (vid && productItem) {
+        const variantData = [...(productItem?.ProductVarient || []), ...(productItem?.variants || [])].find(
+          (v: any) => v._id === vid
+        );
+        if (variantData) {
           setCartVariantMap(prev => ({
             ...prev,
-            [pid]: {
-              variantId: undefined,
-              variantData: undefined,
-              quantity: qty,
-            },
+            [pid]: { variantId: vid, variantData, quantity: qty },
           }));
         }
-        // Notify parent component if callback provided
-        if (onProductAdded && productItem && qty === 1) {
-          onProductAdded(productItem);
-        }
-        // Then make API call in background
-        ApiService.addToCart(pid, vid, qty.toString()).then(() => {
-          // Reload cart from API to ensure consistency (in background)
-          loadCart();
-        }).catch((e) => {
-          console.log('addToCart error:', e);
-          // On error, reload cart to sync
-          loadCart();
-        });
-      } else {
-        // Optimistically update UI first for instant response
-        setCartMap(prev => {
-          const next = { ...prev };
-          delete next[pid];
-          return next;
-        });
-        setCartVariantMap(prev => {
-          const next = { ...prev };
-          delete next[pid];
-          return next;
-        });
-        // Then make API call in background
-        ApiService.removeCartItem(pid, vid).then(() => {
-          // Reload cart from API to ensure consistency (in background)
-          loadCart();
-        }).catch((e) => {
-          console.log('removeCartItem error:', e);
-          // On error, reload cart to sync
-          loadCart();
-        });
+      } else if (!vid && productItem) {
+        setCartVariantMap(prev => ({
+          ...prev,
+          [pid]: { variantId: undefined, variantData: undefined, quantity: qty },
+        }));
       }
-    } catch (e) {
-      console.log('updateCartQty error:', e);
+
+      // Notify parent only when adding first item (qty === 1)
+      if (onProductAdded && productItem && qty === 1) {
+        onProductAdded(productItem);
+      }
+
+      // API call
+      ApiService.addToCart(pid, vid, qty.toString())
+        .then(() => loadCart())
+        .catch(() => loadCart());
+    } else {
+      // Optimistic remove
+      setCartMap(prev => {
+        const next = { ...prev };
+        delete next[pid];
+        return next;
+      });
+      setCartVariantMap(prev => {
+        const next = { ...prev };
+        delete next[pid];
+        return next;
+      });
+
+      // Notify parent that product was removed
+      if (onProductAdded && productItem) {
+        onProductAdded({ ...productItem, removed: true });
+      }
+
+      // API call
+      ApiService.removeCartItem(pid, vid)
+        .then(() => loadCart())
+        .catch(() => loadCart());
     }
-  };
+  } catch (e) {
+    console.log('updateCartQty error:', e);
+  }
+};
 
   const getProductId = useCallback(
     (item: any) =>
@@ -552,7 +539,7 @@ const ProductCard: FC<ProductCardProps> = ({
                 color={Colors.PRIMARY[400]}
                 size={15}
               />
-              <TextView style={styles.txtRating}>{item.rating}</TextView>
+              <TextView style={styles.txtRating}>{Number(item.rating).toFixed(2)}</TextView>
             </View>
           </View>
 
