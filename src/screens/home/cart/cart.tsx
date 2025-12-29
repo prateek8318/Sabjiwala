@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
@@ -15,6 +14,7 @@ import {
   Alert,
   Pressable,
   Vibration,
+  ImageBackground,
 } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
 import CustomBlurView from "../../../components/BlurView/blurView";
@@ -102,10 +102,10 @@ const Cart = ({ navigation }: any) => {
         const parent = navigation.getParent();
         if (parent) {
           parent.setOptions({
-            tabBarStyle: { 
+            tabBarStyle: {
               display: 'flex',
-              height: 80, 
-              borderTopWidth: 0, 
+              height: 80,
+              borderTopWidth: 0,
               backgroundColor: 'transparent',
               paddingBottom: 8,
               paddingTop: 4,
@@ -152,10 +152,10 @@ const Cart = ({ navigation }: any) => {
   }, [totals.itemPriceTotal, minimumCartValue]);
 
   // Calculate grand total excluding delivery charge when free delivery is active
-  const effectiveGrandTotal = isFreeDelivery 
+  const effectiveGrandTotal = isFreeDelivery
     ? Math.max(0, (totals.itemPriceTotal + totals.handlingCharge || 0) - couponDiscount)
     : Math.max(0, (totals.grandTotal || 0) - couponDiscount);
-    
+
   const payableAmount = effectiveGrandTotal + (selectedTip || 0);
 
   const formatAddress = (addr: any) => {
@@ -173,18 +173,18 @@ const Cart = ({ navigation }: any) => {
   const fetchCart = async (forceUpdate = false) => {
     // Don't fetch if we're already loading or if it's a background refresh
     if (loading && !forceUpdate) return;
-    
+
     try {
       setLoading(true);
       const res = await ApiService.getCart();
       if (res?.data?.success) {
         setItems(res.data.cart?.products || []);
         setTotals({
-          itemPriceTotal: res.data.itemPriceTotal || 0,
-          itemMrpTotal: res.data.itemMrpTotal || 0,
-          handlingCharge: res.data.handlingCharge || 0,
-          deliveryCharge: res.data.deliveryCharge || 0,
-          grandTotal: res.data.grandTotal || 0,
+          itemPriceTotal: Number(res.data.itemPriceTotal) || 0,
+          itemMrpTotal: Number(res.data.itemMrpTotal) || 0,
+          handlingCharge: Number(res.data.handlingCharge) || 0, // Convert string to number
+          deliveryCharge: Number(res.data.deliveryCharge) || 0,
+          grandTotal: Number(res.data.grandTotal) || 0,
         });
       } else {
         setItems([]);
@@ -209,7 +209,7 @@ const Cart = ({ navigation }: any) => {
       return () => clearTimeout(timer);
     }
   }, [isFocused]);
-  
+
   // Add pull-to-refresh functionality
   const onRefresh = useCallback(() => {
     fetchCart(true); // Force update on pull to refresh
@@ -238,13 +238,13 @@ const Cart = ({ navigation }: any) => {
     try {
       const response = await ApiService.get('user/getWalletBalance');
       console.log('Wallet balance response:', JSON.stringify(response, null, 2));
-      
+
       let balance = 0;
-      
+
       if (response?.data?.success) {
         // Try different possible response formats
         const responseData = response.data.data;
-        
+
         if (typeof responseData === 'number') {
           balance = responseData;
         } else if (responseData?.balance !== undefined) {
@@ -261,12 +261,12 @@ const Cart = ({ navigation }: any) => {
           }
         }
       }
-      
+
       // Ensure we have a valid number, default to 0 if not
       const finalBalance = isNaN(balance) ? 0 : balance;
       console.log('Setting wallet balance to:', finalBalance);
       setWalletBalance(finalBalance);
-      
+
     } catch (error) {
       console.error('Error fetching wallet balance:', error);
       setWalletBalance(0);
@@ -550,8 +550,8 @@ const Cart = ({ navigation }: any) => {
       ...prev,
       itemPriceTotal: newItemPriceTotal,
       itemMrpTotal: newItemMrpTotal,
-      grandTotal: Math.max(0, newItemPriceTotal + 
-        Number(prev.handlingCharge || 0) + 
+      grandTotal: Math.max(0, newItemPriceTotal +
+        Number(prev.handlingCharge || 0) +
         Number(prev.deliveryCharge || 0)),
     }));
 
@@ -579,11 +579,11 @@ const Cart = ({ navigation }: any) => {
               return prevItems;
             });
             setTotals({
-              itemPriceTotal: res.data.itemPriceTotal || 0,
-              itemMrpTotal: res.data.itemMrpTotal || 0,
-              handlingCharge: res.data.handlingCharge || 0,
-              deliveryCharge: res.data.deliveryCharge || 0,
-              grandTotal: res.data.grandTotal || 0,
+              itemPriceTotal: Number(res.data.itemPriceTotal) || 0,
+              itemMrpTotal: Number(res.data.itemMrpTotal) || 0,
+              handlingCharge: Number(res.data.handlingCharge) || 0,
+              deliveryCharge: Number(res.data.deliveryCharge) || 0,
+              grandTotal: Number(res.data.grandTotal) || 0,
             });
           }
         }
@@ -595,11 +595,11 @@ const Cart = ({ navigation }: any) => {
           if (res?.data?.success) {
             setItems(res.data.cart?.products || []);
             setTotals({
-              itemPriceTotal: res.data.itemPriceTotal || 0,
-              itemMrpTotal: res.data.itemMrpTotal || 0,
-              handlingCharge: res.data.handlingCharge || 0,
-              deliveryCharge: res.data.deliveryCharge || 0,
-              grandTotal: res.data.grandTotal || 0,
+              itemPriceTotal: Number(res.data.itemPriceTotal) || 0,
+              itemMrpTotal: Number(res.data.itemMrpTotal) || 0,
+              handlingCharge: Number(res.data.handlingCharge) || 0,
+              deliveryCharge: Number(res.data.deliveryCharge) || 0,
+              grandTotal: Number(res.data.grandTotal) || 0,
             });
           }
         } catch (refreshErr) {
@@ -725,15 +725,15 @@ const Cart = ({ navigation }: any) => {
           };
 
           const orderResponse = await ApiService.placeOrder(payload);
-          
-          const orderId = 
+
+          const orderId =
             orderResponse?.data?.order?._id ||
             orderResponse?.data?.orderId ||
             orderResponse?.data?.data?.order?._id ||
             orderResponse?.data?.data?.orderId ||
             orderResponse?.data?._id ||
             null;
-          
+
           setPlacedOrderId(orderId);
           resetCartState();
           setShowOrderPlaced(true);
@@ -760,26 +760,21 @@ const Cart = ({ navigation }: any) => {
         }
       }
 
-      // If wallet, debit balance before creating the order
+      // Add wallet history entry for tracking (deduction is handled by backend)
       if (isWallet) {
         try {
           await ApiService.createWalletHistory({
             amount: totalAmount.toString(),
             action: "debit",
-            razorpay_id: `wallet_${Date.now()}`,
-            description: "Wallet order debit",
+            razorpay_id: `order_${Date.now()}`,
+            description: `Order payment (ID: ${Date.now()})`,
+            skipDeduction: true  // Tell backend not to deduct again
           });
-          // Refresh local balance after debit
+          // Refresh wallet balance to show updated amount
           await fetchWalletBalance();
         } catch (err: any) {
-          console.log("Wallet debit failed:", err);
-          const msg = err?.response?.data?.message || err?.message || "Wallet debit failed. Please try another method.";
-          Toast.show({
-            type: "error",
-            text1: "Wallet Error",
-            text2: msg,
-          });
-          return;
+          console.log("Wallet history update failed:", err);
+          // Don't block order placement for history update failure
         }
       }
 
@@ -810,16 +805,16 @@ const Cart = ({ navigation }: any) => {
       }
 
       const orderResponse = await ApiService.placeOrder(payload);
-      
+
       // Extract order ID from response
-      const orderId = 
+      const orderId =
         orderResponse?.data?.order?._id ||
         orderResponse?.data?.orderId ||
         orderResponse?.data?.data?.order?._id ||
         orderResponse?.data?.data?.orderId ||
         orderResponse?.data?._id ||
         null;
-      
+
       setPlacedOrderId(orderId);
       resetCartState();
       setShowOrderPlaced(true);
@@ -849,7 +844,7 @@ const Cart = ({ navigation }: any) => {
   }
 
   return (
-    
+
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={{ paddingBottom: 130 }}>
 
@@ -867,17 +862,24 @@ const Cart = ({ navigation }: any) => {
             styles.freeDeliveryContainer,
             isFreeDelivery && { backgroundColor: '#C7E6AB' }
           ]}>
+            
             <View style={styles.freeDeliveryLeft}>
               <Text style={[
                 styles.freeDeliveryText,
                 isFreeDelivery && { color: '#2E7D32', fontWeight: '700' }
               ]}>
-                {isFreeDelivery 
+                {isFreeDelivery
                   ? '🎉 You\'ve unlocked FREE delivery!'
                   : `You're almost there! Add ₹${remainingForFreeDelivery} more to unlock free delivery!`
                 }
               </Text>
+
             </View>
+            {/* <Image 
+              source={require('../../../assets/images/free.png')} 
+              style={styles.freeDeliveryImage}
+              resizeMode="contain"
+            /> */}
 
             {/* Delete confirmation modal */}
             <Modal
@@ -1119,9 +1121,9 @@ const Cart = ({ navigation }: any) => {
               <Text style={styles.paymentLabel}>Payment Details</Text>
               <Row label="Items Total" value={`₹${Number(totals.itemPriceTotal || 0).toFixed(2)}`} />
               <Row label="Handling Charge" value={`₹${Number(totals.handlingCharge || 0).toFixed(2)}`} />
-              <Row 
-                label="Delivery Charge" 
-                value={isFreeDelivery ? 'FREE' : `₹${Number(totals.deliveryCharge || 0).toFixed(2)}`} 
+              <Row
+                label="Delivery Charge"
+                value={isFreeDelivery ? 'FREE' : `₹${Number(totals.deliveryCharge || 0).toFixed(2)}`}
                 style={isFreeDelivery ? { color: '#2E7D32', fontWeight: '600' } : {}}
               />
               {appliedCoupon && (
@@ -1433,196 +1435,218 @@ const Cart = ({ navigation }: any) => {
       {/* Coupon List Modal - EXACT UI LIKE SCREENSHOT */}
       <Modal
         visible={couponSheetVisible}
-        transparent
+        transparent={false}
         animationType="slide"
         onRequestClose={() => setCouponSheetVisible(false)}
       >
-        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" }}>
+        <View style={{ flex: 1, backgroundColor: "#fff" }}>
+          {/* Header */}
           <View
             style={{
-              backgroundColor: "#fff",
-              height: "88%",
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              overflow: "hidden",
+              flexDirection: "row",
+              alignItems: "center",
+              paddingTop: 50,
+              paddingBottom: 14,
+              paddingHorizontal: 16,
+              borderBottomWidth: 1,
+              borderColor: "#eee",
             }}
           >
-            {/* Header */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingVertical: 14,
-                paddingHorizontal: 16,
-                borderBottomWidth: 1,
-                borderColor: "#eee",
-              }}
+            {/* Left Icon */}
+            <TouchableOpacity
+              onPress={() => setCouponSheetVisible(false)}
+              style={{ paddingRight: 10 }}
             >
-              <TouchableOpacity onPress={() => setCouponSheetVisible(false)} style={{ paddingRight: 10 }}>
-                <Icon name="arrow-back" size={24} color="#000" />
-              </TouchableOpacity>
-              <Text style={{ fontSize: 18, fontWeight: "700", color: "#000" }}>Apply Coupon</Text>
-            </View>
+              <Icon name="arrow-back" size={24} color="#000" />
+            </TouchableOpacity>
 
-            {/* Coupon Input */}
-            <View style={{ flexDirection: "row", padding: 16 }}>
-              <TextInput
-                placeholder="Enter Coupon Code"
-                placeholderTextColor="#777"
-                value={manualCoupon}
-                onChangeText={setManualCoupon}
+            {/* Center Title */}
+            <View style={{ flex: 1, alignItems: "center" }}>
+              <Text
                 style={{
-                  flex: 1,
-                  borderWidth: 1,
-                  borderColor: "#ccc",
-                  borderRadius: 8,
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
+                  fontSize: 22,
+                  fontWeight: "600",
                   color: "#000",
                 }}
-              />
-              <TouchableOpacity
-                onPress={() => {
-                  if (!manualCoupon.trim()) return;
-                  handleApplyCoupon(manualCoupon.trim());
-                }}
-                style={{
-                  backgroundColor: "#1B5E20",
-                  borderRadius: 25,
-                  paddingHorizontal: 18,
-                  paddingVertical: 10,
-                  marginLeft: 10,
-                }}
               >
-                <Text style={{ color: "#fff", fontWeight: "700" }}>APPLY</Text>
-              </TouchableOpacity>
+                Apply Coupon
+              </Text>
             </View>
 
-            {/* Available Coupons Title */}
-            <Text
+            {/* Right Spacer (icon balance ke liye) */}
+            <View style={{ width: 34 }} />
+          </View>
+
+
+          {/* Coupon Input */}
+          <View style={{ flexDirection: "row", padding: 16 }}>
+            <TextInput
+              placeholder="Enter Coupon Code"
+              placeholderTextColor="#015304"
+              value={manualCoupon}
+              onChangeText={setManualCoupon}
               style={{
-                fontSize: 16,
-                fontWeight: "700",
-                marginTop: 6,
-                marginBottom: 10,
-                marginLeft: 16,
-                color: "#000",
+                flex: 1,
+                borderWidth: 1,
+                borderColor: "#015304",
+                borderRadius: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                color: "#015304",
+              }}
+            />
+
+            <Pressable
+              onPress={() => {
+                if (!manualCoupon.trim()) return;
+                handleApplyCoupon(manualCoupon.trim());
+              }}
+              style={{
+                marginLeft: 10,
+                alignSelf: "center",
               }}
             >
-              Available Coupon
-            </Text>
+              {({ pressed }) => (
+                <LinearGradient
+                  colors={["#5A875C", "#015304"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{
+                    borderRadius: 12,
+                    paddingHorizontal: 18,
+                    paddingVertical: 18,
+                    opacity: pressed ? 0.8 : 1,
+                  }}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 18 }}>
+                    APPLY
+                  </Text>
+                </LinearGradient>
+              )}
+            </Pressable>
+          </View>
 
-            {/* Scrollable Coupon List */}
-            <ScrollView
-              style={{ flex: 1 }}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              nestedScrollEnabled
-              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
-            >
-              {couponLoading ? (
-                <View style={{ alignItems: "center", paddingVertical: 24 }}>
-                  <ActivityIndicator color="#4CAF50" />
-                  <Text style={{ marginTop: 8, color: "#555" }}>Fetching coupons...</Text>
-                </View>
-              ) : coupons.length > 0 ? (
-                coupons.map((coupon) => {
-                  const discountLabel =
-                    coupon?.discountType === "percentage"
-                      ? `${coupon?.discountValue || 0}% off`
-                      : `Flat ₹${coupon?.discountValue || 0} off`;
-                  const minOrderText = coupon?.minOrderAmount
-                    ? `Min order ₹${coupon.minOrderAmount}`
-                    : "No minimum order";
-                  const validityText = coupon?.expiryDate
-                    ? `Valid till ${new Date(coupon.expiryDate).toLocaleDateString()}`
-                    : null;
+          {/* Available Coupons Title */}
+          <Text
+            style={{
+              fontSize: 20,
+              fontWeight: "700",
+              marginTop: 6,
+              marginBottom: 10,
+              marginLeft: 16,
+              color: "#000",
+            }}
+          >
+            Available Coupon
+          </Text>
 
-                  return (
-                    <View
-                      key={coupon?._id || coupon?.code}
+          {/* Scrollable Coupon List */}
+          <ScrollView
+            style={{ flex: 1 }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20, paddingTop: 10 }}
+          >
+            {couponLoading ? (
+              <View style={{ alignItems: "center", paddingVertical: 24 }}>
+                <ActivityIndicator color="#4CAF50" />
+                <Text style={{ marginTop: 8, color: "#555" }}>Fetching coupons...</Text>
+              </View>
+            ) : coupons.length > 0 ? (
+              coupons.map((coupon) => {
+                const discountLabel =
+                  coupon?.discountType === "percentage"
+                    ? `${coupon?.discountValue || 0}% off`
+                    : `Flat ₹${coupon?.discountValue || 0} off`;
+                const minOrderText = coupon?.minOrderAmount
+                  ? `Min order ₹${coupon.minOrderAmount}`
+                  : "No minimum order";
+                const validityText = coupon?.expiryDate
+                  ? `Valid till ${new Date(coupon.expiryDate).toLocaleDateString()}`
+                  : null;
+
+                return (
+                  <View
+                    key={coupon?._id || coupon?.code}
+                    style={{
+                      borderRadius: 12,
+                      overflow: 'hidden',
+                      marginBottom: 16,
+
+                      borderColor: '#E2EBC4',
+                    }}
+                  >
+                    <ImageBackground
+                      source={require('../../../assets/images/Vector.png')}
                       style={{
-                        backgroundColor: "#E2EBC4",
-                        borderRadius: 12,
+                        flexDirection: 'row',
                         padding: 12,
-                        flexDirection: "row",
-                        marginBottom: 16,
                       }}
+                      resizeMode="cover"
                     >
-                      {/* Left Ticket Border */}
+                      {/* Coupon Code - Vertical on Left */}
                       <View
                         style={{
-                          width: 34,
-                          justifyContent: "space-between",
+                          width: 70,
+                          backgroundColor: "#BACA92",
+                          borderRadius: 8,
+                          justifyContent: "center",
                           alignItems: "center",
+                          marginRight: 12,
+                          borderWidth: 1,
+                          borderStyle: "dashed",
+                          borderColor: "#015304",
+                          overflow: "hidden", // 👈 extra space cut karega
                         }}
                       >
-                        <View
+                        <Text
                           style={{
-                            width: 18,
-                            height: 18,
-                            borderRadius: 9,
-                            backgroundColor: "#D5DFAD",
+                            fontWeight: "700",
+                            color: "#000",
+                            fontSize: 13,
+                            transform: [{ rotate: "-90deg" }],
+                            textAlign: "center",
+                            width: 70, // 👈 reduce kiya (80 → 70)
                           }}
-                        />
-                        <View
-                          style={{
-                            flex: 1,
-                            width: 4,
-                            backgroundColor: "#C4D38B",
-                            marginVertical: 4,
-                            borderRadius: 2,
-                          }}
-                        />
-                        <View
-                          style={{
-                            width: 18,
-                            height: 18,
-                            borderRadius: 9,
-                            backgroundColor: "#D5DFAD",
-                          }}
-                        />
+                          numberOfLines={1}
+                        >
+                          {coupon?.code || "COUPON"}
+                        </Text>
                       </View>
+
 
                       {/* Right Coupon Content */}
                       <View
                         style={{
                           flex: 1,
-                          backgroundColor: "#D5DFAD",
+                          backgroundColor: '#BACA92',
                           borderRadius: 10,
                           padding: 12,
+
                         }}
                       >
-                        {/* Badge */}
-                        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
-                          <Image
-                            source={require("../../../assets/images/empty-cart.png")}
-                            style={{ width: 18, height: 18, marginRight: 6 }}
-                          />
-                          <Text style={{ fontSize: 12, fontWeight: "700", color: "#000" }}>
-                            {coupon?.code || "COUPON"}
+                        {/* Discount Badge */}
+                        <View style={{
+
+                          alignSelf: 'flex-start',
+
+                        }}>
+                          <Text style={{ color: '#000', fontWeight: '700', fontSize: 14 }}>
+                            Get flat {coupon?.discountType === "percentage"
+                              ? `${coupon?.discountValue || 0}% OFF`
+                              : `₹${coupon?.discountValue || 0} OFF`}  With Selected Coupon
                           </Text>
                         </View>
 
-                        {/* Title */}
-                        <Text
-                          style={{
-                            fontSize: 13,
-                            fontWeight: "700",
-                            color: "#000",
-                            marginBottom: 6,
-                          }}
-                        >
-                          {discountLabel}
-                        </Text>
-
                         {/* Description */}
                         <Text
-                          numberOfLines={3}
+                          numberOfLines={2}
                           style={{
-                            fontSize: 11,
-                            color: "#444",
-                            lineHeight: 14,
+                            fontSize: 14,
+                            color: "#000",
+                            lineHeight: 18,
+                            marginBottom: 8,
                           }}
                         >
                           {minOrderText}
@@ -1647,16 +1671,16 @@ const Cart = ({ navigation }: any) => {
                           <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>APPLY</Text>
                         </TouchableOpacity>
                       </View>
-                    </View>
-                  );
-                })
-              ) : (
-                <View style={{ alignItems: "center", paddingVertical: 24 }}>
-                  <Text style={{ color: "#555" }}>No coupons available right now.</Text>
-                </View>
-              )}
-            </ScrollView>
-          </View>
+                    </ImageBackground>
+                  </View>
+                );
+              })
+            ) : (
+              <View style={{ alignItems: "center", paddingVertical: 24 }}>
+                <Text style={{ color: "#555" }}>No coupons available right now.</Text>
+              </View>
+            )}
+          </ScrollView>
         </View>
       </Modal>
 
@@ -1674,21 +1698,31 @@ const Cart = ({ navigation }: any) => {
           {/* Right side party popper */}
           <ConfettiCannon count={80} origin={{ x: 400, y: 0 }} autoStart={true} fadeOut={true} />
 
-          <View style={{ backgroundColor: "#fff", width: "78%", borderRadius: 12, padding: 18, alignItems: "center" }}>
-            <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: "#4CAF50", alignItems: "center", justifyContent: "center" }}>
-              <Icon name="checkmark" size={30} color="#fff" />
+          <View style={{ backgroundColor: "#fff", width: "78%", borderRadius: 12, padding: 18, flexDirection: "row", justifyContent: "space-between" }}>
+            <Image
+              source={require('../../../assets/images/party1.png')}
+              style={{ width: 60, height: 60, resizeMode: 'contain', bottom: 0, position: 'absolute', left: 0 }}
+            />
+            <View style={{ alignItems: "center", flex: 1 }}>
+              <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: "#4CAF50", alignItems: "center", justifyContent: "center" }}>
+                <Icon name="checkmark" size={30} color="#fff" />
+              </View>
+              <Text style={{ marginTop: 12, fontSize: 18, fontWeight: "800", color: "#000" }}>
+                {appliedCoupon || "COUPON"}
+              </Text>
+              <Text style={{ marginTop: 6, fontSize: 16, fontWeight: "700", color: "#015304" }}>Wohooo!</Text>
+              <Text style={{ marginTop: 4, fontSize: 16, color: "#015304" }}>Applied Successfully</Text>
+              <TouchableOpacity
+                onPress={() => setShowAppliedDialog(false)}
+                style={{ marginTop: 16, backgroundColor: "#1B5E20", paddingHorizontal: 18, paddingVertical: 10, borderRadius: 25 }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "700" }}>OK</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={{ marginTop: 12, fontSize: 16, fontWeight: "800", color: "#000" }}>
-              {appliedCoupon || "COUPON"}
-            </Text>
-            <Text style={{ marginTop: 6, fontSize: 14, fontWeight: "700", color: "#000" }}>Wohooo!</Text>
-            <Text style={{ marginTop: 4, fontSize: 13, color: "#555" }}>Applied Successfully</Text>
-            <TouchableOpacity
-              onPress={() => setShowAppliedDialog(false)}
-              style={{ marginTop: 16, backgroundColor: "#1B5E20", paddingHorizontal: 18, paddingVertical: 10, borderRadius: 25 }}
-            >
-              <Text style={{ color: "#fff", fontWeight: "700" }}>OK</Text>
-            </TouchableOpacity>
+            <Image
+              source={require('../../../assets/images/party2.png')}
+              style={{ width: 60, height: 60, resizeMode: 'contain', bottom: 0, position: 'absolute', right: 0 }}
+            />
           </View>
         </View>
       </Modal>
@@ -1705,21 +1739,21 @@ const Cart = ({ navigation }: any) => {
       >
         <View style={{ flex: 1, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", padding: 24 }}>
           {/* Success Image */}
-          <Image 
-            source={Images.success} 
+          <Image
+            source={Images.success}
             style={{ width: 250, height: 250, resizeMode: "contain", marginBottom: 20 }}
           />
-          
+
           {/* Title */}
           <Text style={{ fontSize: 28, fontWeight: "800", color: "#015304", marginBottom: 12, textAlign: 'center' }}>
             Order Successful!
           </Text>
-          
+
           {/* Subtitle */}
           <Text style={{ fontSize: 18, color: "#015304", textAlign: "center", marginBottom: 24, paddingHorizontal: 20 }}>
             Your order has been placed successfully!
           </Text>
-          
+
           {/* Order ID */}
           {placedOrderId && (
             <View style={{ backgroundColor: '#F5F5F5', padding: 16, borderRadius: 12, marginBottom: 32, width: '100%', alignItems: 'center' }}>
@@ -1727,7 +1761,7 @@ const Cart = ({ navigation }: any) => {
               <Text style={{ fontSize: 20, fontWeight: "700", color: "#015304" }}>#{placedOrderId}</Text>
             </View>
           )}
-          
+
           {/* Buttons */}
           <View style={{ width: "100%", paddingHorizontal: 16, position: 'absolute', bottom: 40 }}>
             {/* Track Order Button */}
@@ -1735,8 +1769,8 @@ const Cart = ({ navigation }: any) => {
               colors={["#5A875C", "#015304"]}
               start={{ x: 0, y: 0.5 }}
               end={{ x: 1, y: 0.5 }}
-              style={{ 
-                paddingVertical: 2, 
+              style={{
+                paddingVertical: 2,
                 borderRadius: 30,
                 width: "100%",
                 marginBottom: 12,
@@ -1754,8 +1788,8 @@ const Cart = ({ navigation }: any) => {
                     navigation.navigate("MyOrder");
                   }
                 }}
-                style={{ 
-                  paddingVertical: 14, 
+                style={{
+                  paddingVertical: 14,
                   borderRadius: 30,
                   width: "100%",
                   alignItems: "center",
@@ -1764,16 +1798,16 @@ const Cart = ({ navigation }: any) => {
                 <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>Track Order</Text>
               </TouchableOpacity>
             </LinearGradient>
-            
+
             {/* Home Page Button */}
             <TouchableOpacity
               onPress={() => {
                 setShowOrderPlaced(false);
                 navigation.navigate("Home", { screen: "Dashboard" });
               }}
-              style={{ 
-                backgroundColor: '#fff', 
-                paddingVertical: 14, 
+              style={{
+                backgroundColor: '#fff',
+                paddingVertical: 14,
                 borderRadius: 30,
                 width: "100%",
                 alignItems: "center",
@@ -1849,17 +1883,15 @@ const Cart = ({ navigation }: any) => {
             <View style={{ flex: 1, alignItems: "center", justifyContent: "center", zIndex: 2 }}>
               <TouchableWithoutFeedback>
                 <View style={{ backgroundColor: "#fff", width: "84%", borderRadius: 12, padding: 16 }}>
-                  <Text style={{ fontSize: 16, fontWeight: "700", color: "#000", marginBottom: 10 }}>
-                    Add Your remark here.
-                  </Text>
+
                   <TextInput
                     value={remarkText}
                     onChangeText={setRemarkText}
-                    placeholder="Type your remark..."
+                    placeholder="Add Your remark here."
                     placeholderTextColor="#888"
                     multiline
                     style={{
-                      minHeight: 140,
+                      minHeight: 180,
                       borderWidth: 1,
                       borderColor: "#ccc",
                       borderStyle: "dashed",
@@ -1872,16 +1904,30 @@ const Cart = ({ navigation }: any) => {
                   <TouchableOpacity
                     onPress={() => setShowRemarkModal(false)}
                     activeOpacity={0.8}
-                    style={{
-                      marginTop: 16,
-                      backgroundColor: "#1B5E20",
-                      borderRadius: 25,
-                      paddingVertical: 12,
-                      alignItems: "center",
-                    }}
+                    style={{ marginTop: 16 }}
                   >
-                    <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>Submit</Text>
+                    <LinearGradient
+                      colors={["#5A875C", "#015304"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={{
+                        borderRadius: 25,
+                        paddingVertical: 12,
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: "#fff",
+                          fontWeight: "700",
+                          fontSize: 16,
+                        }}
+                      >
+                        Submit
+                      </Text>
+                    </LinearGradient>
                   </TouchableOpacity>
+
                 </View>
               </TouchableWithoutFeedback>
             </View>
@@ -2216,34 +2262,34 @@ const Cart = ({ navigation }: any) => {
 
               {/* Add New Address Button */}
               <TouchableOpacity
-              onPress={() => {
-                setShowAddressSelectionModal(false);
-                setShowAddAddressModal(true);
-              }}
-              style={{
-                borderRadius: 25,
-                overflow: "hidden",
-                alignItems: "center",
-                marginTop: 8,
-                marginBottom: 20,
-              }}
-            >
-              <LinearGradient
-                colors={["#5A875C", "#015304"]}
-                start={{ x: 0, y: 0.5 }}
-                end={{ x: 1, y: 0 }}
+                onPress={() => {
+                  setShowAddressSelectionModal(false);
+                  setShowAddAddressModal(true);
+                }}
                 style={{
-                  padding: 14,
-                  alignItems: "center",
-                  justifyContent: "center",
                   borderRadius: 25,
+                  overflow: "hidden",
+                  alignItems: "center",
+                  marginTop: 8,
+                  marginBottom: 20,
                 }}
               >
-                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>
-                  + Add New Address
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
+                <LinearGradient
+                  colors={["#5A875C", "#015304"]}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{
+                    padding: 14,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 25,
+                  }}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>
+                    + Add New Address
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </ScrollView>
           </View>
         </View>
@@ -2301,7 +2347,7 @@ const Cart = ({ navigation }: any) => {
             disabled={placingOrder}
             onPress={placeOrder}
             style={{
-            
+
               width: '47%',
               borderRadius: 25,
               paddingVertical: 10,
@@ -2340,288 +2386,288 @@ const Cart = ({ navigation }: any) => {
         </View>
       )}
 
-     
+
       {/* Payment Selection Modal */}
-<Modal
-  visible={showPaymentSelectionModal}
-  transparent
-  animationType="slide"
-  onRequestClose={() => setShowPaymentSelectionModal(false)}
->
-  <SafeAreaView style={{ flex: 1 }}>
-    <TouchableOpacity
-      style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)" }}
-      activeOpacity={1}
-      onPress={() => setShowPaymentSelectionModal(false)}
-    >
-      <View style={{
-        backgroundColor: "#fff",
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        maxHeight: "85%", // थोड़ा बढ़ाया
-        minHeight: "60%", // कम से कम इतना space
-        marginTop: "auto",
-        overflow: "hidden",
-      }}>
-        {/* Header */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 16,
-            paddingVertical: 16,
-            borderBottomWidth: 1,
-            borderBottomColor: "#E0E0E0",
-          }}
-        >
+      <Modal
+        visible={showPaymentSelectionModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowPaymentSelectionModal(false)}
+      >
+        <SafeAreaView style={{ flex: 1 }}>
           <TouchableOpacity
+            style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)" }}
+            activeOpacity={1}
             onPress={() => setShowPaymentSelectionModal(false)}
-            style={{ paddingRight: 12 }}
           >
-            <Icon name="arrow-back" size={24} color="#000" />
-          </TouchableOpacity>
-          <Text style={{ fontSize: 18, fontWeight: "700", color: "#000" }}>
-            Select Payment Method
-          </Text>
-        </View>
-
-        {/* ScrollView */}
-        <ScrollView
-          style={{ flex: 1 }}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{
-            paddingHorizontal: 16,
-            paddingVertical: 16,
-            paddingBottom: 40, // नीचे extra space
-          }}
-        >
-          {/* Wallet Option */}
-          <TouchableOpacity
-            onPress={() => {
-              if (walletBalance >= payableAmount) {
-                setSelectedPayment("wallet");
-                setShowPaymentSelectionModal(false);
-              } else {
-                setShowInsufficientFundsDialog(true);
-                setShowPaymentSelectionModal(false);
-              }
-            }}
-            disabled={walletBalance < payableAmount}
-            style={{
-              backgroundColor: "#E3F2FD",
-              borderRadius: 12,
-              padding: 16,
-              marginBottom: 12,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              opacity: walletBalance < payableAmount ? 0.5 : 1,
-            }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-              <View style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: "#4CAF50",
-                justifyContent: "center",
-                alignItems: "center",
-                marginRight: 12,
-              }}>
-                <MaterialIcons name="account-balance-wallet" size={24} color="#fff" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 16, fontWeight: "700", color: "#000", marginBottom: 4 }}>
-                  NCR Wallet
-                </Text>
-                <Text style={{ fontSize: 12, color: "#666" }}>
-                  Balance: ₹{walletBalance.toFixed(2)}
-                </Text>
-              </View>
-            </View>
             <View style={{
-              width: 20,
-              height: 20,
-              borderRadius: 10,
-              borderWidth: 2,
-              borderColor: walletBalance < payableAmount ? "#ccc" : "#015304",
-              alignItems: "center",
-              justifyContent: "center",
+              backgroundColor: "#fff",
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              maxHeight: "85%", // थोड़ा बढ़ाया
+              minHeight: "60%", // कम से कम इतना space
+              marginTop: "auto",
+              overflow: "hidden",
             }}>
-              {selectedPayment === "wallet" && walletBalance >= payableAmount && (
-                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#015304" }} />
-              )}
-            </View>
-          </TouchableOpacity>
-
-          {/* Cash On Delivery Option */}
-          <TouchableOpacity
-            onPress={() => {
-              setSelectedPayment("cod");
-              setShowPaymentSelectionModal(false);
-            }}
-            style={{
-              backgroundColor: "#E3F2FD",
-              borderRadius: 12,
-              padding: 16,
-              marginBottom: 12,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-              <View style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: "#4CAF50",
-                justifyContent: "center",
-                alignItems: "center",
-                marginRight: 12,
-              }}>
-                <MaterialIcons name="money" size={24} color="#fff" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 16, fontWeight: "700", color: "#000" }}>
-                  Cash On Delivery
-                </Text>
-              </View>
-            </View>
-            <View style={{
-              width: 20,
-              height: 20,
-              borderRadius: 10,
-              borderWidth: 2,
-              borderColor: "#015304",
-              alignItems: "center",
-              justifyContent: "center",
-            }}>
-              {selectedPayment === "cod" && (
-                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#015304" }} />
-              )}
-            </View>
-          </TouchableOpacity>
-
-          {/* Razorpay Option */}
-          <TouchableOpacity
-            onPress={() => {
-              setSelectedPayment("razorpay");
-              setShowPaymentSelectionModal(false);
-            }}
-            style={{
-              backgroundColor: "#E3F2FD",
-              borderRadius: 12,
-              padding: 16,
-              marginBottom: 12,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-              <View style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: "#4CAF50",
-                justifyContent: "center",
-                alignItems: "center",
-                marginRight: 12,
-              }}>
-                <MaterialIcons name="payment" size={24} color="#fff" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 16, fontWeight: "700", color: "#000" }}>
-                  Razorpay
-                </Text>
-              </View>
-            </View>
-            <View style={{
-              width: 20,
-              height: 20,
-              borderRadius: 10,
-              borderWidth: 2,
-              borderColor: "#015304",
-              alignItems: "center",
-              justifyContent: "center",
-            }}>
-              {selectedPayment === "razorpay" && (
-                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#015304" }} />
-              )}
-            </View>
-          </TouchableOpacity>
-
-          {/* Other payment options (disabled) */}
-          <View style={{ marginTop: 8 }}>
-            <Text style={{ fontSize: 14, fontWeight: "700", color: "#999", marginBottom: 8 }}>
-              Other Payment Methods (Unavailable)
-            </Text>
-            {/* Paytm UPI */}
-            <View style={{
-              backgroundColor: "#F5F5F5",
-              borderRadius: 12,
-              padding: 16,
-              marginBottom: 12,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              opacity: 0.5,
-            }}>
-              <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-                <View style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: "#ccc",
-                  justifyContent: "center",
+              {/* Header */}
+              <View
+                style={{
+                  flexDirection: "row",
                   alignItems: "center",
-                  marginRight: 12,
-                }}>
-                  <Text style={{ fontSize: 12, fontWeight: "700", color: "#666" }}>UPI</Text>
-                </View>
-                <Text style={{ fontSize: 16, fontWeight: "700", color: "#999" }}>
-                  Paytm UPI
+                  paddingHorizontal: 16,
+                  paddingVertical: 16,
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#E0E0E0",
+                }}
+              >
+                <TouchableOpacity
+                  onPress={() => setShowPaymentSelectionModal(false)}
+                  style={{ paddingRight: 12 }}
+                >
+                  <Icon name="arrow-back" size={24} color="#000" />
+                </TouchableOpacity>
+                <Text style={{ fontSize: 18, fontWeight: "700", color: "#000" }}>
+                  Select Payment Method
                 </Text>
               </View>
-              <MaterialIcons name="chevron-right" size={20} color="#ccc" />
-            </View>
-            {/* Google Pay UPI */}
-            <View style={{
-              backgroundColor: "#F5F5F5",
-              borderRadius: 12,
-              padding: 16,
-              marginBottom: 12,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              opacity: 0.5,
-            }}>
-              <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-                <View style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: "#ccc",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  marginRight: 12,
-                }}>
-                  <Text style={{ fontSize: 12, fontWeight: "700", color: "#666" }}>GP</Text>
+
+              {/* ScrollView */}
+              <ScrollView
+                style={{ flex: 1 }}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 16,
+                  paddingBottom: 40, // नीचे extra space
+                }}
+              >
+                {/* Wallet Option */}
+                <TouchableOpacity
+                  onPress={() => {
+                    if (walletBalance >= payableAmount) {
+                      setSelectedPayment("wallet");
+                      setShowPaymentSelectionModal(false);
+                    } else {
+                      setShowInsufficientFundsDialog(true);
+                      setShowPaymentSelectionModal(false);
+                    }
+                  }}
+                  disabled={walletBalance < payableAmount}
+                  style={{
+                    backgroundColor: "#E3F2FD",
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 12,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    opacity: walletBalance < payableAmount ? 0.5 : 1,
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+                    <View style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      backgroundColor: "#4CAF50",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      marginRight: 12,
+                    }}>
+                      <MaterialIcons name="account-balance-wallet" size={24} color="#fff" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 16, fontWeight: "700", color: "#000", marginBottom: 4 }}>
+                        NCR Wallet
+                      </Text>
+                      <Text style={{ fontSize: 12, color: "#666" }}>
+                        Balance: ₹{walletBalance.toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 10,
+                    borderWidth: 2,
+                    borderColor: walletBalance < payableAmount ? "#ccc" : "#015304",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}>
+                    {selectedPayment === "wallet" && walletBalance >= payableAmount && (
+                      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#015304" }} />
+                    )}
+                  </View>
+                </TouchableOpacity>
+
+                {/* Cash On Delivery Option */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedPayment("cod");
+                    setShowPaymentSelectionModal(false);
+                  }}
+                  style={{
+                    backgroundColor: "#E3F2FD",
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 12,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+                    <View style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      backgroundColor: "#4CAF50",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      marginRight: 12,
+                    }}>
+                      <MaterialIcons name="money" size={24} color="#fff" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 16, fontWeight: "700", color: "#000" }}>
+                        Cash On Delivery
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 10,
+                    borderWidth: 2,
+                    borderColor: "#015304",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}>
+                    {selectedPayment === "cod" && (
+                      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#015304" }} />
+                    )}
+                  </View>
+                </TouchableOpacity>
+
+                {/* Razorpay Option */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedPayment("razorpay");
+                    setShowPaymentSelectionModal(false);
+                  }}
+                  style={{
+                    backgroundColor: "#E3F2FD",
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 12,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+                    <View style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      backgroundColor: "#4CAF50",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      marginRight: 12,
+                    }}>
+                      <MaterialIcons name="payment" size={24} color="#fff" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 16, fontWeight: "700", color: "#000" }}>
+                        Razorpay
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 10,
+                    borderWidth: 2,
+                    borderColor: "#015304",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}>
+                    {selectedPayment === "razorpay" && (
+                      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#015304" }} />
+                    )}
+                  </View>
+                </TouchableOpacity>
+
+                {/* Other payment options (disabled) */}
+                <View style={{ marginTop: 8 }}>
+                  <Text style={{ fontSize: 14, fontWeight: "700", color: "#999", marginBottom: 8 }}>
+                    Other Payment Methods (Unavailable)
+                  </Text>
+                  {/* Paytm UPI */}
+                  <View style={{
+                    backgroundColor: "#F5F5F5",
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 12,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    opacity: 0.5,
+                  }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+                      <View style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        backgroundColor: "#ccc",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        marginRight: 12,
+                      }}>
+                        <Text style={{ fontSize: 12, fontWeight: "700", color: "#666" }}>UPI</Text>
+                      </View>
+                      <Text style={{ fontSize: 16, fontWeight: "700", color: "#999" }}>
+                        Paytm UPI
+                      </Text>
+                    </View>
+                    <MaterialIcons name="chevron-right" size={20} color="#ccc" />
+                  </View>
+                  {/* Google Pay UPI */}
+                  <View style={{
+                    backgroundColor: "#F5F5F5",
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 12,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    opacity: 0.5,
+                  }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+                      <View style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        backgroundColor: "#ccc",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        marginRight: 12,
+                      }}>
+                        <Text style={{ fontSize: 12, fontWeight: "700", color: "#666" }}>GP</Text>
+                      </View>
+                      <Text style={{ fontSize: 16, fontWeight: "700", color: "#999" }}>
+                        Google Pay UPI
+                      </Text>
+                    </View>
+                    <MaterialIcons name="chevron-right" size={20} color="#ccc" />
+                  </View>
                 </View>
-                <Text style={{ fontSize: 16, fontWeight: "700", color: "#999" }}>
-                  Google Pay UPI
-                </Text>
-              </View>
-              <MaterialIcons name="chevron-right" size={20} color="#ccc" />
+              </ScrollView>
             </View>
-          </View>
-        </ScrollView>
-      </View>
-    </TouchableOpacity>
-  </SafeAreaView>
-</Modal>
-      
+          </TouchableOpacity>
+        </SafeAreaView>
+      </Modal>
+
     </SafeAreaView>
   );
 };

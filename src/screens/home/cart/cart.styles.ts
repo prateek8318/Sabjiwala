@@ -50,6 +50,15 @@ const styles: any = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  freeDeliveryImage: {
+    position: 'fixed',
+    right: 10,
+    bottom: 0,
+    width: 100,
+    height: 80,
   },
 
   freeDeliveryLeft: {

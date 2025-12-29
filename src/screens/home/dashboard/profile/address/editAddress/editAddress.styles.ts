@@ -104,6 +104,16 @@ const styles = StyleSheet.create({
     color: Colors.PRIMARY[200],
     ...Typography.H5Medium16,
   },
+  mapLoadingOverlay: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(0,0,0,0.3)',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
   btnView: {
     width: wp(90),
     alignSelf: 'center',

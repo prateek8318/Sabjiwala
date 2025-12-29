@@ -730,9 +730,6 @@ const loadCart = async () => {
             {/* View Cart Text */}
             <View style={styles.cartTextBlock}>
               <TextView style={styles.cartButtonText}>View Cart</TextView>
-              <TextView style={styles.cartButtonSubText}>
-                {cartItemCount} item{cartItemCount === 1 ? "" : "s"}
-              </TextView>
             </View>
 
             <View style={styles.arrowCircle}>

@@ -2,10 +2,12 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Dashboard, Catogaries, Favorites, MyOrder, Cart, RateOrder, Reorder, OrderTracking, ReturnOrder, TypeProductList } from '../screens';
+import OrderSummaryScreen from '../screens/home/myOrder/OrderSummaryScreen';
 import { Colors, Fonts, Images } from '../constant';
 import LinearGradient from 'react-native-linear-gradient';
 import { View, Text, Image } from 'react-native';
 import { useCart } from '../context/CartContext';
+import { useFavorites } from '../context/FavoritesContext';
 import SubCategoryList from '../screens/home/catogaries/SubCategoryList';
 import ProductList from '../screens/home/catogaries/ProductList';
 
@@ -32,12 +34,44 @@ const FavoritesPageStack = () => (
   </Stack.Navigator>
 );
 const MyOrderPageStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
+  <Stack.Navigator 
+    screenOptions={{ 
+      headerShown: false,
+      tabBarStyle: { 
+        height: 80, 
+        borderTopWidth: 0, 
+        backgroundColor: 'transparent',
+        paddingBottom: 8,
+        paddingTop: 4,
+      } 
+    }}
+  >
     <Stack.Screen name="MyOrder" component={MyOrder} />
-    <Stack.Screen name="RateOrder" component={RateOrder} />
-    <Stack.Screen name="Reorder" component={Reorder} />
-    <Stack.Screen name="OrderTracking" component={OrderTracking} />
-    <Stack.Screen name="ReturnOrder" component={ReturnOrder} />
+    <Stack.Screen 
+      name="OrderSummary" 
+      component={OrderSummaryScreen} 
+      options={{ tabBarStyle: { display: 'none' } }}
+    />
+    <Stack.Screen 
+      name="RateOrder" 
+      component={RateOrder} 
+      options={{ tabBarStyle: { display: 'none' } }}
+    />
+    <Stack.Screen 
+      name="Reorder" 
+      component={Reorder} 
+      options={{ tabBarStyle: { display: 'none' } }}
+    />
+    <Stack.Screen 
+      name="OrderTracking" 
+      component={OrderTracking} 
+      options={{ tabBarStyle: { display: 'none' } }}
+    />
+    <Stack.Screen 
+      name="ReturnOrder" 
+      component={ReturnOrder} 
+      options={{ tabBarStyle: { display: 'none' } }}
+    />
   </Stack.Navigator>
 );
 const CartPageStack = () => (
@@ -55,6 +89,7 @@ const CartPageStack = () => (
 const BottomStackNavigator = () => {
   const Tab = createBottomTabNavigator();
   const { totalItems } = useCart();
+  const { favoritesCount } = useFavorites();
 
   return (
     <Tab.Navigator
@@ -112,14 +147,48 @@ const BottomStackNavigator = () => {
         })}
       />
 
-      <Tab.Screen name="Favorites" component={FavoritesPageStack}
+      <Tab.Screen 
+        name="Favorites" 
+        component={FavoritesPageStack}
         options={{
           tabBarIcon: ({ focused }) => (
-            <Image
-              source={focused ? Images.ic_heart_active : Images.ic_heart}
-              style={{ width: 28, height: 28 }}
-              resizeMode="contain"
-            />
+            <View>
+              <Image
+                source={focused ? Images.ic_heart_active : Images.ic_heart}
+                style={{ width: 28, height: 28 }}
+                resizeMode="contain"
+              />
+              {favoritesCount > 0 && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    right: -4,
+                    top: -3,
+                    minWidth: 16,
+                    height: 16,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ 
+                    borderColor: 'rgba(255, 0, 0, 0.8)',
+                      borderWidth: 1,
+                      backgroundColor: 'rgba(255, 0, 0, 0.8)',
+                      borderRadius: 16,
+                      paddingHorizontal: 3, 
+                    fontSize: 10, 
+                    fontWeight: 'bold',
+                    
+                    overflow: 'hidden',
+                    textAlign: 'center',
+                    minWidth: 16,
+                    lineHeight: 16,
+                  }}>
+                    {favoritesCount > 99 ? '99+' : favoritesCount}
+                  </Text>
+                </View>
+              )}
+            </View>
           ),
         }}
       />

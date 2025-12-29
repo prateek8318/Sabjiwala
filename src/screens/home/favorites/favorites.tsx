@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, Image, FlatList, Pressable, ActivityIndicator, RefreshControl, Modal, Vibration } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useFavorites } from '../../../context/FavoritesContext';
 import { TextView } from '../../../components';
 import styles from './favorites.styles';
 import {
@@ -18,10 +19,21 @@ import LinearGradient from 'react-native-linear-gradient';
 
 const Favorites = () => {
   const navigation = useNavigation<any>();
+  const { refreshFavorites } = useFavorites();
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Refresh favorites when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      refreshFavorites();
+      loadFavorites();
+    }, [])
+  );
   const [favoriteProducts, setFavoriteProducts] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [updatingProducts, setUpdatingProducts] = useState<{ [key: string]: boolean }>({});
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
+  const [updatingFavorites, setUpdatingFavorites] = useState<{ [key: string]: boolean }>({});
   const [cartMap, setCartMap] = useState<{ [key: string]: number }>({});
   const [cartVariantMap, setCartVariantMap] = useState<{ [key: string]: { variantId?: string; variantData?: any; quantity: number } }>({});
   const [showVariantModal, setShowVariantModal] = useState(false);
@@ -40,6 +52,7 @@ const Favorites = () => {
   // Load favorites
   const loadFavorites = async () => {
     try {
+      setIsLoading(true);
       const res = await ApiService.getWishlist();
       console.log('=== WISHLIST API RESPONSE ===');
       console.log('Full response:', JSON.stringify(res, null, 2));
@@ -79,10 +92,61 @@ const Favorites = () => {
 
       if (items.length === 0) {
         console.log('No items found in wishlist');
-        setFavoriteProducts([]);
-        setWishlist(new Set());
-        setLoading(false);
+        const transformedProducts = await Promise.all(items.map(async (item: any) => {
+          console.log('Processing item:', item);
+
+          let productData: any = null;
+          let productId = item.productId?.toString() || item._id?.toString() || item.id?.toString();
+
+          if (!productId) {
+            console.log('No productId found in item:', item);
+            return null;
+          }
+
+          // Case 1: Product details nested in item.product
+          if (item.product && typeof item.product === 'object' && (item.product.productName || item.product.name)) {
+            console.log('Using nested product data');
+            productData = transformProduct(item.product, productId);
+          }
+          // Case 2: Product details directly in item
+          else if (item.productName || item.name || item.primary_image || item.ProductVarient) {
+            console.log('Using direct item data');
+            productData = transformProduct(item, productId);
+          }
+          // Case 3: Only productId available, fetch product details from API
+          else {
+            try {
+              console.log('Fetching product details for productId:', productId);
+              const productRes = await ApiService.getProductDetail(productId);
+              const product = productRes?.data?.productData || productRes?.data?.data || productRes?.data;
+
+              if (product && (product.productName || product.name)) {
+                console.log('Fetched product details:', product);
+                productData = transformProduct(product, productId);
+              } else {
+                console.log('Invalid product data received:', product);
+                return null;
+              }
+            } catch (fetchError) {
+              console.log('Error fetching product details:', fetchError);
+              return null;
+            }
+          }
+
+          console.log('Final productData:', productData);
+          return productData;
+        }));
+
+        // Filter out null/undefined items
+        const validProducts = transformedProducts.filter(Boolean);
+
+        console.log('Final products array:', validProducts);
+        console.log('Products count:', validProducts.length);
+
+        setFavoriteProducts(validProducts);
+        setWishlist(new Set(validProducts.map(p => p.id)));
         setRefreshing(false);
+        setIsLoading(false);
         return;
       }
 
@@ -243,15 +307,26 @@ const Favorites = () => {
   // Refresh on focus
   useFocusEffect(
     useCallback(() => {
-      loadFavorites();
-      loadCart();
-    }, [])
+      const loadData = async () => {
+        await loadFavorites();
+        await loadCart();
+        await refreshFavorites();
+      };
+      loadData();
+    }, [refreshFavorites])
   );
 
   // Toggle favorite - Remove from favorites
   const toggleWishlist = async (productId: string) => {
+    const productIdStr = productId.toString();
+    
+    // Don't do anything if already processing
+    if (updatingFavorites[productIdStr]) return;
+    
     try {
-      const productIdStr = productId.toString();
+      // Set loading state for this product
+      setUpdatingFavorites(prev => ({ ...prev, [productIdStr]: true }));
+      
       console.log('=== FAVORITES PAGE - DELETE ===');
       console.log('ProductId to delete:', productIdStr);
       console.log('Current wishlist before delete:', Array.from(wishlist));
@@ -281,11 +356,13 @@ const Favorites = () => {
       setWishlist(newList);
       console.log('Wishlist after delete:', Array.from(newList));
 
+      // Small delay before reloading to show feedback
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Reload from server to ensure consistency
-      setTimeout(async () => {
-        console.log('Reloading favorites after delete...');
-        await loadFavorites();
-      }, 300);
+      await loadFavorites();
+      // Refresh the favorites count in the tab bar
+      await refreshFavorites();
     } catch (err: any) {
       console.log('=== DELETE ERROR ===');
       console.log('Error:', err);
@@ -293,7 +370,14 @@ const Favorites = () => {
       console.log('Error message:', err?.message);
 
       // On error, reload to sync with server
-      loadFavorites();
+      await loadFavorites();
+    } finally {
+      // Clear loading state
+      setUpdatingFavorites(prev => {
+        const newState = { ...prev };
+        delete newState[productIdStr];
+        return newState;
+      });
     }
   };
 
@@ -459,15 +543,20 @@ const Favorites = () => {
               console.log('Favorites page - Heart pressed for productId:', productId);
               toggleWishlist(productId);
             }}
-            style={styles.imgHeart}
+            style={[styles.imgHeart, { justifyContent: 'center', alignItems: 'center' }]}
             hitSlop={10}
+            disabled={updatingFavorites[productId]}
           >
-            <Icon
-              name="heart"
-              family="AntDesign"
-              size={26}
-              color="#E53935"
-            />
+            {updatingFavorites[productId] ? (
+              <ActivityIndicator size="small" color="#E53935" />
+            ) : (
+              <Icon
+                name="heart"
+                family="AntDesign"
+                size={26}
+                color="#E53935"
+              />
+            )}
           </Pressable>
 
           <View style={styles.imgTradeMarkView}>

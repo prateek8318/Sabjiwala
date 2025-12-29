@@ -143,6 +143,21 @@ const styles = StyleSheet.create({
     paddingBottom: hp(3),
     paddingTop: hp(2),
   },
+  searchResultsContainer: {
+  marginTop: 10,
+  backgroundColor: '#fff',
+  borderRadius: 8,
+  maxHeight: hp(30),
+},
+searchResultItem: {
+  padding: 12,
+  borderBottomWidth: 0.5,
+  borderBottomColor: '#eee',
+},
+searchResultText: {
+  fontSize: 14,
+  color: '#000',
+},
   confirmButton: {
     width: '100%',
   },

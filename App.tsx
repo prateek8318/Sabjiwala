@@ -10,6 +10,7 @@ import { CommonLoaderProvider } from './src/components/CommonLoader/commonLoader
 import { CommonAlertProvider } from './src/components/CommonAlertModal/commonAlertModal';
 import Toast from 'react-native-toast-message';
 import { CartProvider } from './src/context/CartContext';
+import { FavoritesProvider } from './src/context/FavoritesContext';
 import useFCM from './src/hooks/useFCM';
 import { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -47,8 +48,10 @@ const AppContent: FC = () => {
           <CommonAlertProvider>
           
             <CartProvider>
-              <Route />
-              <Toast />
+              <FavoritesProvider>
+                <Route />
+                <Toast />
+              </FavoritesProvider>
             </CartProvider>
           </CommonAlertProvider>
         </CommonLoaderProvider>

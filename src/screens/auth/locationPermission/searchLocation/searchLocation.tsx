@@ -71,6 +71,7 @@ const formatAddressText = (address: any) => {
 const SearchLocation: FC = () => {
   const navigation = useNavigation<SearchLocationScreenNavigationType>();
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [addresses, setAddresses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
@@ -102,7 +103,6 @@ const SearchLocation: FC = () => {
       const response = await ApiService.getAddresses();
       console.log('Address API response:', response.data);
       if (response.status === 200) {
-        // Check different possible response structures
         const addressList = 
           response.data?.address?.[0]?.addresses || 
           response.data?.addresses || 
@@ -113,17 +113,72 @@ const SearchLocation: FC = () => {
       }
     } catch (error: any) {
       console.log('Error fetching addresses:', error);
-      // Don't show error if no addresses found
     } finally {
       setLoading(false);
+    }
+  };
+
+  const searchLocations = async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&key=AIzaSyAsQryHkf5N7-bx_ZBMJ-X7yFMa9WTqwt0&components=country:in`
+      );
+      const data = await response.json();
+      if (data.status === 'OK') {
+        setSearchResults(data.predictions);
+      }
+    } catch (err) {
+      console.log('Search error:', err);
+    }
+  };
+
+  const handleSelectSearchResult = async (item: any) => {
+    try {
+      showLoader();
+      const detailsRes = await fetch(
+        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${item.place_id}&key=AIzaSyAsQryHkf5N7-bx_ZBMJ-X7yFMa9WTqwt0&fields=geometry,formatted_address,address_components`
+      );
+      const details = await detailsRes.json();
+      if (details.status === 'OK') {
+        const loc = details.result.geometry.location;
+        const addr = details.result.formatted_address;
+        const components = details.result.address_components;
+        
+        let city = '', pincode = '';
+        components.forEach((c: any) => {
+          if (c.types.includes('locality')) city = c.long_name;
+          if (c.types.includes('postal_code')) pincode = c.long_name;
+        });
+
+        hideLoader();
+        setSearchQuery('');
+        setSearchResults([]);
+
+        navigation.navigate('AddAddress', {
+          prefillAddress: {
+            pincode: pincode || '',
+            city: city || '',
+            landmark: addr || '',
+            floor: 'Ground',
+            houseNoOrFlatNo: '',
+            lat: loc.lat,
+            long: loc.lng,
+          },
+        });
+      }
+    } catch (err) {
+      hideLoader();
+      Toast.show({ type: 'error', text1: 'Failed to get location details' });
     }
   };
 
   const handleSelectAddress = async (address: any) => {
     try {
       showLoader();
-      // Set this address as default or use it for location
-      // If backend has an endpoint to set default address, use it
       if (address._id) {
         try {
           await ApiService.setDefaultAddress(address._id);
@@ -132,9 +187,7 @@ const SearchLocation: FC = () => {
         }
       }
 
-      // Update user location based on address
-      // You might need to extract lat/long from address or use city/pincode
-      const lat = address.lat || '28.6139'; // Default to Delhi NCR
+      const lat = address.lat || '28.6139';
       const long = address.long || '77.2090';
 
       const response = await ApiService.sendCurrentLoc(lat, long);
@@ -246,7 +299,6 @@ const SearchLocation: FC = () => {
       }
 
       if (permissionStatus === RESULTS.GRANTED) {
-        // Show full screen map first, location will be fetched in useEffect
         setShowMapModal(true);
       } else {
         Toast.show({
@@ -264,15 +316,13 @@ const SearchLocation: FC = () => {
     }
   };
 
-  // Generate map HTML with OpenStreetMap
   const generateMapHTML = () => {
     const lat = currentLocation?.latitude ?? 28.6139;
     const lon = currentLocation?.longitude ?? 77.2090;
     const zoomLevel = currentLocation ? 15 : 11;
-    const cityName = resolvedAddress?.city || '';
+    const cityName = resolvedAddress?.city || 'Your Location';
     const addressText = resolvedAddress?.formattedAddress || '';
 
-    // Escape HTML characters
     const escapeHtml = (text: string) => {
       return text
         .replace(/&/g, '&amp;')
@@ -290,42 +340,34 @@ const SearchLocation: FC = () => {
       <html>
         <head>
           <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-          <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-          <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
           <style>
             body { margin: 0; padding: 0; overflow: hidden; }
-            #map { width: 100%; height: 100%; }
+            #map { width: 100%; height: 100vh; }
           </style>
         </head>
         <body>
           <div id="map"></div>
           <script>
-            var lat = ${lat};
-            var lon = ${lon};
-            var zoomLevel = ${zoomLevel};
-            
-            var map = L.map('map').setView([lat, lon], zoomLevel);
-            
-            // Add OpenStreetMap tiles
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-              attribution: '© OpenStreetMap contributors',
-              maxZoom: 19
-            }).addTo(map);
-            
-            // Add location marker with colored circle (more reliable than default marker)
-            var locationMarker = L.circleMarker([lat, lon], {
-              radius: 12,
-              fillColor: '#4CAF50',
-              color: '#ffffff',
-              weight: 3,
-              opacity: 1,
-              fillOpacity: 0.9
-            }).addTo(map);
-            
-            var popupText = '${escapedCity ? '📍 ' + escapedCity : '📍 Your Location'}';
-            ${escapedAddress ? `popupText += '<br><small>${escapedAddress}</small>';` : ''}
-            locationMarker.bindPopup(popupText).openPopup();
+            function initMap() {
+              const map = new google.maps.Map(document.getElementById("map"), {
+                center: { lat: ${lat}, lng: ${lon} },
+                zoom: ${zoomLevel},
+                disableDefaultUI: false,
+              });
+
+              const marker = new google.maps.Marker({
+                position: { lat: ${lat}, lng: ${lon} },
+                map: map,
+                title: "${escapedCity}",
+              });
+
+              const infoWindow = new google.maps.InfoWindow({
+                content: "<strong>${escapedCity}</strong><br><small>${escapedAddress}</small>",
+              });
+              infoWindow.open(map, marker);
+            }
           </script>
+          <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAsQryHkf5N7-bx_ZBMJ-X7yFMa9WTqwt0&callback=initMap"></script>
         </body>
       </html>
     `;
@@ -346,7 +388,6 @@ const SearchLocation: FC = () => {
       const lat = currentLocation.latitude.toString();
       const long = currentLocation.longitude.toString();
 
-      // Try resolving address if not already available
       const geo =
         resolvedAddress ||
         (await reverseGeocode(currentLocation.latitude, currentLocation.longitude));
@@ -468,8 +509,25 @@ const SearchLocation: FC = () => {
               placeholder="Search Your Location"
               onChangeText={(value: string) => {
                 setSearchQuery(value);
+                searchLocations(value);
               }}
             />
+
+            {searchResults.length > 0 && (
+              <View style={styles.searchResultsContainer}>
+                {searchResults.map((item) => (
+                  <Pressable
+                    key={item.place_id}
+                    style={styles.searchResultItem}
+                    onPress={() => handleSelectSearchResult(item)}
+                  >
+                    <TextView style={styles.searchResultText}>
+                      {item.description}
+                    </TextView>
+                  </Pressable>
+                ))}
+              </View>
+            )}
           </View>
 
           <Pressable

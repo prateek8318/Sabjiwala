@@ -10,7 +10,7 @@ import { storage } from './storage';
 // -------------------------------------------------
 // 1. Base URL (your live dev server)
 const BASE_URL = 'http://159.89.146.245:5010/api/';
-//  const BASE_URL = 'http://192.168.1.28:5002/api/';
+//  const BASE_URL = 'http://192.168.1.44:5002/api/';
 export const IMAGE_BASE_URL = 'http://159.89.146.245:5010/';
 //  export const IMAGE_BASE_URL = 'http://192.168.1.28:5002/';
 
@@ -33,7 +33,7 @@ const now = () => new Date().toISOString().replace('T', ' ').substr(0, 19);
 // -------------------------------------------------
 // 4. REQUEST INTERCEPTOR – token + full log
 api.interceptors.request.use(
-  async (config: AxiosRequestConfig) => {
+  async (config) => { 
     const token = await storage.getToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -290,7 +290,7 @@ getHomeProductContent: async () => {
     console.log("Wishlist item deleted successfully:", response.data);
     return response;
   },
-  // apiService.ts me yeh 3 functions add kar de (kahi bhi, end me best)
+
 
   getMyOrders: async () => {
     return await api.get('user/order'); 
@@ -305,7 +305,7 @@ getHomeProductContent: async () => {
   },
 
   reorder: async (orderId: string) => {
-    return await api.post('user/order', { oldOrderId: orderId }); // ya jo bhi backend expect kare
+    return await api.post('user/order', { oldOrderId: orderId }); 
   },
 
   submitOrderRating: async (ratingData: any) => {
@@ -322,12 +322,29 @@ getHomeProductContent: async () => {
     action: 'credit' | 'debit';
     razorpay_id: string;
     description?: string;
+    skipDeduction?: boolean;
   }) => {
-    return await api.post('user/walletHistory/create', walletData);
+    return await api.post('wallet/history', walletData);
   },
 
   getWalletHistory: async () => {
-    return await api.get('user/walletHistory/list');
+    // Try multiple possible endpoints if needed
+    try {
+      // Try the main endpoint first
+      const response = await api.get('user/walletHistory/list');
+      
+      // If the response has data in the expected format, return it
+      if (response?.data?.data) {
+        return response;
+      }
+      
+      // If not, try alternative endpoints
+      const altResponse = await api.get('wallet/history');
+      return altResponse;
+    } catch (error) {
+      console.log('Error fetching wallet history:', error);
+      throw error;
+    }
   },
 
   getWalletBalance: async () => {
@@ -336,8 +353,7 @@ getHomeProductContent: async () => {
 
   // ---- Razorpay ----
   createRazorpayOrder: async (amount: number | string) => {
-    // Backend sample payload: { "amount": "100" } in rupees
-    // Send as string to match backend expectation; backend converts to paise
+   
     const rupees = typeof amount === 'number' ? amount.toString() : amount;
     return await api.post('user/create-razorpay-order', { amount: rupees, currency: 'INR' });
   },

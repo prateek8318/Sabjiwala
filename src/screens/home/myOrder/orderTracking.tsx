@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Image, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, ScrollView, SafeAreaView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Colors } from '../../../constant';
 import { TextView } from '../../../components';
@@ -22,7 +22,6 @@ const OrderTracking: React.FC<Props> = ({ route, navigation }) => {
   const [loading, setLoading] = useState(!passedOrder);
   const [addressText, setAddressText] = useState<string>('Loading address...');
   const [mapCoords, setMapCoords] = useState<{ lat: number; long: number }>({ lat: 28.6139, long: 77.209 });
-  const [mapError, setMapError] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; long: number } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
 
@@ -103,7 +102,6 @@ const OrderTracking: React.FC<Props> = ({ route, navigation }) => {
     resolveAddress();
   }, [order, passedOrder]);
 
-  // Fetch current location on component mount
   useEffect(() => {
     fetchCurrentLocation();
   }, []);
@@ -153,79 +151,68 @@ const OrderTracking: React.FC<Props> = ({ route, navigation }) => {
   const currentStatus = (order?.status || order?.orderStatus || 'pending').toLowerCase();
   const statusIndex = statusSteps.findIndex((s) => currentStatus.includes(s)) ?? 0;
 
-  // Generate map HTML with OpenStreetMap
   const generateMapHTML = () => {
     const deliveryLat = mapCoords.lat;
     const deliveryLon = mapCoords.long;
-    const currentLat = currentLocation?.lat;
-    const currentLon = currentLocation?.long;
+    const currentLat = currentLocation?.lat ?? 'null';
+    const currentLon = currentLocation?.long ?? 'null';
 
     return `
       <!DOCTYPE html>
       <html>
         <head>
           <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-          <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-          <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
           <style>
             body { margin: 0; padding: 0; overflow: hidden; }
-            #map { width: 100%; height: 100%; }
+            #map { width: 100%; height: 100vh; }
           </style>
         </head>
         <body>
           <div id="map"></div>
           <script>
-            var deliveryLat = ${deliveryLat};
-            var deliveryLon = ${deliveryLon};
-            var currentLat = ${currentLat || 'null'};
-            var currentLon = ${currentLon || 'null'};
-            
-            // Center map on delivery location or current location
-            var centerLat = deliveryLat;
-            var centerLon = deliveryLon;
-            var zoomLevel = 15;
-            
-            // If both locations exist, fit bounds to show both
-            if (currentLat && currentLon) {
-              zoomLevel = 13;
-            }
-            
-            var map = L.map('map').setView([centerLat, centerLon], zoomLevel);
-            
-            // Add OpenStreetMap tiles
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-              attribution: '© OpenStreetMap contributors',
-              maxZoom: 19
-            }).addTo(map);
-            
-            // Add delivery location marker (red circle)
-            var deliveryMarker = L.circleMarker([deliveryLat, deliveryLon], {
-              radius: 10,
-              fillColor: '#ff4444',
-              color: '#ffffff',
-              weight: 2,
-              opacity: 1,
-              fillOpacity: 0.8
-            }).addTo(map);
-            deliveryMarker.bindPopup('<b>📍 Delivery Address</b>').openPopup();
-            
-            // Add current location marker (blue circle) if available
-            if (currentLat && currentLon) {
-              var currentMarker = L.circleMarker([currentLat, currentLon], {
-                radius: 10,
-                fillColor: '#4444ff',
-                color: '#ffffff',
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 0.8
-              }).addTo(map);
-              currentMarker.bindPopup('<b>📍 Your Location</b>');
-              
-              // Fit map to show both markers
-              var group = new L.featureGroup([deliveryMarker, currentMarker]);
-              map.fitBounds(group.getBounds().pad(0.1));
+            function initMap() {
+              const map = new google.maps.Map(document.getElementById("map"), {
+                center: { lat: ${deliveryLat}, lng: ${deliveryLon} },
+                zoom: ${currentLocation ? 13 : 15},
+              });
+
+              new google.maps.Marker({
+                position: { lat: ${deliveryLat}, lng: ${deliveryLon} },
+                map: map,
+                icon: {
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 10,
+                  fillColor: '#ff4444',
+                  fillOpacity: 0.8,
+                  strokeColor: '#ffffff',
+                  strokeWeight: 2
+                },
+                title: "Delivery Address"
+              });
+
+              ${currentLocation ? `
+              new google.maps.Marker({
+                position: { lat: ${currentLat}, lng: ${currentLon} },
+                map: map,
+                icon: {
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 10,
+                  fillColor: '#4444ff',
+                  fillOpacity: 0.8,
+                  strokeColor: '#ffffff',
+                  strokeWeight: 2
+                },
+                title: "Your Location"
+              });
+
+              const bounds = new google.maps.LatLngBounds();
+              bounds.extend({ lat: ${deliveryLat}, lng: ${deliveryLon} });
+              bounds.extend({ lat: ${currentLat}, lng: ${currentLon} });
+              map.fitBounds(bounds);
+              ` : ''}
             }
           </script>
+          <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAsQryHkf5N7-bx_ZBMJ-X7yFMa9WTqwt0&callback=initMap"></script>
         </body>
       </html>
     `;
@@ -235,24 +222,16 @@ const OrderTracking: React.FC<Props> = ({ route, navigation }) => {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
         <View style={{ position: 'relative', height: 260, backgroundColor: '#f0f0f0' }}>
-          {mapError ? (
-            <View style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: '#e0e0e0' }}>
-              <TextView style={{ color: '#666', fontSize: 14 }}>Map unavailable</TextView>
-            </View>
-          ) : (
-            <WebView
-              originWhitelist={['*']}
-              source={{ html: generateMapHTML() }}
-              style={{ width: '100%', height: '100%', backgroundColor: '#f0f0f0' }}
-              javaScriptEnabled={true}
-              domStorageEnabled={true}
-              startInLoadingState={true}
-              scalesPageToFit={true}
-              mixedContentMode="always"
-              onError={() => setMapError(true)}
-              onHttpError={() => setMapError(true)}
-            />
-          )}
+          <WebView
+            originWhitelist={['*']}
+            source={{ html: generateMapHTML() }}
+            style={{ width: '100%', height: '100%', backgroundColor: '#f0f0f0' }}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            startInLoadingState={true}
+            scalesPageToFit={true}
+            mixedContentMode="always"
+          />
           {locationLoading && (
             <View style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(255,255,255,0.9)', padding: 8, borderRadius: 8 }}>
               <ActivityIndicator size="small" color={Colors.PRIMARY[100]} />
@@ -265,7 +244,6 @@ const OrderTracking: React.FC<Props> = ({ route, navigation }) => {
             Order Tracking
           </TextView>
 
-          {/* Status Section */}
           <View style={{ backgroundColor: '#F4F7F2', borderRadius: 12, padding: 12, marginBottom: 16 }}>
             <TextView style={{ color: '#000', fontWeight: '700' }}>Status: {currentStatus.toUpperCase()}</TextView>
             <View style={{ flexDirection: 'row', marginTop: 10, alignItems: 'center', justifyContent: 'space-between' }}>
@@ -288,13 +266,11 @@ const OrderTracking: React.FC<Props> = ({ route, navigation }) => {
             </View>
           </View>
 
-          {/* Address Section */}
           <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 12, elevation: 2, marginBottom: 16, borderWidth: 1, borderColor: '#eee' }}>
             <TextView style={{ color: '#000', fontWeight: '700', marginBottom: 6 }}>Delivery Address</TextView>
             <TextView style={{ color: '#444' }}>{addressText}</TextView>
           </View>
 
-          {/* Order Summary Section */}
           <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 12, elevation: 2, borderWidth: 1, borderColor: '#eee' }}>
             <TextView style={{ color: '#000', fontWeight: '700', marginBottom: 8 }}>Order Summary</TextView>
 

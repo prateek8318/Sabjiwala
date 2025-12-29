@@ -12,7 +12,7 @@ const isLargePhone = !isTablet && SCREEN_HEIGHT >= 800;
 
 const CARD_WIDTH = wp(42);               // ~2 cards per row with small gap
 // Large / tall phones pe height thodi kam, small & tablet pe same
-const CARD_HEIGHT = isLargePhone ? hp(28) : hp(36);
+const CARD_HEIGHT = isLargePhone ? hp(28) : hp(34);
 const CARD_IMAGE_HEIGHT = CARD_WIDTH * 0.9;
 
 const styles = StyleSheet.create({

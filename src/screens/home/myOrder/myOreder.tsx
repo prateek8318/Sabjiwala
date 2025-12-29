@@ -6,9 +6,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Modal,
   SafeAreaView,
-  ScrollView,
 } from 'react-native';
 import { TextView } from '../../../components';
 import styles from './myOrder.styles';
@@ -17,13 +15,20 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../../constant';
 import Icon from 'react-native-vector-icons/Feather';
 import LinearGradient from 'react-native-linear-gradient';
+import { StackNavigationProp } from '@react-navigation/stack';
+
+type RootStackParamList = {
+  OrderSummary: { order: any };
+ 
+};
+
+type MyOrderScreenNavigationProp = StackNavigationProp<RootStackParamList, 'OrderSummary'>;
+
 const MyOrder = () => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<MyOrderScreenNavigationProp>();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
-  const [showSummary, setShowSummary] = useState(false);
 
   const fetchOrders = async (isRefresh = false) => {
     try {
@@ -177,8 +182,7 @@ const MyOrder = () => {
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={() => {
-          setSelectedOrder(item);
-          setShowSummary(true);
+          navigation.navigate('OrderSummary', { order: item });
         }}
         style={[styles.orderCard, { backgroundColor: '#fff' }]}
       >
@@ -364,201 +368,6 @@ const MyOrder = () => {
           </View>
         }
       />
-
-      {/* Order Summary Modal */}
-
-      <Modal
-        visible={showSummary}
-        transparent={false}
-        animationType="slide"
-        onRequestClose={() => setShowSummary(false)}
-      >
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-          <View style={{ flex: 1 }}>
-            {/* Header */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee', justifyContent: 'space-between' }}>
-              <TouchableOpacity onPress={() => setShowSummary(false)}>
-                <Icon name="arrow-left" family="Feather" size={24} color="#000" />
-              </TouchableOpacity>
-              <TextView style={{ fontSize: 18, fontWeight: '700', color: '#000' }}>
-                Order Summary
-              </TextView>
-              <View style={{ width: 24, height: 24 }} />
-            </View>
-
-               <ScrollView
-                style={{ flex: 1 }}
-                contentContainerStyle={{ paddingHorizontal: 16 , }}
-                showsVerticalScrollIndicator={true}
-                
-              >
-                {/* Status + Items Count */}
-                <View style={{ paddingVertical: 12 }}>
-                  <LinearGradient
-                    colors={["#5A875C", "#015304"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={{
-                      paddingHorizontal: 36,
-                      paddingVertical: 12,
-                      borderRadius: 26,
-                      alignSelf: 'flex-start',
-                    }}
-                  >
-                    <TextView style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
-                      {selectedOrder?.status || 'Delivered'}
-                    </TextView>
-                  </LinearGradient>
-
-                  <View style={{ height: 1, backgroundColor: '#949494', marginTop: 16 }} />
-                  <TextView style={{ marginTop: 12, color: '#000', fontSize: 16, fontWeight: '700' }}>
-                    {(selectedOrder?.products || selectedOrder?.items || []).length} items in order
-                  </TextView>
-                </View>
-                {selectedOrder ? (
-                  <>
-                    {/* Products List */}
-                    {(selectedOrder.products || selectedOrder.items || []).map((product: any, idx: number) => {
-                      const productObj = product.productId || product.product || product;
-                      const variantObj = product.variantId || product.variant;
-                      const candidates = [
-                        product.image, product.productImage, product.images?.[0],
-                        productObj?.image, productObj?.images?.[0], productObj?.productImage,
-                        variantObj?.image, variantObj?.images?.[0],
-                      ].filter(Boolean);
-                      const img = candidates[0];
-                      const source = img
-                        ? { uri: img.startsWith('http') ? img : ApiService.getImage(img) }
-                        : require('../../../assets/images/order.png');
-                      const unitPrice = Number(product.price || variantObj?.price || 0);
-                      const qty = Number(product.quantity || 1);
-                      const lineTotal = unitPrice * qty;
-                      return (
-                        <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, backgroundColor: '#fff', borderRadius: 10, padding: 10, borderColor: "#C7E6AB", borderWidth: 1 }}>
-                          <Image source={source} style={{ width: 60, height: 60, borderRadius: 8, marginRight: 12 }} />
-                          <View style={{ flex: 1 }}>
-                            <TextView style={{ color: '#000', fontWeight: '700' }} numberOfLines={2}>
-                              {productObj?.name || 'Item'}
-                            </TextView>
-                            <TextView style={{ color: '#555', marginTop: 4 }}>
-                              Qty: {qty} × ₹{unitPrice.toFixed(2)}
-                            </TextView>
-                          </View>
-                          <TextView style={{ color: '#000', fontWeight: '700' }}>
-                            ₹{lineTotal.toFixed(2)}
-                          </TextView>
-                        </View>
-                      );
-                    })}
-
-                    {/* Bill Summary */}
-                    {(() => {
-                      const totals = computeOrderTotals(selectedOrder);
-                      return (
-                        <View style={{ marginTop: 12 }}>
-                          <View style={{ height: 1, backgroundColor: '#949494', marginVertical: 2 }} />
-                          <TextView style={{ fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 2 }}>
-                            Bill Summary
-                          </TextView>
-
-                          <View style={{ backgroundColor: '#ffffffff', padding: 16, borderRadius: 12 }}>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                              <TextView style={{ color: '#000' }}>Item total & GST</TextView>
-                              <TextView style={{ fontWeight: '700', color: '#000' }}>₹{totals.itemTotal.toFixed(2)}</TextView>
-                            </View>
-                            {totals.deliveryCharge > 0 && (
-                              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                                <TextView style={{ color: '#000' }}>Delivery Fee</TextView>
-                                <TextView style={{ fontWeight: '700', color: '#000' }}>₹{totals.deliveryCharge.toFixed(2)}</TextView>
-                              </View>
-                            )}
-                            {totals.handlingCharge > 0 && (
-                              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                                <TextView style={{ color: '#000' }}>Handling Charge</TextView>
-                                <TextView style={{ fontWeight: '700', color: '#000' }}>₹{totals.handlingCharge.toFixed(2)}</TextView>
-                              </View>
-                            )}
-                            {totals.couponDiscount > 0 && (
-                              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                                <TextView style={{ color: '#000' }}>Coupon Discount</TextView>
-                                <TextView style={{ color: '#2E7D32', fontWeight: '700' }}>-₹{totals.couponDiscount.toFixed(2)}</TextView>
-                              </View>
-                            )}
-
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                              <TextView style={{ fontSize: 16, fontWeight: '700', color: '#000' }}>Total Bill</TextView>
-                              <TextView style={{ fontSize: 16, fontWeight: '700', color: '#000' }}>₹{totals.grandTotal.toFixed(2)}</TextView>
-                            </View>
-                          </View>
-                        </View>
-                      );
-                    })()}
-
-                    {/* Order Details */}
-                    <View style={{ marginTop: 24 }}>
-                      <View style={{ height: 1, backgroundColor: '#949494', marginTop: 2 }} />
-                      <TextView style={{ fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 12 }}>
-                        Order Details
-                      </TextView>
-                      <View style={{ backgroundColor: '#ffffffff', padding: 16, borderRadius: 12 }}>
-                        <TextView style={{ color: '#000', marginBottom: 8 }}>Order ID</TextView>
-                        <TextView style={{ color: '#444', marginBottom: 12 }}>#{selectedOrder?._id}</TextView>
-                        <TextView style={{ color: '#000', marginBottom: 8 }}>Delivery Address</TextView>
-                        <TextView style={{ color: '#444', marginBottom: 12 }}>
-                          {selectedOrder?.deliveryAddress?.flat || selectedOrder?.deliveryAddress?.address || 'N/A'}
-                        </TextView>
-                        <TextView style={{ color: '#000', marginBottom: 8 }}>Order Placed</TextView>
-                        <TextView style={{ color: '#444', marginBottom: 12 }}>
-                          {formatDate(selectedOrder?.createdAt || selectedOrder?.orderDate)}
-                        </TextView>
-                        {(selectedOrder?.status?.toLowerCase().includes('delivered') || selectedOrder?.status?.toLowerCase().includes('completed')) && (
-                          <>
-                            <TextView style={{ color: '#000', marginBottom: 8 }}>Order Delivered on</TextView>
-                            <TextView style={{ color: '#444', marginBottom: 12 }}>
-                              {formatDate(selectedOrder?.deliveredAt || selectedOrder?.delivered_on || selectedOrder?.updatedAt)}
-                            </TextView>
-                          </>
-                        )}
-                      </View>
-                    </View>
-                  </>
-                ) : null}
-              </ScrollView>
-
-              {/* Fixed Bottom Button */}
-              <View style={{
-                padding: 16,
-                backgroundColor: '#fff',
-                borderTopWidth: 1,
-                borderTopColor: '#eee'
-              }}>
-                <TouchableOpacity
-                  onPress={() => {
-                    setShowSummary(false);
-                    if (selectedOrder?._id) {
-                      navigation.navigate('RateOrder', { orderId: selectedOrder._id, order: selectedOrder });
-                    }
-                  }}
-                  style={{
-                    backgroundColor: "#fff",
-                    paddingVertical: 16,
-                    borderRadius: 26,
-                    borderWidth: 1,
-                    borderColor: '#015304',
-                    alignItems: 'center',
-                  }}
-                >
-                  <TextView style={{ color: '#015304', fontWeight: '700', fontSize: 16 }}>Rate Order</TextView>
-                </TouchableOpacity>
-              </View>
-
-            {/* Scrollable Content */}
-            {/* <View style={{ flex: 2 }}>
-           
-            </View> */}
-          </View>
-        </SafeAreaView>
-      </Modal>
     </View>
   );
 };

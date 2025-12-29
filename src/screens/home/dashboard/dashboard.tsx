@@ -1157,7 +1157,7 @@ const Dashboard: FC = () => {
             <FlatList
               data={exploreSections.slice(0, 6)}                    // ← Max 6 explore sections
               renderItem={renderDealProduct}
-              contentContainerStyle={{ alignSelf: 'center', marginTop: hp(2) }}
+              contentContainerStyle={{ alignSelf: 'center', marginTop: hp(2), marginBottom: hp(2) }}
               numColumns={3}
               keyExtractor={(item) => item._id}
             />
@@ -1166,7 +1166,7 @@ const Dashboard: FC = () => {
 
           {/* Dynamic Banner Below Deal of the Day */}
           {banners.length > 0 && (
-            <View style={{ marginTop: hp(-2) }}>
+            <View style={{ marginTop: hp(0) }}>
               <BannerCarousel
                 banners={banners}
                 height={hp(25)}
@@ -1251,7 +1251,7 @@ const Dashboard: FC = () => {
           {/* Bottom Banner with Explore */}
           <View>
             {dealBanner.length > 0 && (
-              <View style={{ marginTop: hp(-2) }}>
+              <View style={{ marginTop: hp(0) }}>
                 <BannerCarousel
                   banners={dealBanner}
                   height={hp(25)}
@@ -1431,9 +1431,6 @@ const Dashboard: FC = () => {
 
                 <View style={styles.cartTextBlock}>
                   <TextView style={styles.cartButtonText}>View Cart</TextView>
-                  <TextView style={styles.cartButtonSubText}>
-                    {cartItemCount} item{cartItemCount === 1 ? '' : 's'}
-                  </TextView>
                 </View>
                 <View style={styles.arrowCircle}>
                   <Icon

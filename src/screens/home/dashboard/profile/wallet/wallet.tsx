@@ -69,41 +69,49 @@ const Wallet: FC = () => {
         setLoading(true);
       }
       
-      // First get the balance
-      const balanceRes = await ApiService.getWalletBalance();
-      
-      // Then get the transaction history
-      const historyRes = await ApiService.getWalletHistory();
+      // Get both balance and history in parallel
+      const [balanceRes, historyRes] = await Promise.all([
+        ApiService.getWalletBalance(),
+        ApiService.getWalletHistory()
+      ]);
 
       // Handle history response (show most recent first)
-      if (historyRes?.data?.success && historyRes.data.data) {
-        let history: WalletHistoryItem[] = [];
+      let history: WalletHistoryItem[] = [];
+      
+      // Try different response formats
+      const responseData = historyRes?.data?.data || historyRes?.data || [];
+      
+      if (Array.isArray(responseData)) {
+        history = responseData;
+      } else if (responseData.walletHistory) {
+        history = responseData.walletHistory;
+      } else if (Array.isArray(responseData.transactions)) {
+        history = responseData.transactions;
+      } else if (responseData.list) {
+        history = responseData.list;
+      }
 
-        if (Array.isArray(historyRes.data.data)) {
-          history = historyRes.data.data;
-        } else if (historyRes.data.data.walletHistory) {
-          history = historyRes.data.data.walletHistory;
-        } else if (Array.isArray(historyRes.data.data.transactions)) {
-          history = historyRes.data.data.transactions;
-        }
+      // Filter out any transactions that don't have the required fields
+      const validHistory = history.filter(tx => 
+        tx && 
+        tx._id && 
+        tx.amount !== undefined && 
+        (tx.balance_after_action !== undefined || tx.currentBalance !== undefined) &&
+        tx.createdAt
+      );
 
-        // Filter out any transactions that don't have the required fields
-        history = history.filter(tx => 
-          tx && 
-          tx._id && 
-          tx.amount !== undefined && 
-          tx.balance_after_action !== undefined &&
-          tx.createdAt
-        );
-
-        // Sort by date (newest first)
-        const sortedHistory = [...history].sort((a, b) => {
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
-        
-        setWalletHistory(sortedHistory);
-      } else {
-        setWalletHistory([]);
+      // Sort by date (newest first)
+      const sortedHistory = [...validHistory].sort((a, b) => {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+      
+      setWalletHistory(sortedHistory);
+      
+      // If we have transactions but no balance from API, use the latest transaction
+      if (sortedHistory.length > 0 && !balanceRes?.data) {
+        const latestTx = sortedHistory[0];
+        setBalance(Number(latestTx.balance_after_action || latestTx.currentBalance) || 0);
+        return;
       }
 
       // Handle balance response

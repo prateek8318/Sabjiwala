@@ -24,6 +24,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useState, useEffect, useCallback } from 'react';
 import ApiService, { IMAGE_BASE_URL } from '../../../../../service/apiService';
+import { useFavorites } from '../../../../../context/FavoritesContext';
 interface ProductCardProps {
   cardArray?: any;
   type?: string;
@@ -218,6 +219,9 @@ const ProductCard: FC<ProductCardProps> = ({
     loadWishlist();
   }, [extractWishlistIds]);
 
+  // Get the FavoritesContext
+  const { refreshFavorites } = useFavorites();
+
   // Toggle favorite
   const toggleWishlist = async (productId: string) => {
     try {
@@ -226,20 +230,29 @@ const ProductCard: FC<ProductCardProps> = ({
 
       const newList = new Set(wishlist);
       const isFavorite = newList.has(productIdStr);
+      let success = false;
 
       if (isFavorite) {
         // remove - delete from wishlist
         console.log('Removing from wishlist...');
         await ApiService.deleteWishlist(productIdStr);
         newList.delete(productIdStr);
+        success = true;
       } else {
         // add - add to wishlist
         console.log('Adding to wishlist...');
         await ApiService.addToWishlist(productIdStr);
         newList.add(productIdStr);
+        success = true;
       }
 
+      // Update local state
       setWishlist(newList);
+      
+      // Refresh the favorites count in the bottom tab
+      if (success) {
+        await refreshFavorites();
+      }
 
     } catch (err) {
       console.log("wishlist toggle error", err);
@@ -262,6 +275,8 @@ const ProductCard: FC<ProductCardProps> = ({
         }
         const ids = extractWishlistIds(items);
         setWishlist(new Set(ids));
+        // Refresh favorites count even on error to ensure sync
+        await refreshFavorites();
       } catch (e) {
         console.log("Error reloading wishlist", e);
       }
@@ -439,26 +454,26 @@ const ProductCard: FC<ProductCardProps> = ({
     const weightText = (() => {
       // If variant is selected from cart, use that variant's weight
       if (selectedVariant) {
-        const weightValue = selectedVariant?.weight ?? selectedVariant?.stock ?? 1;
-        const unitValue = selectedVariant?.unit ?? 'kg';
+        const weightValue = selectedVariant?.weight ?? selectedVariant?.stock ?? item?.weight ?? 1;
+        const unitValue = selectedVariant?.unit ?? item?.unit ?? 'kg';
         return `${weightValue} ${unitValue}`.trim();
       }
 
-      // Prefer explicit weight if present
-      if (item?.weight) return item.weight;
+      // For products with variants, use the first variant's weight
+      const variant = item?.ProductVarient?.[0] || item?.variants?.[0];
+      if (variant) {
+        const weightValue = variant?.weight ?? variant?.stock ?? item?.weight ?? 1;
+        const unitValue = variant?.unit ?? item?.unit ?? 'kg';
+        return `${weightValue} ${unitValue}`.trim();
+      }
 
-      const variant = item?.ProductVarient?.[0] || item?.variants?.[0] || {};
-      const weightValue =
-        variant?.weight ??
-        variant?.stock ??
-        item?.stock ??
-        1;
-      const unitValue =
-        variant?.unit ??
-        item?.unit ??
-        'kg'; // default unit so UI never shows blank
+      // For products without variants, use the product's weight
+      if (item?.weight || item?.stock) {
+        return `${item.weight || item.stock} ${item.unit || 'kg'}`.trim();
+      }
 
-      return `${weightValue} ${unitValue}`.trim();
+      // Default fallback
+      return '1 kg';
     })();
 
     return (
@@ -490,10 +505,10 @@ const ProductCard: FC<ProductCardProps> = ({
             hitSlop={8}
           >
             <Icon
-              name={isFavorite ? 'heart' : 'hearto'}
+              name={wishlist.has(productId) ? 'heart' : 'hearto'}
               family="AntDesign"
               size={18}
-              color={isFavorite ? '#E53935' : '#888'}
+              color={wishlist.has(productId) ? '#E53935' : '#888'}
             />
           </Pressable>
 
