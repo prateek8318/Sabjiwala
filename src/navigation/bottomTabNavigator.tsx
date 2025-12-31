@@ -5,12 +5,37 @@ import { Dashboard, Catogaries, Favorites, MyOrder, Cart, RateOrder, Reorder, Or
 import OrderSummaryScreen from '../screens/home/myOrder/OrderSummaryScreen';
 import { Colors, Fonts, Images } from '../constant';
 import LinearGradient from 'react-native-linear-gradient';
-import { View, Text, Image } from 'react-native';
+import { View, Text, Image, StyleSheet } from 'react-native';
 import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
 import SubCategoryList from '../screens/home/catogaries/SubCategoryList';
 import ProductList from '../screens/home/catogaries/ProductList';
 
+const styles = StyleSheet.create({
+  tabIcon: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+  },
+  badge: {
+    position: 'absolute',
+    right: -8,
+    top: -4,
+    backgroundColor: 'red',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+});
 
 const Stack = createNativeStackNavigator();
 
@@ -34,63 +59,68 @@ const FavoritesPageStack = () => (
   </Stack.Navigator>
 );
 const MyOrderPageStack = () => (
-  <Stack.Navigator 
-    screenOptions={{ 
-      headerShown: false,
-      tabBarStyle: { 
-        height: 80, 
-        borderTopWidth: 0, 
-        backgroundColor: 'transparent',
-        paddingBottom: 8,
-        paddingTop: 4,
-      } 
-    }}
-  >
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="MyOrder" component={MyOrder} />
-    <Stack.Screen 
-      name="OrderSummary" 
-      component={OrderSummaryScreen} 
-      options={{ tabBarStyle: { display: 'none' } }}
+    <Stack.Screen
+      name="OrderSummary"
+      component={OrderSummaryScreen}
     />
-    <Stack.Screen 
-      name="RateOrder" 
-      component={RateOrder} 
-      options={{ tabBarStyle: { display: 'none' } }}
+    <Stack.Screen
+      name="RateOrder"
+      component={RateOrder}
     />
-    <Stack.Screen 
-      name="Reorder" 
-      component={Reorder} 
-      options={{ tabBarStyle: { display: 'none' } }}
+    <Stack.Screen
+      name="Reorder"
+      component={Reorder}
     />
-    <Stack.Screen 
-      name="OrderTracking" 
-      component={OrderTracking} 
-      options={{ tabBarStyle: { display: 'none' } }}
+    <Stack.Screen
+      name="OrderTracking"
+      component={OrderTracking}
     />
-    <Stack.Screen 
-      name="ReturnOrder" 
-      component={ReturnOrder} 
-      options={{ tabBarStyle: { display: 'none' } }}
+    <Stack.Screen
+      name="ReturnOrder"
+      component={ReturnOrder}
     />
   </Stack.Navigator>
 );
 const CartPageStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen 
-      name="Cart" 
+    <Stack.Screen
+      name="Cart"
       component={Cart}
-      options={{
-        tabBarStyle: { display: 'none' }
-      }}
     />
   </Stack.Navigator>
+);
+
+type CartIconWithBadgeProps = {
+  color: string;
+  size: number;
+  count: number;
+};
+
+const CartIconWithBadge = ({ color, size, count }: CartIconWithBadgeProps) => (
+  <View>
+    <Image
+      source={require('../assets/images/dashboard/ic_cart.png')}
+      style={[styles.tabIcon, { tintColor: color, width: size, height: size }]}
+    />
+    {count > 0 && (
+      <View style={styles.badge}>
+        <Text style={styles.badgeText}>
+          {count > 9 ? '9+' : count}
+        </Text>
+      </View>
+    )}
+  </View>
 );
 
 const BottomStackNavigator = () => {
   const Tab = createBottomTabNavigator();
   const { totalItems } = useCart();
   const { favoritesCount } = useFavorites();
-
+  
+  // Debug log to verify cart count
+  console.log('BottomTab - totalItems from context:', totalItems);
   return (
     <Tab.Navigator
       screenOptions={{
@@ -107,12 +137,13 @@ const BottomStackNavigator = () => {
         tabBarInactiveTintColor: '#B0B0B0',
         tabBarLabelStyle: { fontFamily: Fonts.Medium, fontSize: 12, marginTop: 3 },
         tabBarIconStyle: { marginTop: 0 },
-        tabBarStyle: { 
-          height: 80, 
-          borderTopWidth: 0, 
+        tabBarStyle: {
+          height: 80,
+          borderTopWidth: 0,
           backgroundColor: 'transparent',
           paddingBottom: 8,
           paddingTop: 4,
+          position: 'absolute'
         },
       }}
     >
@@ -128,8 +159,8 @@ const BottomStackNavigator = () => {
         }}
       />
 
-      <Tab.Screen 
-        name="Catogaries" 
+      <Tab.Screen
+        name="Catogaries"
         component={CatogariesPageStack}
         options={{
           tabBarIcon: ({ focused }) => (
@@ -147,8 +178,8 @@ const BottomStackNavigator = () => {
         })}
       />
 
-      <Tab.Screen 
-        name="Favorites" 
+      <Tab.Screen
+        name="Favorites"
         component={FavoritesPageStack}
         options={{
           tabBarIcon: ({ focused }) => (
@@ -170,15 +201,15 @@ const BottomStackNavigator = () => {
                     alignItems: 'center',
                   }}
                 >
-                  <Text style={{ 
+                  <Text style={{
+                    color: '#fff',
                     borderColor: 'rgba(255, 0, 0, 0.8)',
-                      borderWidth: 1,
-                      backgroundColor: 'rgba(255, 0, 0, 0.8)',
-                      borderRadius: 16,
-                      paddingHorizontal: 3, 
-                    fontSize: 10, 
+                    borderWidth: 1,
+                    backgroundColor: 'rgba(255, 0, 0, 0.8)',  // comma was missing here
+                    borderRadius: 16,
+                    paddingHorizontal: 3,
+                    fontSize: 10,
                     fontWeight: 'bold',
-                    
                     overflow: 'hidden',
                     textAlign: 'center',
                     minWidth: 16,
@@ -207,45 +238,28 @@ const BottomStackNavigator = () => {
       />
 
       <Tab.Screen
-        name="Cart"
-        component={CartPageStack}
-        options={{
-          tabBarLabel: 'Cart',
-          tabBarStyle: { height: 0, overflow: 'hidden' },
-          tabBarIcon: ({ focused }) => (
-            <View>
-              <Image
-                source={focused ? Images.ic_cart_active : Images.ic_cart}
-                style={{ width: 28, height: 28 }}
-                resizeMode="contain"
-              />
-
-              {totalItems > 0 && (
-                <View
-                  style={{
-                    position: 'absolute',
-                    right: -8,
-                    top: -5,
-                    backgroundColor: '#FF3B30',
-                    borderRadius: 12,
-                    minWidth: 22,
-                    height: 22,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    paddingHorizontal: 4,
-                    borderWidth: 2,
-                    borderColor: '#fff',
-                  }}
-                >
-                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>
-                    {totalItems}
-                  </Text>
-                </View>
-              )}
-            </View>
-          ),
-        }}
-      />
+  name="Cart"
+  component={CartPageStack}
+  options={{
+    tabBarLabel: 'Cart',
+    tabBarIcon: ({ focused, color, size }) => (
+      <View>
+        <Image
+          source={focused ? Images.ic_cart_active : Images.ic_cart}
+          style={{ width: 28, height: 28 }}
+          resizeMode="contain"
+        />
+        {totalItems > 0 && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>
+              {totalItems > 99 ? '99+' : totalItems}
+            </Text>
+          </View>
+        )}
+      </View>
+    ),
+  }}
+/>
     </Tab.Navigator>
   );
 };

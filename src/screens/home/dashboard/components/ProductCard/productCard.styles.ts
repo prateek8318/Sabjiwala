@@ -13,7 +13,7 @@ const styles = StyleSheet.create<any>({
     backgroundColor: Colors.PRIMARY[300],
     borderRadius: 14,
     elevation: 0,
-    
+   
     
     justifyContent: 'space-between',
   },
@@ -106,11 +106,11 @@ const styles = StyleSheet.create<any>({
   quantityView: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     paddingHorizontal: wp(1.5),
-    marginTop:0,
-    paddingBottom: hp(1.2),   // thoda kam kiya
-          // pehle 1 tha
+    marginTop: hp(0.5),
+    paddingBottom: hp(1.2),
+    minHeight: 40, // Ensure minimum height for the row
   },
 
   ratingView: {
@@ -130,13 +130,15 @@ const styles = StyleSheet.create<any>({
   weightText: {
     ...Typography.BodyRegular13,
     color: '#000',
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '500',
+    maxWidth: wp(30), // Limit width to prevent overflow
+    flexShrink: 1,
   },
 
   addProductButon: {
-    height: hp(3.5),
-    width: wp(15),
+    height: 37,
+    width: 75,
     marginTop:-15,
     paddingRight: 'auto',
     borderRadius: 50,

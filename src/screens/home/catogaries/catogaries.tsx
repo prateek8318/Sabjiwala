@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   FlatList,
   Pressable,
@@ -12,13 +12,20 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Header, TextView } from '../../../components';
 import styles from './catogaries.styles';
-import { useNavigation } from '@react-navigation/native';
-import { HomeStackProps } from '../../../@types';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Toast from 'react-native-toast-message';
-import { Colors, Icon } from '../../../constant';
+import { Colors } from '../../../constant';
 import ApiService, { IMAGE_BASE_URL } from '../../../service/apiService';
 import LinearGradient from 'react-native-linear-gradient';
+import Icon from 'react-native-vector-icons/Feather';
+import { BlurView } from '@react-native-community/blur';
+
+type HomeStackProps = {
+  Catogaries: undefined;
+  subCategoryList: { categoryId: string; categoryName: string };
+  // Add other screen names and their params here
+};
 
 type CatogariesScreenNavigationType = NativeStackNavigationProp<
   HomeStackProps,
@@ -64,9 +71,26 @@ const Catogaries = () => {
     }
   };
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchCategories();
+      // Set header options when screen is focused
+      navigation.setOptions({
+        headerLeft: () => (
+          <Pressable 
+            onPress={() => navigation.goBack()}
+            style={({pressed}) => ({
+              opacity: pressed ? 0.5 : 1,
+              marginLeft: 15,
+              padding: 5
+            })}
+          >
+            <Icon name="arrow-left" size={24} color={Colors.PRIMARY[400]} />
+          </Pressable>
+        ),
+      });
+    }, [navigation])
+  );
 
   const ShimmerPlaceholder = ({ style }: { style?: any }) => {
     const shimmerValue = useRef(new Animated.Value(0)).current;
@@ -157,9 +181,17 @@ const Catogaries = () => {
             resizeMode="cover"
             onError={handleError}
           />
-          <TextView style={styles.itemCatTxt} numberOfLines={2} ellipsizeMode="tail">
-            {item.name}
-          </TextView>
+          <View style={styles.blurContainer}>
+            <BlurView
+              style={styles.blurView}
+              blurType="dark"
+              blurAmount={1}
+              reducedTransparencyFallbackColor="black"
+            />
+            <TextView style={styles.itemCatTxt} numberOfLines={2}>
+              {item.name}
+            </TextView>
+          </View>
         </View>
       </Pressable>
     );
@@ -170,29 +202,31 @@ const Catogaries = () => {
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: Colors.PRIMARY[100] }}
-      edges={['top']}
+      edges={['top', 'left', 'right']}
     >
-      <View style={styles.container}>
+      <View style={[styles.container, { flex: 1 }]}>
         <Header title="Categories" isBack={true} />
 
-        {loading ? (
-          renderShimmerGrid()
-        ) : (
-          <FlatList
-            data={categories}
-            numColumns={2}
-            keyExtractor={item => item._id}
-            renderItem={renderCat}
-            contentContainerStyle={styles.flatListContent}
-            columnWrapperStyle={styles.columnWrapper}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <TextView style={styles.emptyText}>No categories found</TextView>
-              </View>
-            }
-          />
-        )}
+        <View style={{ flex: 1, paddingBottom: 16 }}>
+          {loading ? (
+            renderShimmerGrid()
+          ) : (
+            <FlatList
+              data={categories}
+              numColumns={2}
+              keyExtractor={item => item._id}
+              renderItem={renderCat}
+              contentContainerStyle={[styles.flatListContent, { flexGrow: 1 }]}
+              columnWrapperStyle={styles.columnWrapper}
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <TextView style={styles.emptyText}>No categories found</TextView>
+                </View>
+              }
+            />
+          )}
+        </View>
       </View>
     </SafeAreaView>
   );

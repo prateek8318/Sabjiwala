@@ -245,7 +245,10 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
         <TextView style={styles.headerTitle}>Return</TextView>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.section}>
           <TextView style={styles.sectionTitle}>{products.length} Items in order</TextView>
           {products.map((product: any, idx: number) => {

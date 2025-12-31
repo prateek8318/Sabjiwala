@@ -377,19 +377,20 @@ const ProductDetail = () => {
   };
 
   // Share product
-  const handleShare = async () => {
-    try {
-      const productUrl = `http://167.71.232.245:8539/product/${productId}`;
-      const shareMessage = `Check out ${product.name} - ₹${price} on SabjiWala!\n${productUrl}`;
+const handleShare = async () => {
+  try {
+    const deepLink = `sabjiwala://product/${productId}`;
+    const webUrl = `http://159.89.146.245:5010/api/user/product/${productId}`;
+    const shareMessage = `Check out ${product.name} - ₹${price} on SabjiWala!\n${webUrl}\n\nOr open in app: ${deepLink}`;
 
-      await Share.share({
-        message: shareMessage,
-        title: product.name,
-      });
-    } catch (error) {
-      console.log('Error sharing:', error);
-    }
-  };
+    await Share.share({
+      message: shareMessage,
+      title: product.name,
+    });
+  } catch (error) {
+    console.log('Error sharing:', error);
+  }
+};
 
   // Render carousel images
   const renderCarouselImage = ({ item, index }: any) => (

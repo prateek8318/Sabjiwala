@@ -903,8 +903,8 @@ const Dashboard: FC = () => {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: Colors.PRIMARY[100] }}
-      edges={['top']}
+      style={{ flex: 1, backgroundColor: '#015304' }}
+      edges={['right', 'bottom', 'left']}
     >
       <View style={styles.container}>
         <Animated.ScrollView
@@ -1153,7 +1153,17 @@ const Dashboard: FC = () => {
 
           {/* 🔹 Deal Of The Day - Explore Sections */}
           <View>
-            <Image source={Images.img_deal} style={styles.imgDeal} />
+            <TouchableOpacity 
+              activeOpacity={0.9}
+              onPress={() => {
+                navigation.navigate('TypeProductList', {
+                  type: 'dealOfTheDay',
+                  title: 'Deal of the Day',
+                });
+              }}
+            >
+              <Image source={Images.img_deal} style={styles.imgDeal} />
+            </TouchableOpacity>
             <FlatList
               data={exploreSections.slice(0, 6)}                    // ← Max 6 explore sections
               renderItem={renderDealProduct}

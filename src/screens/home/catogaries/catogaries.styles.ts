@@ -75,25 +75,37 @@ import { Colors } from '../../../constant';
   },
    flatListContent: {
      paddingHorizontal: 16,
-    paddingTop: 12,
-     paddingBottom: 20,
+     paddingTop: 12,
+     paddingBottom: 50, // Increased from 20 to 40 for more bottom space
    },
    columnWrapper: {
      justifyContent: 'space-between',
    },
-   itemCatTxt: {
+   blurContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    textAlign: 'center',
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#fff',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingVertical: 10,
-    borderRadius: 4,
     overflow: 'hidden',
+    borderBottomLeftRadius: 4,
+    borderBottomRightRadius: 4,
+  },
+  blurView: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  itemCatTxt: {
+    textAlign: 'center',
+    paddingHorizontal: 8,
+    fontSize: 15,
+    fontWeight: '500',
+    fontFamily:'Poppins',
+    color: '#fff',
+    paddingVertical: 10,
+    backgroundColor: 'transparent',
   },
   categoryImage: {
     width: '100%',
@@ -106,7 +118,7 @@ import { Colors } from '../../../constant';
     marginBottom: 16,
     borderRadius: 12,
     overflow: 'hidden',
-    elevation: 4,
+    elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
@@ -143,6 +155,7 @@ import { Colors } from '../../../constant';
   shimmerCardWrapper: {
     marginBottom: 16,
     borderRadius: 12,
+    padding: 8,
     overflow: 'hidden',
   },
   shimmerImage: {

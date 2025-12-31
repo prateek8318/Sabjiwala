@@ -3,10 +3,9 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { Vibration } from 'react-native';
 import Toast from 'react-native-toast-message';
+import { LocalStorage } from '../helpers/localstorage';
 
 const API_URL = 'http://167.71.232.245:8539/api/user/cart';
-
-// Vibration duration in milliseconds
 const VIBRATION_DURATION = 50;
 
 type CartItem = {
@@ -37,14 +36,39 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Update totalItems whenever items change
+  useEffect(() => {
+    const count = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+    setTotalItems(count);
+    console.log('Cart items updated. Total items:', count);
+  }, [items]);
+
+  const calculateTotalItems = (items: CartItem[]) => {
+    return items.reduce((total, item) => total + (item.quantity || 0), 0);
+  };
 
   const fetchCart = async () => {
     try {
       setLoading(true);
       const res = await axios.get(API_URL, {
-        headers: { Authorization: 'Bearer YOUR_TOKEN' } // agar token hai toh
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await LocalStorage.read('@auth_token')}`
+        }
       });
-      setItems(res.data.data.items || []);
+
+      console.log('Fetched cart data:', res.data);
+
+      if (res.data && res.data.success) {
+        const cartItems = res.data.data?.items || [];
+        console.log('Setting cart items:', cartItems);
+        setItems(cartItems);
+      } else {
+        console.log('No cart data or error in response');
+        setItems([]);
+      }
     } catch (err) {
       console.log('Cart fetch error:', err);
       setItems([]);
@@ -53,18 +77,36 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // ADD TO CART FUNCTION – YEH ZAROORI HAI
   const addItem = async (product: any, variant = '1 Kg') => {
     try {
-      await axios.post(API_URL, {
+      setLoading(true);
+      const response = await axios.post(API_URL, {
         productId: product._id,
         quantity: 1,
         variant: variant,
       });
-      await fetchCart(); // Refresh cart
+
+      // Optimistically update the UI
+      const newItem: CartItem = {
+        id: response.data.data?._id || Date.now().toString(),
+        productId: product._id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        weight: variant,
+        quantity: 1,
+        mrp: product.mrp
+      };
+
+      setItems(prevItems => [...prevItems, newItem]);
+
+      // Then sync with server
+      await fetchCart();
     } catch (err: any) {
       console.log('Add to cart failed:', err.response?.data || err);
       throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -73,59 +115,53 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       await removeItem(id);
       return;
     }
-    
-    // Optimistically update the UI
+
     setItems(prevItems => {
-      return prevItems.map(item => {
+      const updatedItems = prevItems.map(item => {
         const itemId = item.id || (typeof item.productId === 'object' ? item.productId?._id : item.productId);
         if (itemId === id) {
           return { ...item, quantity };
         }
         return item;
       });
+      // Update total items count
+      setTotalItems(calculateTotalItems(updatedItems));
+      return updatedItems;
     });
-    
-    // Provide haptic feedback
+
     Vibration.vibrate(VIBRATION_DURATION);
-    
+
     try {
       await axios.put(`${API_URL}/${id}`, { quantity });
-      // Don't fetch cart again, we already updated optimistically
+      fetchCart(); // Refresh cart to ensure sync
     } catch (err) {
       console.log('Update failed', err);
-      // Revert on error
       fetchCart().catch(console.error);
     }
   };
 
   const removeItem = async (id: string) => {
-    // Store the current items for potential rollback
     const previousItems = [...items];
-    
+
     try {
-      // Optimistically update the UI immediately
       setItems(prevItems => {
         const updatedItems = prevItems.filter(item => {
-          const itemId = item.id || 
-            (typeof item.productId === 'object' ? item.productId?._id : item.productId);
+          const itemId = item.id || (typeof item.productId === 'object' ? item.productId?._id : item.productId);
           return itemId !== id;
         });
+        // Update total items count
+        setTotalItems(calculateTotalItems(updatedItems));
         return updatedItems;
       });
-      
-      // Make the API call in the background
+
       await axios.delete(`${API_URL}/${id}`);
-      
-      // Only fetch if we still have items, otherwise the cart will be hidden
+
       if (items.length > 1) {
         fetchCart().catch(console.error);
       }
     } catch (err) {
       console.log('Delete failed', err);
-      // Revert to previous state on error
       setItems(previousItems);
-      
-      // Show error to user
       Toast.show({
         type: 'error',
         text1: 'Error',
@@ -138,16 +174,27 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     fetchCart();
   }, []);
 
+  // Update totalItems whenever items change (including optimistic updates)
+  useEffect(() => {
+    const count = items.reduce((sum, i) => sum + i.quantity, 0);
+    setTotalItems(count);
+
+    console.log('Cart items updated:', items);
+    console.log('Total items count:', count);
+    console.log('Providing to context - totalItems:', count);
+  }, [items]);
+
   const totalPrice = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const totalSavings = items.reduce((sum, i) => sum + (i.mrp - i.price) * i.quantity, 0);
+  const totalSavings = items.reduce((sum, i) => sum + ((i.mrp || i.price) - i.price) * i.quantity, 0);
 
   return (
     <CartContext.Provider value={{
       items,
       totalPrice,
       totalSavings,
+      totalItems,  // Real-time updated count
       loading,
-      addItem,           // <-- YEH PROVIDE KIYA
+      addItem,
       updateQuantity,
       removeItem,
       fetchCart

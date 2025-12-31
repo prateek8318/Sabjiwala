@@ -27,25 +27,36 @@ const OrderSummaryScreen = () => {
   const route = useRoute<OrderSummaryScreenRouteProp>();
   const rawOrder = route.params.order;
 
-  // Hide bottom tab bar when this screen is focused
-  useFocusEffect(
-    useCallback(() => {
-      // Show tab bar when screen is focused
-      navigation.getParent()?.setOptions({
-        tabBarStyle: { display: 'none' },
-      });
-
-      // Clean up function to show tab bar when screen is unfocused
-      return () => {
-        navigation.getParent()?.setOptions({
-          tabBarStyle: { display: 'flex' },
-        });
-      };
-    }, [navigation])
-  );
-
   // Get the order data from the route params
   const order = rawOrder?.data || rawOrder;
+  
+  // Calculate order totals with proper null checks and fallbacks
+  const computeOrderTotals = (orderData: any) => {
+    // Check both direct and nested data for charges
+    const data = orderData?.data || orderData;
+
+    // Debug log to check the data structure
+    console.log('Order data for totals:', JSON.stringify(data, null, 2));
+
+    const totals = {
+      itemTotal: Number(data?.itemPriceTotal || data?.itemTotal || 0),
+      deliveryCharge: Number(data?.deliveryCharge || data?.shippingCharge || 0),
+      handlingCharge: Number(data?.handlingCharge || 0),
+      couponDiscount: Math.abs(Number(data?.couponDiscount || 0)), // Ensure positive value
+      grandTotal: Number(data?.grandTotal || data?.totalAmount || 0),
+    };
+
+    console.log('Calculated totals:', totals);
+    return totals;
+  };
+
+  const totals = React.useMemo(() => computeOrderTotals(order), [order]);
+
+  // Check if order is eligible for rating (delivered/completed)
+  const canRateOrder = React.useMemo(() => {
+    const status = (order?.status || '').toLowerCase();
+    return status.includes('delivered') || status.includes('completed');
+  }, [order]);
 
   // Extract shipping address with proper fallbacks
   const shippingAddress = React.useMemo(() => {
@@ -53,19 +64,19 @@ const OrderSummaryScreen = () => {
 
     if (!addr) {
       console.log('No shipping address found in order data:', { order });
-      return null;
+      return {
+        receiverName: 'N/A',
+        receiverNo: 'N/A',
+        houseNoOrFlatNo: 'N/A',
+        landmark: '',
+        city: 'N/A',
+        pincode: 'N/A',
+        floor: '',
+        addressType: 'home',
+      };
     }
 
-    return {
-      receiverName: addr.receiverName || 'N/A',
-      receiverNo: addr.receiverNo || 'N/A',
-      houseNoOrFlatNo: addr.houseNoOrFlatNo || 'N/A',
-      landmark: addr.landmark || '',
-      city: addr.city || 'N/A',
-      pincode: addr.pincode || 'N/A',
-      floor: addr.floor || '',
-      addressType: addr.addressType || 'other',
-    };
+    return addr;
   }, [order]);
 
   React.useEffect(() => {
@@ -81,6 +92,7 @@ const OrderSummaryScreen = () => {
 
     // Log order items details
     if (order?.items?.length) {
+ 
       console.log('--- Order Items ---');
       order.items.forEach((item: any, index: number) => {
         console.log(`Item ${index + 1}:`, {
@@ -117,14 +129,18 @@ const OrderSummaryScreen = () => {
     console.log('Payment Status:', order?.paymentStatus || 'N/A');
     console.log('Transaction ID:', order?.transactionId || 'N/A');
 
-    // Log order totals
+      // Log order totals if available
     console.log('--- Order Totals ---');
-    console.log('Item Total:', totals.itemTotal);
-    console.log('Delivery Charge:', totals.deliveryCharge);
-    console.log('Handling Charge:', totals.handlingCharge);
-    console.log('Coupon Discount:', totals.couponDiscount);
-    console.log('Grand Total:', totals.grandTotal);
-  }, [order, totals, shippingAddress]);
+    if (totals) {
+      console.log('Item Total:', totals.itemTotal);
+      console.log('Delivery Charge:', totals.deliveryCharge);
+      console.log('Handling Charge:', totals.handlingCharge);
+      console.log('Coupon Discount:', totals.couponDiscount);
+      console.log('Grand Total:', totals.grandTotal);
+    } else {
+      console.log('No totals information available');
+    }
+  }, [order, shippingAddress, totals]);
 
   const formatDate = (dateStr: string): string => {
     if (!dateStr) return '';
@@ -158,27 +174,6 @@ const OrderSummaryScreen = () => {
     productImage?: string;
   }
 
-  const computeOrderTotals = (orderData: any) => {
-    // Check both direct and nested data for charges
-    const data = orderData?.data || orderData;
-
-    // Debug log to check the data structure
-    console.log('Order data for totals:', JSON.stringify(data, null, 2));
-
-    const totals = {
-      itemTotal: Number(data?.itemPriceTotal || data?.itemTotal || 0),
-      deliveryCharge: Number(data?.deliveryCharge || data?.shippingCharge || 0),
-      handlingCharge: Number(data?.handlingCharge || 0),
-      couponDiscount: Math.abs(Number(data?.couponDiscount || 0)), // Ensure positive value
-      grandTotal: Number(data?.grandTotal || data?.totalAmount || 0),
-    };
-
-    console.log('Calculated totals:', totals);
-    return totals;
-  };
-
-
-  const totals = React.useMemo(() => computeOrderTotals(order), [order]);
 
   if (!order) {
     return (
@@ -265,21 +260,21 @@ const OrderSummaryScreen = () => {
           <View style={styles.card}>
             <View style={styles.billRow}>
               <TextView style={styles.billLabel}>Item total & GST</TextView>
-              <TextView style={styles.billValue}>₹{totals.itemTotal.toFixed(2)}</TextView>
+              <TextView style={styles.billValue}>₹{totals?.itemTotal?.toFixed(2) || '0.00'}</TextView>
 
             </View>
             <View style={styles.billRow}>
               <TextView style={styles.billLabel}>Delivery Fee</TextView>
-              <TextView style={styles.billValue}>₹{totals.deliveryCharge.toFixed(2)}</TextView>
+              <TextView style={styles.billValue}>₹{totals?.deliveryCharge?.toFixed(2) || '0.00'}</TextView>
             </View>
             <View style={styles.billRow}>
               <TextView style={styles.billLabel}>Handling Charge</TextView>
-              <TextView style={styles.billValue}>₹{totals.handlingCharge.toFixed(2)}</TextView>
+              <TextView style={styles.billValue}>₹{totals?.handlingCharge?.toFixed(2) || '0.00'}</TextView>
             </View>
             <View style={styles.billRow}>
               <TextView style={styles.billLabel}>Coupon Discount</TextView>
               <TextView style={[styles.billValue, { color: '#2E7D32' }]}>
-                -₹{totals.couponDiscount.toFixed(2)}
+                -₹{totals?.couponDiscount?.toFixed(2) || '0.00'}
               </TextView>
             </View>
             {/* {totals.deliveryCharge > 0 && (
@@ -291,7 +286,7 @@ const OrderSummaryScreen = () => {
             <View style={[styles.billRow, { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#eee' }]}>
               <TextView style={[styles.billLabel, { fontSize: 16, fontWeight: '700' }]}>Total Bill</TextView>
               <TextView style={[styles.billValue, { fontSize: 16, fontWeight: '700' }]}>
-                ₹{totals.grandTotal.toFixed(2)}
+                ₹{totals?.grandTotal?.toFixed(2) || '0.00'}
               </TextView>
             </View>
           </View>
@@ -357,20 +352,49 @@ const OrderSummaryScreen = () => {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Fixed Bottom Button */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          onPress={() => {
-            navigation.goBack();
-            if (order?._id) {
-              navigation.navigate('RateOrder', { orderId: order._id, order });
-            }
-          }}
-          style={styles.rateButton}
-        >
-          <TextView style={styles.rateButtonText}>Rate Order</TextView>
-        </TouchableOpacity>
-      </View>
+      {/* Fixed Bottom Button - Only show for delivered/completed orders */}
+      {canRateOrder && (
+        <View style={styles.footer}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => {
+              console.log('Navigating to RateOrder with orderId:', order?._id);
+              if (order?._id) {
+                navigation.navigate('RateOrder', { 
+                  orderId: order._id, 
+                  order: order 
+                });
+              } else {
+                console.error('Cannot rate: Order ID is missing');
+              }
+            }}
+            style={[styles.rateButton, { 
+              backgroundColor: '#fff',
+              borderWidth: 1,
+              borderColor: '#015304',
+              paddingVertical: 14,
+              borderRadius: 8,
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'row',
+              elevation: 3,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+            }]}
+          >
+            <Icon name="star" size={18} color="#015304" style={{ marginRight: 8 }} />
+            <TextView style={[styles.rateButtonText, { 
+              color: '#015304',
+              fontWeight: '600',
+              fontSize: 16,
+            }]}>
+              Rate Products
+            </TextView>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 };

@@ -5,6 +5,7 @@ import {
   NavigationContainer,
   NavigationContainerRef,
 } from '@react-navigation/native';
+import { Linking } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeStackNavigator, AuthStackNavigator } from '../navigation';
 import { BackHandler, StatusBar } from 'react-native';
@@ -44,7 +45,27 @@ const Route: FC = () => {
       setTimeout(() => SplashScreen.hide(), 500);
     }
   };
-
+const linking = {
+  prefixes: ['sabjiwala://', 'http://159.89.146.245:5010'],
+  config: {
+    screens: {
+      HomeStackNavigator: {
+        screens: {
+          BottomStackNavigator: {
+            screens: {
+              Home: 'home',
+              Categories: 'categories',
+              Favorites: 'favorites',
+              MyOrder: 'orders',
+              Cart: 'cart',
+            }
+          },
+          ProductDetail: 'api/user/product/:id'
+        }
+      }
+    }
+  }
+};
   useEffect(() => {
     const handleBackPress = () => {
       const navigation = navigationRef.current;
@@ -95,7 +116,10 @@ const Route: FC = () => {
 
   return (
     <>
-      <NavigationContainer ref={navigationRef}>
+      <NavigationContainer ref={navigationRef}
+      linking={linking}
+  fallback={null}
+  >
         <StatusBar
           barStyle={'light-content'}
           backgroundColor={Colors.PRIMARY[100]}

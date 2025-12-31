@@ -3,7 +3,14 @@ import { Colors } from '../../../../constant';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from '../../../../constant/dimentions';
 
 export default StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#fff' 
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingBottom: 16,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -15,15 +22,16 @@ export default StyleSheet.create({
     borderBottomColor: '#eee',
   },
   backBtn: { padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#000', marginLeft: 12 },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#000', marginTop: hp(4), alignItems: 'center', flex: 1, textAlign: 'center' },
 
   section: {
     backgroundColor: '#fff',
-    marginHorizontal: wp(4),
-    marginTop: hp(2),
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
     borderRadius: 16,
     padding: 16,
-    elevation: 2,
+    
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
@@ -102,12 +110,7 @@ export default StyleSheet.create({
   },
 
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: wp(4),
-    paddingVertical: 16,
+    padding: 16,
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
@@ -122,6 +125,7 @@ export default StyleSheet.create({
   disabledBtn: {
     backgroundColor: '#a5d6a7',
   },
+  
   btnText: {
     color: '#fff',
     fontSize: 17,

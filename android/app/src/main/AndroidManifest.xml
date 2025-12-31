@@ -46,6 +46,24 @@ xmlns:tools="http://schemas.android.com/tools"
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
+        <intent-filter>
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <category android:name="android.intent.category.BROWSABLE" />
+    <data
+        android:scheme="sabjiwala"
+        android:host="product" />
+</intent-filter>
+<intent-filter android:autoVerify="true">
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <category android:name="android.intent.category.BROWSABLE" />
+    <data
+        android:scheme="http"
+        android:host="159.89.146.245"
+        android:port="5010"
+        android:pathPrefix="/api/user/product/" />
+</intent-filter>
       </activity>
       
     </application>

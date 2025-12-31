@@ -511,102 +511,71 @@ const Cart = ({ navigation }: any) => {
     setPendingDelete(null);
   };
 
-  // UPDATE QUANTITY - Optimized with vibration and no page reload
+  // UPDATE QUANTITY - Only update UI after successful API call
   const updateQuantity = async (item: any, delta: number) => {
     // Add haptic feedback for quantity change
-    Vibration.vibrate(30); // Slightly longer vibration for better feedback
+    Vibration.vibrate(30);
 
-    const newQuantity = (item.quantity || 0) + delta;
+    const currentQuantity = item.quantity || 1;
+    const newQuantity = currentQuantity + delta;
 
     if (newQuantity <= 0) {
       // Stronger feedback when removing last item
-      Vibration.vibrate([0, 50, 20, 50]); // Double vibration pattern for delete action
+      Vibration.vibrate([0, 50, 20, 50]);
       return removeItem(item.variantId?._id || "", item.productId._id);
     }
 
-    // Optimistically update UI and totals so price changes immediately
-    const unitPrice = Number(item.price || item.variantId?.price || 0);
-    const unitMrp = Number(item.mrp || item.variantId?.mrp || item.variantId?.originalPrice || item.productId?.mrp || unitPrice);
+    try {
+      // First make the API call to update the cart
+      const response = await ApiService.addToCart(
+        item.productId._id,
+        item.variantId?._id || "",
+        newQuantity.toString()
+      );
 
-    // Create a copy of current items to avoid direct state mutation
-    const updatedItems = items.map((i) =>
-      i._id === item._id ? { ...i, quantity: newQuantity } : i
-    );
-
-    // Calculate new totals based on updated items
-    const newItemPriceTotal = updatedItems.reduce((sum, i) => {
-      const price = Number(i.price || i.variantId?.price || 0);
-      return sum + (price * (i.quantity || 0));
-    }, 0);
-
-    const newItemMrpTotal = updatedItems.reduce((sum, i) => {
-      const mrp = Number(i.mrp || i.variantId?.mrp || i.variantId?.originalPrice || i.productId?.mrp || i.price || 0);
-      return sum + (mrp * (i.quantity || 0));
-    }, 0);
-
-    // Update state in a single batch
-    setItems(updatedItems);
-    setTotals(prev => ({
-      ...prev,
-      itemPriceTotal: newItemPriceTotal,
-      itemMrpTotal: newItemMrpTotal,
-      grandTotal: Math.max(0, newItemPriceTotal +
-        Number(prev.handlingCharge || 0) +
-        Number(prev.deliveryCharge || 0)),
-    }));
-
-    // Update server in the background without blocking UI or showing loader
-    (async () => {
-      try {
-        await ApiService.addToCart(
-          item.productId._id,
-          item.variantId?._id || "",
-          newQuantity.toString()
+      // Only update UI if API call was successful
+      if (response?.data?.success) {
+        // Update the items array with new quantity
+        const updatedItems = items.map((i) =>
+          i._id === item._id ? { ...i, quantity: newQuantity } : i
         );
-        // Don't call fetchCart here to avoid showing loader
-        // Just ensure local state is in sync with server
-        const currentItem = items.find(i => i._id === item._id);
-        if (currentItem?.quantity !== newQuantity) {
-          // Silently update cart data without showing loader
-          const res = await ApiService.getCart();
-          if (res?.data?.success) {
-            setItems(prevItems => {
-              // Only update items if there's a mismatch with server
-              const serverItems = res.data.cart?.products || [];
-              if (JSON.stringify(prevItems) !== JSON.stringify(serverItems)) {
-                return serverItems;
-              }
-              return prevItems;
-            });
-            setTotals({
-              itemPriceTotal: Number(res.data.itemPriceTotal) || 0,
-              itemMrpTotal: Number(res.data.itemMrpTotal) || 0,
-              handlingCharge: Number(res.data.handlingCharge) || 0,
-              deliveryCharge: Number(res.data.deliveryCharge) || 0,
-              grandTotal: Number(res.data.grandTotal) || 0,
-            });
-          }
-        }
-      } catch (err) {
-        console.log("Error updating cart quantity:", err);
-        // On error, just do a silent refresh without showing loader
-        try {
-          const res = await ApiService.getCart();
-          if (res?.data?.success) {
-            setItems(res.data.cart?.products || []);
-            setTotals({
-              itemPriceTotal: Number(res.data.itemPriceTotal) || 0,
-              itemMrpTotal: Number(res.data.itemMrpTotal) || 0,
-              handlingCharge: Number(res.data.handlingCharge) || 0,
-              deliveryCharge: Number(res.data.deliveryCharge) || 0,
-              grandTotal: Number(res.data.grandTotal) || 0,
-            });
-          }
-        } catch (refreshErr) {
-          console.log("Error refreshing cart:", refreshErr);
-        }
+
+        // Recalculate totals based on updated items
+        const newItemPriceTotal = updatedItems.reduce((sum, i) => {
+          const price = Number(i.price || i.variantId?.price || 0);
+          return sum + (price * (i.quantity || 0));
+        }, 0);
+
+        const newItemMrpTotal = updatedItems.reduce((sum, i) => {
+          const mrp = Number(i.mrp || i.variantId?.mrp || i.variantId?.originalPrice || i.productId?.mrp || i.price || 0);
+          return sum + (mrp * (i.quantity || 0));
+        }, 0);
+
+        // Update state with new values
+        setItems(updatedItems);
+        setTotals(prev => ({
+          ...prev,
+          itemPriceTotal: newItemPriceTotal,
+          itemMrpTotal: newItemMrpTotal,
+          grandTotal: Math.max(0, newItemPriceTotal +
+            Number(prev.handlingCharge || 0) +
+            Number(prev.deliveryCharge || 0)),
+        }));
+      } else {
+        // If API call was not successful, refresh cart to sync with server
+        fetchCart(true);
       }
-    })();
+    } catch (error) {
+      console.error("Error updating quantity:", error);
+      // Show error message to user
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to update quantity. Please try again.",
+      });
+      // Refresh cart to ensure UI is in sync with server
+      fetchCart(true);
+    }
   };
 
   const resetCartState = () => {
@@ -1023,7 +992,7 @@ const Cart = ({ navigation }: any) => {
                       {product.name}
                     </Text>
                     <Text style={styles.itemWeight}>
-                      {variant?.weight || variant?.stock || variant?.name || 1} {variant?.unit}
+                      {variant?.weight || variant?.stock || variant?.name || 1} {variant?.unit || item?.unit}
                     </Text>
                     <View style={styles.priceContainer}>
                       <Text style={styles.itemPrice}>

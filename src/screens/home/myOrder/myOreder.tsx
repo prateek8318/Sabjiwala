@@ -12,8 +12,9 @@ import { TextView } from '../../../components';
 import styles from './myOrder.styles';
 import ApiService from '../../../service/apiService';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { Colors } from '../../../constant';
+import { Pressable } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
+import { Colors } from '../../../constant';
 import LinearGradient from 'react-native-linear-gradient';
 import { StackNavigationProp } from '@react-navigation/stack';
 
@@ -30,7 +31,8 @@ const MyOrder = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchOrders = async (isRefresh = false) => {
+  // Memoize the fetchOrders function to prevent unnecessary re-renders
+  const fetchOrders = useCallback(async (isRefresh = false) => {
     try {
       if (!isRefresh) setLoading(true);
       const res = await ApiService.getMyOrders();
@@ -41,18 +43,50 @@ const MyOrder = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
+  // Initial fetch on component mount
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [fetchOrders]);
 
   // Refresh orders when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      fetchOrders();
-    }, [])
+      let isActive = true;
+      
+      const loadData = async () => {
+        if (isActive) {
+          await fetchOrders();
+        }
+      };
+      
+      loadData();
+      
+      // Cleanup function
+      return () => {
+        isActive = false;
+      };
+    }, [fetchOrders])
   );
+
+  // Set header options with back button
+  useEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <Pressable 
+          onPress={() => navigation.goBack()}
+          style={({pressed}) => ({
+            opacity: pressed ? 0.5 : 1,
+            marginLeft: 15,
+            padding: 5
+          })}
+        >
+          <Icon name="arrow-left" size={24} color={Colors.PRIMARY[400]} />
+        </Pressable>
+      ),
+    });
+  }, [navigation]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
