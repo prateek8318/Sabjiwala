@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useMemo, useState } from 'react';
+import React, { FC, useEffect, useMemo, useState, useRef } from 'react';
 import {
   SafeAreaView,
   View,
@@ -8,6 +8,12 @@ import {
   Pressable,
   PermissionsAndroid,
   Platform,
+  Modal,
+  Animated,
+  Easing,
+  Text,
+  TouchableOpacity,
+  Dimensions,
 } from 'react-native';
 import styles from './search.styles';
 import { HomeStackProps } from '../../../../@types';
@@ -28,6 +34,8 @@ type SearchScreenNavigationType = NativeStackNavigationProp<
   'Search'
 >;
 
+const { width } = Dimensions.get('window');
+
 const Search: FC = () => {
   const navigation = useNavigation<SearchScreenNavigationType>();
   const route = useRoute<any>();
@@ -36,6 +44,10 @@ const Search: FC = () => {
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const [voiceText, setVoiceText] = useState('Listening...');
+  const animationValues = useRef(Array(5).fill(0).map(() => new Animated.Value(0))).current;
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
 
   const filteredProducts = useMemo(() => {
     if (!searchQuery.trim()) return allProducts;
@@ -159,11 +171,18 @@ const Search: FC = () => {
 
   useEffect(() => {
     loadProducts();
+    
+    // Set up voice event listeners
+    Voice.onSpeechStart = onSpeechStart;
+    Voice.onSpeechEnd = onSpeechEnd;
     Voice.onSpeechResults = onSpeechResults;
-    Voice.onSpeechError = () => setListening(false);
+    Voice.onSpeechError = onSpeechError;
 
     return () => {
-      Voice.destroy().finally(() => Voice.removeAllListeners());
+      Voice.destroy().finally(() => {
+        Voice.removeAllListeners();
+        stopAnimation();
+      });
     };
   }, []);
 
@@ -182,16 +201,81 @@ const Search: FC = () => {
     return granted === PermissionsAndroid.RESULTS.GRANTED;
   };
 
+  const startAnimation = () => {
+    const animations = animationValues.map((value) => {
+      return Animated.sequence([
+        Animated.timing(value, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.ease),
+        }),
+        Animated.timing(value, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.ease),
+          delay: 100,
+        }),
+      ]);
+    });
+
+    animationRef.current = Animated.loop(
+      Animated.stagger(100, animations)
+    );
+    animationRef.current.start();
+  };
+
+  const stopAnimation = () => {
+    if (animationRef.current) {
+      animationRef.current.stop();
+      animationValues.forEach(value => value.setValue(0));
+    }
+  };
+
   const onSpeechResults = (event: SpeechResultsEvent) => {
     const value = event.value?.[0] || '';
     setSearchQuery(value);
+    setVoiceText(`Heard: ${value}`);
+    
+    // Auto-close after 2 seconds if no more speech
+    if (value) {
+      setTimeout(() => {
+        if (listening) {
+          setListening(false);
+          setShowVoiceModal(false);
+          stopAnimation();
+        }
+      }, 2000);
+    }
+  };
+
+  const onSpeechError = (error: any) => {
+    console.log('Speech error:', error);
+    setVoiceText('Error: Could not recognize speech');
     setListening(false);
+    stopAnimation();
+    
+    // Auto-close on error after 2 seconds
+    setTimeout(() => {
+      setShowVoiceModal(false);
+    }, 2000);
+  };
+
+  const onSpeechStart = () => {
+    setVoiceText('Listening...');
+    startAnimation();
+  };
+
+  const onSpeechEnd = () => {
+    setListening(false);
+    setShowVoiceModal(false);
+    stopAnimation();
   };
 
   const handleMicPress = async () => {
     if (listening) {
-      setListening(false);
-      Voice.stop();
+      await stopVoiceRecognition();
       return;
     }
 
@@ -201,13 +285,92 @@ const Search: FC = () => {
     }
 
     try {
-      setListening(true);
+      setVoiceText('Listening...');
+      setShowVoiceModal(true);
       await Voice.start('en-US');
+      setListening(true);
     } catch (error) {
       console.log('Voice start error:', error);
       setListening(false);
+      setShowVoiceModal(false);
     }
   };
+
+  const stopVoiceRecognition = async () => {
+    try {
+      await Voice.stop();
+      setListening(false);
+      setShowVoiceModal(false);
+      stopAnimation();
+    } catch (error) {
+      console.log('Error stopping voice recognition:', error);
+    }
+  };
+
+  const renderVoiceModal = () => (
+    <Modal
+      transparent
+      visible={showVoiceModal}
+      animationType="fade"
+      onRequestClose={stopVoiceRecognition}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <Icon
+            family="FontAwesome"
+            name="microphone"
+            size={40}
+            color={Colors.PRIMARY[300]}
+          />
+          
+          <Text style={styles.listeningText}>
+            {voiceText}
+          </Text>
+          
+          <View style={styles.voiceWave}>
+            {animationValues.map((value, index) => (
+              <Animated.View
+                key={index}
+                style={[
+                  styles.wave,
+                  {
+                    height: 30,
+                    transform: [
+                      {
+                        scaleY: value.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.5, 1.5],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              />
+            ))}
+          </View>
+          
+          <TouchableOpacity
+            style={styles.micButton}
+            onPress={stopVoiceRecognition}
+          >
+            <Icon
+              family="FontAwesome"
+              name="microphone-slash"
+              size={30}
+              color="white"
+            />
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={stopVoiceRecognition}
+          >
+            <Text style={styles.cancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
 
   const renderItem = ({ item }: { item: any }) => {
     console.log('[Search] renderItem image:', item?.image, 'id:', item?._id);
@@ -261,6 +424,7 @@ const Search: FC = () => {
     <SafeAreaView style={styles.container}>
       <View style={{ flex: 1 }}>
         <Header />
+        {renderVoiceModal()}
 
         <View style={{ marginTop: hp(2) }}>
           <View style={styles.searchBox}>

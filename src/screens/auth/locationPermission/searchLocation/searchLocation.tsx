@@ -125,7 +125,7 @@ const SearchLocation: FC = () => {
     }
     try {
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&key=AIzaSyAsQryHkf5N7-bx_ZBMJ-X7yFMa9WTqwt0&components=country:in`
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&key=AIzaSyAVnkWhVaQ3Sj4XjlNi65oCMiBoh0BzuFA&components=country:in`
       );
       const data = await response.json();
       if (data.status === 'OK') {
@@ -140,7 +140,7 @@ const SearchLocation: FC = () => {
     try {
       showLoader();
       const detailsRes = await fetch(
-        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${item.place_id}&key=AIzaSyAsQryHkf5N7-bx_ZBMJ-X7yFMa9WTqwt0&fields=geometry,formatted_address,address_components`
+        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${item.place_id}&key=AIzaSyAVnkWhVaQ3Sj4XjlNi65oCMiBoh0BzuFA&fields=geometry,formatted_address,address_components`
       );
       const details = await detailsRes.json();
       if (details.status === 'OK') {
@@ -367,7 +367,7 @@ const SearchLocation: FC = () => {
               infoWindow.open(map, marker);
             }
           </script>
-          <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAsQryHkf5N7-bx_ZBMJ-X7yFMa9WTqwt0&callback=initMap"></script>
+          <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAVnkWhVaQ3Sj4XjlNi65oCMiBoh0BzuFA&callback=initMap"></script>
         </body>
       </html>
     `;

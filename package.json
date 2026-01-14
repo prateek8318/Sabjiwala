@@ -1,5 +1,5 @@
 {
-  "name": "GroceryApp",
+  "name": "SabjiWala",
   "version": "0.0.1",
   "private": true,
   "scripts": {
@@ -11,10 +11,11 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
+    "@notifee/react-native": "^7.8.2",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/blur": "^4.4.1",
-    "@react-native-firebase/app": "^21.14.0",
-    "@react-native-firebase/messaging": "^21.14.0",
+    "@react-native-firebase/app": "^23.7.0",
+    "@react-native-firebase/messaging": "^23.7.0",
     "@react-native-voice/voice": "^3.2.4",
     "@react-native/new-app-screen": "0.80.2",
     "@react-navigation/bottom-tabs": "^7.4.6",

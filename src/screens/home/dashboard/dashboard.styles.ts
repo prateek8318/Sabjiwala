@@ -9,28 +9,25 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.PRIMARY[300],
-    marginBottom: 0,
-    paddingBottom: 0,
   },
   headerContainer: {
     width: wp(100),
     backgroundColor: "#015304",
+    
   },
   stickyHeaderContainer: {
     width: wp(100),
     backgroundColor: "#015304",
     paddingTop: hp(0.6),
+     zIndex: 100,        // 🔥 required
+  elevation: 12, 
     
-    zIndex: 5,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
   },
+
   headerMainView: {
     width: wp(100),
-    padding: hp(2),
+    padding: hp(1),
+    
   },
   headerView: {
     flexDirection: 'row',
@@ -194,6 +191,9 @@ const styles = StyleSheet.create({
   },
   
   
+  limitedTimeDealsContainer: {
+    marginBottom: hp(2), // Responsive bottom margin
+  },
   productHeadingMainView: {
     width: wp(100),
     paddingVertical: hp(1.2),
@@ -321,9 +321,10 @@ const styles = StyleSheet.create({
   },
   floatingCartButton: {
     position: 'absolute',
-    bottom: hp(1),
+    bottom: hp(10),
     alignSelf: 'center',
     zIndex: 1000,
+    elevation: 20,
   },
   cartGradient: {
     borderRadius: 28,
@@ -395,6 +396,101 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: wp(1),
+  },
+  // Notification styles
+  notificationContainer: {
+    position: 'absolute',
+    top: hp(12),
+    right: wp(4),
+    width: wp(85),
+    maxHeight: hp(60),
+    backgroundColor: 'white',
+    borderRadius: 12,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    zIndex: 1000,
+    padding: wp(3),
+  },
+  notificationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: hp(1),
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    marginBottom: hp(1),
+  },
+  notificationTitle: {
+    fontSize: wp(4.5),
+    fontFamily: Fonts.Medium,
+    color: '#333',
+  },
+  closeButton: {
+    padding: wp(1),
+  },
+  notificationList: {
+    maxHeight: hp(50),
+  },
+  notificationItem: {
+    padding: wp(3),
+    borderBottomWidth: 1,
+    borderBottomColor: '#f5f5f5',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  notificationContent: {
+    flex: 1,
+    marginRight: wp(2),
+  },
+  notificationTitleText: {
+    fontSize: wp(3.8),
+    fontFamily: Fonts.Medium,
+    color: '#222',
+    marginBottom: hp(0.5),
+  },
+  notificationMessage: {
+    fontSize: wp(3.5),
+    color: '#666',
+    fontFamily: Fonts.Regular,
+  },
+  notificationTime: {
+    fontSize: wp(3),
+    color: '#999',
+    marginTop: hp(0.5),
+  },
+  deleteButton: {
+    padding: wp(1),
+  },
+  emptyNotifications: {
+    padding: wp(5),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: wp(3.8),
+    color: '#999',
+    fontFamily: Fonts.Regular,
+    textAlign: 'center',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    right: -5,
+    top: -5,
+    backgroundColor: 'red',
+    borderRadius: 10,
+    width: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationBadgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontFamily: Fonts.Bold,
   },
 });
 

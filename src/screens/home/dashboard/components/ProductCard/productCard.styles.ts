@@ -92,15 +92,16 @@ const styles = StyleSheet.create<any>({
   },
 
   txtProduct: {
-    ...Typography.H5Medium16,
+    
     color: Colors.PRIMARY[400],
     paddingHorizontal: wp(1.5),       // pehle 0.8 tha
-    numberOfLines: 2,
+    numberOfLines: 3,
     top:2,
+    paddingVertical: hp(0.5),
     bottom:4,
-    fontSize:16,
+    fontSize:17,
     fontWeight: '700',
-    lineHeight: 14,           // pehle 20 tha
+    lineHeight: 16,           // pehle 20 tha
   },
 
   quantityView: {

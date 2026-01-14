@@ -86,7 +86,7 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.groceryapp"
+    namespace "com.sabjibala"
     
     // Enable splits for different ABIs
     splits {
@@ -99,7 +99,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.groceryapp"
+        applicationId "com.sabjibala"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

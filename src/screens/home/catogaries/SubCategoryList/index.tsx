@@ -12,10 +12,11 @@ import {
   Animated,
   StyleSheet,
   TouchableWithoutFeedback,
+  Text,
 } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
-import { useIsFocused } from "@react-navigation/native";
+import { useIsFocused, useFocusEffect } from "@react-navigation/native";
 import { Header, TextView } from "../../../../components";
 import ApiService from "../../../../service/apiService";
 import { Colors, Icon } from "../../../../constant";
@@ -235,40 +236,49 @@ const SubCategoryList = ({ route }: any) => {
   }, [categoryId]);
 
   // Load cart data for floating button
-const loadCart = async () => {
-  try {
-    setCartLoading(true);
-    const res = await ApiService.getCart();
-    const cartData =
-      res?.data?.cart?.products ||
-      res?.data?.products ||
-      res?.data?.items ||
-      res?.data?.data?.items ||
-      [];
-    const fetchedItems = Array.isArray(cartData) ? cartData : [];
+  const loadCart = useCallback(async () => {
+    try {
+      setCartLoading(true);
+      const res = await ApiService.getCart();
+      const cartData =
+        res?.data?.cart?.products ||
+        res?.data?.products ||
+        res?.data?.items ||
+        res?.data?.data?.items ||
+        [];
+      const newCartItems = Array.isArray(cartData) ? cartData : [];
+      setCartItems(newCartItems);
 
-    if (fetchedItems.length > 0) {
-      setCartItems(fetchedItems);
-      // API mein items hain → recentlyAdded clear kar do (kyunki cart full hai)
-      setRecentlyAddedProducts([]);
-    } else {
-      // API cart empty → cartItems clear, lekin recentlyAdded mat clear karo
-      // (optimistic add ke liye button dikhega)
+      // 🔹 Critical fix: Jab cart empty ho jaye, recentlyAddedProducts bhi clear kar do
+      if (newCartItems.length === 0) {
+        setRecentlyAddedProducts([]);
+      } else if (recentlyAddedProducts.length > 0) {
+        // Sirf delay se clear karo jab cart me items ho (animation ke liye)
+        setTimeout(() => setRecentlyAddedProducts([]), 1200);
+      }
+    } catch (err) {
+      console.log("Cart load error:", err);
       setCartItems([]);
-      // recentlyAddedProducts ko chhod do – add ke time set kiya hai
+      setRecentlyAddedProducts([]); // Error par bhi clear
+    } finally {
+      setCartLoading(false);
     }
-  } catch (err) {
-    console.log("Cart load error:", err);
-  } finally {
-    setCartLoading(false);
-  }
-};
+  }, [recentlyAddedProducts.length]);
 
+  // Refresh cart when screen comes into focus
   useEffect(() => {
-    if (isFocused) {
+    const unsubscribe = navigation.addListener('focus', () => {
       loadCart();
-    }
-  }, [isFocused]);
+    });
+    return unsubscribe;
+  }, [navigation, loadCart]);
+
+  // Also load cart on initial mount
+  useFocusEffect(
+    useCallback(() => {
+      loadCart();
+    }, [loadCart])
+  );
 
   // Search + Filter + Sort Logic
   useEffect(() => {
@@ -424,6 +434,87 @@ const loadCart = async () => {
     
     // Refresh cart from API in background
     loadCart();
+  };
+
+  // Update cart quantity with optimistic updates (instant response)
+  const updateCartQty = async (
+    productId: string,
+    variantId: string | undefined,
+    qty: number,
+    productItem?: any,
+  ) => {
+    const pid = productId?.toString();
+    if (!pid) {
+      console.log('updateCartQty: No productId provided');
+      return;
+    }
+
+    const vid = variantId ? variantId.toString() : undefined;
+    
+    try {
+      // 🔹 OPTIMISTIC UPDATE - Update UI immediately before API call
+      setCartItems(prev => {
+        const existingIndex = prev.findIndex((item: any) => {
+          const itemProductId = item?.productId?._id || item?.productId || item?._id || item?.id || '';
+          const itemVariantId = item?.variantId?._id || item?.variantId || undefined;
+          return itemProductId === pid && itemVariantId === vid;
+        });
+
+        if (qty > 0) {
+          if (existingIndex >= 0) {
+            // Update existing item quantity
+            const updated = [...prev];
+            updated[existingIndex] = {
+              ...updated[existingIndex],
+              quantity: qty,
+            };
+            return updated;
+          } else {
+            // Add new item
+            const newCartItem = {
+              productId: {
+                _id: pid,
+                name: productItem?.name || '',
+                images: [productItem?.image || productItem?.variants?.[0]?.images?.[0] || productItem?.ProductVarient?.[0]?.images?.[0]].filter(Boolean),
+              },
+              variantId: vid,
+              quantity: qty,
+            };
+            return [...prev, newCartItem];
+          }
+        } else {
+          // Remove item (qty = 0)
+          if (existingIndex >= 0) {
+            return prev.filter((_, index) => index !== existingIndex);
+          }
+          return prev;
+        }
+      });
+
+      // Make API call
+      if (qty > 0) {
+        await ApiService.addToCart(pid, vid, qty.toString());
+        
+        // Notify parent only when adding first item (qty === 1)
+        if (productItem && qty === 1) {
+          handleProductAdded(productItem);
+        }
+      } else {
+        await ApiService.removeCartItem(pid, vid);
+        
+        // Notify parent that product was removed
+        if (productItem) {
+          handleProductAdded({ ...productItem, removed: true });
+        }
+      }
+      
+      // Refresh cart to ensure sync with server
+      await loadCart();
+    } catch (e) {
+      console.error('updateCartQty error:', e);
+      // Revert to previous state by refreshing from server
+      await loadCart();
+    }
   };
 
   return (
@@ -621,46 +712,122 @@ const loadCart = async () => {
             >
               <TextView style={{ fontSize: 28, color: "#666" }}>×</TextView>
             </Pressable>
-            {selectedProduct?.variants?.map((v: any, i: number) => (
-              <View key={i} style={{ flexDirection: "row", alignItems: "center", padding: 12, borderWidth: 1, borderColor: "#ddd", borderRadius: 12, marginBottom:
-              i === selectedProduct.variants.length - 1 ? 0 : 10, gap: 12 }}>
-                <Image source={{ uri: selectedProduct.image }} style={{ width: 60, height: 55, borderRadius: 8 }} />
-                <View style={{ flex: 1 }}>
-                  <TextView>{selectedProduct.name}</TextView>
-                  {/* Weight and Price in same row */}
-                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
-                    <TextView style={{ fontSize: 13, color: "#666" }}>{v.stock || v.weight} {v.unit || "kg"}</TextView>
-                    <View style={{ flexDirection: "row", alignItems: "center" }}>
-                      <TextView style={{ fontWeight: "700" }}>₹{v.price}</TextView>
-                      {v.originalPrice && <TextView style={{ textDecorationLine: "line-through", fontSize: 12, marginLeft: 8,  }}>₹{v.originalPrice}</TextView>}
+            {selectedProduct?.variants?.map((v: any, i: number) => {
+              const pid = selectedProduct?.id || selectedProduct?._id;
+              const vid = v?._id;
+              
+              // Look up quantity from cartItems by matching both productId and variantId
+              const findCartItem = (item: any) => {
+                const itemProductId = item?.productId?._id || item?.productId || item?._id || item?.id || '';
+                const itemVariantId = item?.variantId?._id || item?.variantId || undefined;
+                return itemProductId === pid && itemVariantId === vid;
+              };
+              
+              const matchingCartItem = cartItems.find(findCartItem);
+              const quantity = matchingCartItem?.quantity || 0;
+
+              return (
+                <View key={i} style={{ flexDirection: "row", alignItems: "center", padding: 12, borderWidth: 1, borderColor: "#ddd", borderRadius: 12, marginBottom:
+                i === selectedProduct.variants.length - 1 ? 0 : 10, gap: 12 }}>
+                  <Image source={{ uri: selectedProduct.image }} style={{ width: 60, height: 55, borderRadius: 8 }} />
+                  <View style={{ flex: 1 }}>
+                    <TextView>{selectedProduct.name}</TextView>
+                    {/* Weight and Price in same row */}
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+                      <TextView style={{ fontSize: 13, color: "#666" }}>{v.stock || v.weight} {v.unit || "kg"}</TextView>
+                      <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <TextView style={{ fontWeight: "700" }}>₹{v.price}</TextView>
+                        {v.originalPrice && <TextView style={{ textDecorationLine: "line-through", fontSize: 12, marginLeft: 8,  }}>₹{v.originalPrice}</TextView>}
+                      </View>
                     </View>
                   </View>
+                  
+                  {/* Quantity Controls or Add Button */}
+                  {quantity > 0 ? (
+                    <LinearGradient
+                      colors={["#5A875C", "#015304"]}
+                      start={{ x: 0, y: 0.5 }}
+                      end={{ x: 1, y: 0 }}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                        borderRadius: 20,
+                        paddingHorizontal: 2,
+                        paddingVertical: 4,
+                        minWidth: 60,
+                        justifyContent: "space-between"
+                      }}
+                    >
+                      <Pressable
+                        onPress={() => {
+                          if (!pid) return;
+                          updateCartQty(pid, vid, quantity - 1, selectedProduct);
+                        }}
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 12,
+                          backgroundColor: "rgba(255, 255, 255, 0.3)",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          borderWidth: 1,
+                          borderColor: "rgba(255, 255, 255, 0.5)",
+                        }}
+                      >
+                        <Text style={{ fontSize: 16, color: "#fff", fontWeight: "bold" }}>-</Text>
+                      </Pressable>
+
+                      <Text style={{ minWidth: 20, textAlign: "center", fontWeight: "700", color: "#fff", fontSize: 14 }}>
+                        {quantity}
+                      </Text>
+
+                      <Pressable
+                        onPress={() => {
+                          if (!pid) return;
+                          updateCartQty(pid, vid, quantity + 1, selectedProduct);
+                        }}
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 12,
+                          backgroundColor: "rgba(255, 255, 255, 0.3)",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          borderWidth: 1,
+                          borderColor: "rgba(255, 255, 255, 0.5)",
+                        }}
+                      >
+                        <Text style={{ fontSize: 16, color: "#fff", fontWeight: "bold" }}>+</Text>
+                      </Pressable>
+                    </LinearGradient>
+                  ) : (
+                    <Pressable
+                      onPress={async () => {
+                        if (!pid) return;
+                        await updateCartQty(pid, vid, 1, selectedProduct);
+                      }}
+                      style={{ borderRadius: 20, overflow: "hidden" }}
+                    >
+                      <LinearGradient
+                        colors={["#5A875C", "#015304"]}
+                        start={{ x: 0, y: 0.5 }}
+                        end={{ x: 1, y: 0 }}
+                        style={{ paddingVertical: 4, paddingHorizontal: 14, borderRadius: 20 }}
+                      >
+                        <TextView style={{ color: "white" }}>Add</TextView>
+                      </LinearGradient>
+                    </Pressable>
+                  )}
                 </View>
-                <Pressable
-                  onPress={() => { 
-                    handleProductAdded(selectedProduct);
-                    addToCart(selectedProduct, v); 
-                    setShowVariantModal(false); 
-                  }}
-                  style={{ borderRadius: 20, overflow: "hidden" }}
-                >
-                  <LinearGradient
-                    colors={["#5A875C", "#015304"]}
-                    start={{ x: 0, y: 0.5 }}
-                    end={{ x: 1, y: 0 }}
-                    style={{ paddingVertical: 4, paddingHorizontal: 14, borderRadius: 20 }}
-                  >
-                    <TextView style={{ color: "white" }}>Add</TextView>
-                  </LinearGradient>
-                </Pressable>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </View>
       </Modal>
 
-      {/* Floating Cart Button - Only show if there are products/subcategories and cart is not empty */}
-      {((cartItems.length > 0 || recentlyAddedProducts.length > 0) && (products.length > 0 || subCategories.length > 0)) && (
+      {/* Floating Cart Button */}
+      {cartItems.length > 0 && (products.length > 0 || subCategories.length > 0) && (
         <Pressable
           onPress={() => {
             navigation.navigate("BottomStackNavigator", { screen: "Cart" });

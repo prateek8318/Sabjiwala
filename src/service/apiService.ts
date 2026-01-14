@@ -10,7 +10,7 @@ import { storage } from './storage';
 // -------------------------------------------------
 // 1. Base URL (your live dev server)
 const BASE_URL = 'http://159.89.146.245:5010/api/';
-//  const BASE_URL = 'http://192.168.1.44:5002/api/';
+//  const BASE_URL = 'http://192.168.1.5:5002/api/';
 export const IMAGE_BASE_URL = 'http://159.89.146.245:5010/';
 //  export const IMAGE_BASE_URL = 'http://192.168.1.28:5002/';
 
@@ -82,7 +82,6 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       storage.removeToken();
       console.log('Token expired → Logged out');
-      navigation.navigate('Login');
     }
 
     console.log('─────────────────────────────────');
@@ -324,7 +323,7 @@ getHomeProductContent: async () => {
     description?: string;
     skipDeduction?: boolean;
   }) => {
-    return await api.post('wallet/history', walletData);
+    return await api.post('user/walletHistory/create', walletData);
   },
 
   getWalletHistory: async () => {
@@ -359,8 +358,18 @@ getHomeProductContent: async () => {
   },
 
   // ---- Logout ----
-  logout: () => storage.removeToken(),
+  logout() {
+    return api.post('user/logout', {});
+  },
+  
+  // Notifications
+  getNotifications() {
+    return api.get('user/get-notification');
+  },
+  
+  deleteNotification(notificationId: string) {
+    return api.get(`user/cancel-notification/${notificationId}`);
+  },
 };
 
 export default ApiService;
-

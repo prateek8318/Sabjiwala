@@ -1,8 +1,12 @@
 import messaging, {
   FirebaseMessagingTypes,
 } from '@react-native-firebase/messaging';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { LocalStorage } from '../helpers/localstorage';
+import {
+  ensureNotificationChannel,
+  presentRemoteMessage,
+} from '../utils/pushNotifications';
 
 const isPermissionEnabled = (
   status: FirebaseMessagingTypes.AuthorizationStatus,
@@ -18,12 +22,34 @@ const useFCM = (
     message: FirebaseMessagingTypes.RemoteMessage,
   ) => Promise<void> | void,
 ) => {
+  const forwardMessage = useCallback(
+    async (message: FirebaseMessagingTypes.RemoteMessage) => {
+      try {
+        await presentRemoteMessage(message);
+      } catch (error) {
+        console.log('[FCM] local notification error', error);
+      }
+
+      if (onMessage) {
+        await onMessage(message);
+      }
+    },
+    [onMessage],
+  );
+
   useEffect(() => {
     let unsubscribeOnMessage: (() => void) | undefined;
     let unsubscribeOnTokenRefresh: (() => void) | undefined;
     let unsubscribeOnNotificationOpen: (() => void) | undefined;
 
     const initFCM = async () => {
+      // Log any cached token so it shows up in native dev tools console
+      const cached = await LocalStorage.read('fcm_token');
+      if (cached) {
+        console.log('[FCM] cached token (dev tools)', cached);
+      }
+
+      await ensureNotificationChannel();
       console.log('[FCM] requesting permission');
       const authorizationStatus = await messaging().requestPermission();
       console.log('[FCM] permission status', authorizationStatus);
@@ -45,9 +71,7 @@ const useFCM = (
 
       unsubscribeOnMessage = messaging().onMessage(async remoteMessage => {
         console.log('[FCM] foreground message', remoteMessage?.messageId);
-        if (onMessage) {
-          await onMessage(remoteMessage);
-        }
+        await forwardMessage(remoteMessage);
       });
 
       unsubscribeOnTokenRefresh = messaging().onTokenRefresh(async token => {
@@ -92,7 +116,7 @@ const useFCM = (
       unsubscribeOnTokenRefresh && unsubscribeOnTokenRefresh();
       unsubscribeOnNotificationOpen && unsubscribeOnNotificationOpen();
     };
-  }, [onMessage]);
+  }, [forwardMessage, onMessage]);
 };
 
 export default useFCM;

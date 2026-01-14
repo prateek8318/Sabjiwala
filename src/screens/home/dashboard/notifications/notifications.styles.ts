@@ -39,19 +39,19 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: Colors.PRIMARY[300],
-    borderRadius: 14,
+    borderRadius: 25,
     paddingVertical: hp(1.4),
     paddingHorizontal: wp(4),
     shadowColor: '#000',
     shadowOpacity: 0.07,
     shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
     borderWidth: 1,
-    borderColor: Colors.NEUTRAL[200],
+    borderColor: "#015304",
   },
   title: {
-    color: Colors.PRIMARY[400],
+    color: Colors.PRIMARY[100],
     fontSize: wp(4.1),
     fontWeight: '700',
     marginBottom: hp(0.6),
@@ -63,14 +63,31 @@ const styles = StyleSheet.create({
     lineHeight: hp(2.4),
   },
   timestamp: {
-    color: Colors.SECONDARY[700],
-    fontSize: wp(3.1),
+    color: Colors.SECONDARY[600],
+    fontSize: wp(2.1),
     textAlign: 'right',
   },
   emptyText: {
     color: Colors.SECONDARY[700],
     fontSize: wp(4.3),
     fontWeight: '600',
+  },
+  notificationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    
+  },
+  notificationBody: {
+    marginTop: hp(0.5),
+  },
+  deleteButton: {
+    padding: wp(1),
+    marginLeft: wp(2),
+  },
+  refreshButton: {
+    padding: wp(1),
+    marginRight: wp(2),
   },
 });
 

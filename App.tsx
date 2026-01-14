@@ -16,23 +16,19 @@ import { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 const AppContent: FC = () => {
-  const { addNotification } = useNotificationContext();
+  // We now rely on real OS push notifications via Notifee + FCM.
+  // So we don't store every message in the in-app list anymore.
   const handleMessage = async (
     message: FirebaseMessagingTypes.RemoteMessage,
   ) => {
-    await addNotification(message);
-    const title =
-      message.notification?.title ??
-      message.data?.title ??
-      'New notification';
-    const body = message.notification?.body ?? message.data?.body ?? '';
-    // quick in-app surface so user sees it immediately
-    Toast.show({
-      type: 'info',
-      text1: title,
-      text2: body,
-      visibilityTime: 4000,
+    console.log('[FCM] JS handler received message', {
+      id: message.messageId,
+      title:
+        message.notification?.title ??
+        message.data?.title ??
+        'New notification',
     });
+    // No in-app list / toast here – actual push UI is handled by Notifee.
   };
 
   useFCM(handleMessage);

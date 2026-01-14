@@ -212,7 +212,7 @@ const OrderTracking: React.FC<Props> = ({ route, navigation }) => {
               ` : ''}
             }
           </script>
-          <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAsQryHkf5N7-bx_ZBMJ-X7yFMa9WTqwt0&callback=initMap"></script>
+          <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAVnkWhVaQ3Sj4XjlNi65oCMiBoh0BzuFA&callback=initMap"></script>
         </body>
       </html>
     `;

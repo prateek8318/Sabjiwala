@@ -25,3 +25,13 @@ buildscript {
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+// Extra repositories for project-wide dependencies
+allprojects {
+    repositories {
+        // Local Notifee maven repo so Gradle can resolve app.notifee:core
+        maven {
+            url "$rootDir/../node_modules/@notifee/react-native/android/libs"
+        }
+    }
+}

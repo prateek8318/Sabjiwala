@@ -1,97 +1,21 @@
 {
   "project_info": {
-    "project_number": "119630039401",
-    "project_id": "tryevery-54c5d",
-    "storage_bucket": "tryevery-54c5d.firebasestorage.app"
+    "project_number": "366150917590",
+    "project_id": "ncr-sabjibala",
+    "storage_bucket": "ncr-sabjibala.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:119630039401:android:5f4d08b12466437f2c55f8",
+        "mobilesdk_app_id": "1:366150917590:android:f61bf20ad09f66f37b9877",
         "android_client_info": {
-          "package_name": "com.astrologer.astro_vastu"
+          "package_name": "com.sabjibala"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCObID9vaKXl_hNlBw0Pmhjmj_WwD8JwuQ"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:119630039401:android:932e9db5eab103272c55f8",
-        "android_client_info": {
-          "package_name": "com.groceryapp"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCObID9vaKXl_hNlBw0Pmhjmj_WwD8JwuQ"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:119630039401:android:83649885f25978e52c55f8",
-        "android_client_info": {
-          "package_name": "com.shree.astrologer_shree"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCObID9vaKXl_hNlBw0Pmhjmj_WwD8JwuQ"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:119630039401:android:99d2292df191f6b02c55f8",
-        "android_client_info": {
-          "package_name": "com.shree.astroshree_user"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCObID9vaKXl_hNlBw0Pmhjmj_WwD8JwuQ"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:119630039401:android:2850c727ee6c3a462c55f8",
-        "android_client_info": {
-          "package_name": "com.user.astro_vastu"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCObID9vaKXl_hNlBw0Pmhjmj_WwD8JwuQ"
+          "current_key": "AIzaSyBEHNCPOuv3FlubMsgqSt8PbPZL3upZJgs"
         }
       ],
       "services": {
@@ -103,4 +27,3 @@
   ],
   "configuration_version": "1"
 }
-

@@ -39,51 +39,16 @@ const ProductImageCarousel: FC<{ images?: string[]; fallbackImage?: string }> = 
   fallbackImage,
 }) => {
   const validImages = (images && images.length > 0 ? images : []).filter(Boolean);
-  const [index, setIndex] = useState(0);
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const imageUri = validImages[0] || fallbackImage || '';
 
-  useEffect(() => {
-    if (!validImages.length) {
-      return;
-    }
-
-    const maxImages = Math.min(validImages.length, 3); // sirf 2 image auto carousel
-
-    const interval = setInterval(() => {
-      Animated.timing(fadeAnim, {
-        toValue: 0.6,
-        duration: 600,
-        useNativeDriver: true,
-      }).start(() => {
-        setIndex(prev => (prev + 1) % maxImages);
-        fadeAnim.setValue(0);
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }).start();
-      });
-    }, 3000);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [fadeAnim, validImages.length]);
-
-  const currentUri =
-    validImages[index] ||
-    validImages[0] ||
-    fallbackImage ||
-    '';
-
-  if (!currentUri) {
+  if (!imageUri) {
     return <View style={styles.cardProductImage} />;
   }
 
   return (
-    <Animated.Image
-      source={{ uri: currentUri }}
-      style={[styles.cardProductImage, { opacity: fadeAnim }]}
+    <Image
+      source={{ uri: imageUri }}
+      style={styles.cardProductImage}
       resizeMode="cover"
     />
   );
@@ -104,6 +69,8 @@ const ProductCard: FC<ProductCardProps> = ({
   const [cartMap, setCartMap] = useState<{ [key: string]: number }>({});
   // Store variant info for each product in cart: productId -> { variantId, variantData, quantity }
   const [cartVariantMap, setCartVariantMap] = useState<{ [key: string]: { variantId?: string; variantData?: any; quantity: number } }>({});
+  // Store all cart items to properly track multiple variants of same product
+  const [cartItems, setCartItems] = useState<any[]>([]);
   // Wishlist is the single source of truth for favorites
 
   const buildImageUrl = (path?: string) => {
@@ -122,13 +89,16 @@ const ProductCard: FC<ProductCardProps> = ({
       const map: any = {};
       const variantMap: any = {};
 
-      const cartItems =
+      const fetchedCartItems =
         res?.data?.cart?.products ||
         res?.data?.products ||
         res?.data?.items ||
         [];
 
-      cartItems.forEach((i: any) => {
+      // Store all cart items for variant lookup
+      setCartItems(fetchedCartItems);
+
+      fetchedCartItems.forEach((i: any) => {
         const pid =
           i?.productId?._id ||
           i?.productId ||
@@ -1095,9 +1065,16 @@ const ProductCard: FC<ProductCardProps> = ({
                   {(() => {
                     const pid = getProductId(selectedProduct);
                     const vid = v?._id;
-                    const cartItem = pid ? cartVariantMap[pid] : null;
-                    const isCurrentVariant = cartItem?.variantId === vid;
-                    const quantity = isCurrentVariant ? cartItem.quantity : 0;
+                    
+                    // Look up quantity from cartItems by matching both productId and variantId
+                    const findCartItem = (item: any) => {
+                      const itemProductId = item?.productId?._id || item?.productId || item?._id || item?.id || '';
+                      const itemVariantId = item?.variantId?._id || item?.variantId || undefined;
+                      return itemProductId === pid && itemVariantId === vid;
+                    };
+                    
+                    const matchingCartItem = cartItems.find(findCartItem);
+                    const quantity = matchingCartItem?.quantity || 0;
 
                     if (quantity > 0) {
                       return (

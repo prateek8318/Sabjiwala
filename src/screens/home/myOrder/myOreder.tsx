@@ -209,7 +209,7 @@ const MyOrder = () => {
 
     const totals = computeOrderTotals(item);
 
-    const displayItems = items.slice(0, 6);
+    const displayItems = items.slice(0, 5);
     const extraCount = totalItems - displayItems.length;
 
     return (

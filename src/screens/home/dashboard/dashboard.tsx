@@ -10,6 +10,7 @@ import {
   Modal,
   Animated,
 } from 'react-native';
+
 import LinearGradient from 'react-native-linear-gradient';
 import styles from './dashboard.styles';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -96,6 +97,44 @@ const Dashboard: FC = () => {
   const lastScrollY = useRef(0);
   const [searchPlaceholderIndex, setSearchPlaceholderIndex] = useState(0);
   const searchPlaceholderAnim = useRef(new Animated.Value(1)).current;
+  
+  // Notification state
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationLoading, setNotificationLoading] = useState(false);
+
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    try {
+      setNotificationLoading(true);
+      const response = await ApiService.getNotifications();
+      if (response.data && response.data.data) {
+        setNotifications(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setNotificationLoading(false);
+    }
+  };
+
+  // Delete notification
+  const handleDeleteNotification = async (notificationId: string) => {
+    try {
+      await ApiService.deleteNotification(notificationId);
+      setNotifications(prev => prev.filter(notif => notif._id !== notificationId));
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+    }
+  };
+
+  // Toggle notification popup
+  const toggleNotifications = async () => {
+    if (!showNotifications) {
+      await fetchNotifications();
+    }
+    setShowNotifications(prev => !prev);
+  };
 
   // Build clean image URL from API response (PURA "public/..." path rakhna hai)
   const buildCategoryImageUrl = (rawPath?: string) => {
@@ -321,13 +360,7 @@ const Dashboard: FC = () => {
     }
   }, []);
 
-  const handleNotificationPress = useCallback(async () => {
-    try {
-      const token = await LocalStorage.read('fcm_token');
-      console.log('[FCM] dashboard icon token', token || 'no token saved');
-    } catch (err) {
-      console.log('[FCM] dashboard icon token read error', err);
-    }
+  const handleNotificationPress = useCallback(() => {
     navigation.navigate('Notifications');
   }, [navigation]);
 
@@ -904,7 +937,7 @@ const Dashboard: FC = () => {
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: '#015304' }}
-      edges={['right', 'bottom', 'left']}
+      edges={['top', 'right', 'left']}
     >
       <View style={styles.container}>
         <Animated.ScrollView
@@ -1325,7 +1358,7 @@ const Dashboard: FC = () => {
 
 
           {/* 🔹 Limited Time deals */}
-          <View>
+          <View style={styles.limitedTimeDealsContainer}>
             <View style={styles.productHeadingMainView}>
               <View style={styles.productHeadingHeadingView}>
                 <TextView style={styles.txtProductHeading}>
