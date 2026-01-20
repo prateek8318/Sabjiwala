@@ -60,23 +60,43 @@ const OrderSummaryScreen = () => {
 
   // Extract shipping address with proper fallbacks
   const shippingAddress = React.useMemo(() => {
-    const addr = order?.shippingAddress || order?.data?.shippingAddress;
+    const directAddr =
+      order?.shippingAddress ||
+      order?.data?.shippingAddress ||
+      order?.deliveryAddress ||
+      order?.address ||
+      order?.addressLine ||
+      order?.deliveryAddressText ||
+      order?.addressText;
 
-    if (!addr) {
+    if (!directAddr) {
       console.log('No shipping address found in order data:', { order });
       return {
-        receiverName: 'N/A',
-        receiverNo: 'N/A',
-        houseNoOrFlatNo: 'N/A',
+        receiverName: order?.userName || 'Customer',
+        receiverNo: order?.mobileNo || order?.phone || '',
+        houseNoOrFlatNo: '',
         landmark: '',
-        city: 'N/A',
-        pincode: 'N/A',
+        city: '',
+        pincode: '',
         floor: '',
-        addressType: 'home',
+        addressType: order?.addressType || 'home',
       };
     }
 
-    return addr;
+    if (typeof directAddr === 'string') {
+      return {
+        receiverName: order?.userName || 'Customer',
+        receiverNo: order?.mobileNo || order?.phone || '',
+        houseNoOrFlatNo: directAddr,
+        landmark: '',
+        city: '',
+        pincode: '',
+        floor: '',
+        addressType: order?.addressType || 'home',
+      };
+    }
+
+    return directAddr;
   }, [order]);
 
   React.useEffect(() => {

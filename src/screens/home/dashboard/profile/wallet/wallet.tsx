@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect } from 'react';
+import React, { FC, useState, useEffect, useRef } from 'react';
 import {
   View,
   Image,
@@ -9,7 +9,6 @@ import {
   Keyboard,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   StyleSheet,
@@ -30,6 +29,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import InputText from '../../../../../components/InputText/TextInput';
 import ApiService from '../../../../../service/apiService';
 import RazorpayCheckout from 'react-native-razorpay';
+import Toast from 'react-native-toast-message';
 
 type WalletScreenNavigationType = NativeStackNavigationProp<
   HomeStackProps,
@@ -50,6 +50,7 @@ interface WalletHistoryItem {
 const Wallet: FC = () => {
   const navigation = useNavigation<WalletScreenNavigationType>();
   const isFocused = useIsFocused();
+  const razorpayDismissedRef = useRef(false);
   const [addMoney, setAddMoney] = useState(false);
   const [amount, setAmount] = useState<string>('1000');
   const [walletHistory, setWalletHistory] = useState<WalletHistoryItem[]>([]);
@@ -164,6 +165,7 @@ const Wallet: FC = () => {
 
     try {
       setProcessingPayment(true);
+      razorpayDismissedRef.current = false;
       const orderRes = await ApiService.createRazorpayOrder(amtNumber);
       const orderData = orderRes?.data || {};
       const orderId =
@@ -190,6 +192,15 @@ const Wallet: FC = () => {
         currency,
         theme: { color: '#4CAF50' },
         notes: { wallet_topup_rupees: amtNumber.toString() },
+        retry: { enabled: true, max_count: 1 },
+        modal: {
+          confirm_close: true,
+          ondismiss: () => {
+            // Razorpay returns a rejection with code; mark as user dismissed to avoid error popups.
+            razorpayDismissedRef.current = true;
+            setProcessingPayment(false);
+          },
+        },
       });
 
       const response = await ApiService.createWalletHistory({
@@ -212,15 +223,51 @@ const Wallet: FC = () => {
 
         setAddMoney(false);
         setAmount('1000');
+        Toast.show({
+          type: 'success',
+          text1: 'Payment successful',
+          text2: `₹${amtNumber.toFixed(2)} added to your wallet`,
+        });
       }
     } catch (error: any) {
       console.log('Payment error:', error);
-      const message =
+      const rawMessage =
         error?.description ||
         error?.error?.description ||
+        error?.error?.reason ||
+        error?.error?.step ||
         error?.message ||
-        'Payment was cancelled or failed. Please try again.';
-      Alert.alert('Payment', message);
+        '';
+
+      const normalizedMessage = rawMessage?.toLowerCase?.() || '';
+      const isCancelled =
+        razorpayDismissedRef.current ||
+        normalizedMessage.includes('cancel') ||
+        normalizedMessage.includes('dismiss') ||
+        normalizedMessage.includes('back pressed') ||
+        error?.code === 0 ||
+        error?.error?.code === 0;
+
+      if (isCancelled) {
+        Toast.show({
+          type: 'info',
+          text1: 'Payment cancelled',
+          text2: 'No money was deducted. You can try again.',
+        });
+        return;
+      }
+
+      const friendlyMessage = normalizedMessage.includes('card')
+        ? 'Please double‑check your card details and try again.'
+        : normalizedMessage.includes('upi')
+          ? 'Please re-enter your UPI ID (e.g., username@bank) and try again.'
+          : normalizedMessage || 'Payment failed. Please try again.';
+
+      Toast.show({
+        type: 'error',
+        text1: 'Payment failed',
+        text2: friendlyMessage,
+      });
     } finally {
       setProcessingPayment(false);
     }

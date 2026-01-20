@@ -26,6 +26,7 @@ const Reorder = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [addingToCart, setAddingToCart] = useState<{ [key: string]: boolean }>({});
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOrderDetails();
@@ -34,6 +35,7 @@ const Reorder = () => {
   const fetchOrderDetails = async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       if (order) {
         setOrderData(order);
       } else {
@@ -41,11 +43,14 @@ const Reorder = () => {
         if (res?.data?.success || res?.data?.order) {
           const orderInfo = res.data.order || res.data;
           setOrderData(orderInfo);
+        } else {
+          setLoadError('Order not found. Please try again.');
         }
       }
     } catch (err) {
       console.log('Fetch order details error:', err);
       Alert.alert('Error', 'Failed to load order details');
+      setLoadError('Failed to load order details');
     } finally {
       setLoading(false);
     }
@@ -244,6 +249,20 @@ const Reorder = () => {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#4CAF50" />
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (loadError || !orderData) {
+    return (
+      <SafeAreaView style={[styles.container, { alignItems: 'center', justifyContent: 'center', padding: 24 }]}>
+        <Text style={{ color: '#000', fontWeight: '700', fontSize: 16, marginBottom: 6 }}>
+          Unable to load order
+        </Text>
+        <Text style={{ color: '#666', textAlign: 'center' }}>{loadError || 'Order data unavailable'}</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 16 }}>
+          <Text style={{ color: '#1B5E20', fontWeight: '700' }}>Go Back</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }

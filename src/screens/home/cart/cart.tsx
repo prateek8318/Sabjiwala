@@ -337,6 +337,16 @@ const Cart = ({ navigation }: any) => {
   const handleApplyCoupon = (code: string) => {
     const trimmed = code.trim();
     if (!trimmed) return;
+    if (appliedCoupon && appliedCoupon.toLowerCase() === trimmed.toLowerCase()) {
+      Toast.show({
+        type: "info",
+        text1: "Coupon already applied",
+        text2: `Coupon ${trimmed} is already in use.`,
+      });
+      setCouponSheetVisible(false);
+      setManualCoupon("");
+      return;
+    }
     const { discount, error } = validateCoupon(trimmed);
     // If coupon is invalid, do NOT apply it
     if (error || discount <= 0) {
@@ -492,8 +502,16 @@ const Cart = ({ navigation }: any) => {
 
     try {
       await ApiService.removeCartItem(productId, variantId);
+      Toast.show({
+        type: "success",
+        text1: "Item deleted successfully",
+      });
       fetchCart();
     } catch (err) {
+      Toast.show({
+        type: "error",
+        text1: "Failed to delete item",
+      });
       fetchCart();
     }
   };
@@ -1871,7 +1889,18 @@ const Cart = ({ navigation }: any) => {
                     }}
                   />
                   <TouchableOpacity
-                    onPress={() => setShowRemarkModal(false)}
+                    onPress={() => {
+                      const trimmed = remarkText.trim();
+                      if (!trimmed) {
+                        Toast.show({
+                          type: "error",
+                          text1: "Please add a remark",
+                        });
+                        return;
+                      }
+                      setRemarkText(trimmed);
+                      setShowRemarkModal(false);
+                    }}
                     activeOpacity={0.8}
                     style={{ marginTop: 16 }}
                   >

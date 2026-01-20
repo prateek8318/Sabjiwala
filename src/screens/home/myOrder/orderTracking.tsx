@@ -24,6 +24,7 @@ const OrderTracking: React.FC<Props> = ({ route, navigation }) => {
   const [mapCoords, setMapCoords] = useState<{ lat: number; long: number }>({ lat: 28.6139, long: 77.209 });
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; long: number } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [mapFailed, setMapFailed] = useState(false);
 
   const formatAddress = (addrObj: any) => {
     if (!addrObj) return '';
@@ -218,20 +219,45 @@ const OrderTracking: React.FC<Props> = ({ route, navigation }) => {
     `;
   };
 
+  if (!order && !loading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <TextView style={{ color: '#000', fontWeight: '700', fontSize: 16, marginBottom: 8 }}>
+          Order not available
+        </TextView>
+        <TextView style={{ color: '#666', textAlign: 'center' }}>
+          Please go back and open tracking again.
+        </TextView>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
         <View style={{ position: 'relative', height: 260, backgroundColor: '#f0f0f0' }}>
-          <WebView
-            originWhitelist={['*']}
-            source={{ html: generateMapHTML() }}
-            style={{ width: '100%', height: '100%', backgroundColor: '#f0f0f0' }}
-            javaScriptEnabled={true}
-            domStorageEnabled={true}
-            startInLoadingState={true}
-            scalesPageToFit={true}
-            mixedContentMode="always"
-          />
+          {mapFailed ? (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+              <Icon name="map-pin" size={48} color={Colors.PRIMARY[100]} />
+              <TextView style={{ marginTop: 8, color: '#000', fontWeight: '700' }}>Map unavailable</TextView>
+              <TextView style={{ marginTop: 4, color: '#666', textAlign: 'center' }}>
+                {addressText || 'Address not available'}
+              </TextView>
+            </View>
+          ) : (
+            <WebView
+              originWhitelist={['*']}
+              source={{ html: generateMapHTML() }}
+              style={{ width: '100%', height: '100%', backgroundColor: '#f0f0f0' }}
+              javaScriptEnabled={true}
+              domStorageEnabled={true}
+              startInLoadingState={true}
+              scalesPageToFit={true}
+              mixedContentMode="always"
+              onError={() => setMapFailed(true)}
+              onHttpError={() => setMapFailed(true)}
+            />
+          )}
           {locationLoading && (
             <View style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(255,255,255,0.9)', padding: 8, borderRadius: 8 }}>
               <ActivityIndicator size="small" color={Colors.PRIMARY[100]} />

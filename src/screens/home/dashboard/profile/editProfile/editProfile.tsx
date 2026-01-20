@@ -1,4 +1,4 @@
-import React, { FC, useContext, useState } from 'react';
+import React, { FC, useContext, useRef, useState } from 'react';
 import {
   SafeAreaView,
   View,
@@ -41,6 +41,9 @@ const EditProfile: FC = () => {
   const [profileImage, setProfileImage] = useState(userData?.profileImage || '');
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [selectedUploadFile, setSelectedUploadFile] = useState<{ uri: string; name?: string; type?: string } | null>(null);
+  const initialNameRef = useRef(userData?.name || '');
+  const initialEmailRef = useRef(userData?.email || '');
+  const initialImageRef = useRef(userData?.profileImage || '');
 
   const displayImage = profileImage
     ? (profileImage.startsWith('http') || profileImage.startsWith('file:'))
@@ -103,6 +106,18 @@ const EditProfile: FC = () => {
   const handleSubmit = async () => {
     if (!name.trim()) {
       Toast.show({ type: 'error', text1: 'Please enter your name' });
+      return;
+    }
+
+    const nameUnchanged = name.trim() === (initialNameRef.current || '');
+    const emailUnchanged = email.trim() === (initialEmailRef.current || '');
+    const imageUnchanged =
+      !selectedUploadFile &&
+      (profileImage === initialImageRef.current ||
+        (!profileImage && !initialImageRef.current));
+
+    if (nameUnchanged && emailUnchanged && imageUnchanged) {
+      Toast.show({ type: 'info', text1: 'No changes to update' });
       return;
     }
   
