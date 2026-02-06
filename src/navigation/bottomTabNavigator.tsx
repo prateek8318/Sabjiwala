@@ -122,31 +122,31 @@ const BottomStackNavigator = () => {
   // Debug log to verify cart count
   console.log('BottomTab - totalItems from context:', totalItems);
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarBackground: () => (
-          <LinearGradient
-            colors={['#5A875C', '#015304']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={{ flex: 1 }}
-          />
-        ),
-        tabBarActiveTintColor: '#FFFFFF',
-        tabBarInactiveTintColor: '#B0B0B0',
-        tabBarLabelStyle: { fontFamily: Fonts.Medium, fontSize: 12, marginTop: 3 },
-        tabBarIconStyle: { marginTop: 0 },
-        tabBarStyle: {
-          height: 80,
-          borderTopWidth: 0,
-          backgroundColor: 'transparent',
-          paddingBottom: 8,
-          paddingTop: 4,
-          position: 'absolute'
-        },
-      }}
-    >
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
+          tabBarBackground: () => (
+            <LinearGradient
+              colors={['#5A875C', '#015304']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={{ flex: 1 }}
+            />
+          ),
+          tabBarActiveTintColor: '#FFFFFF',
+          tabBarInactiveTintColor: '#B0B0B0',
+          tabBarLabelStyle: { fontFamily: Fonts.Medium, fontSize: 12, marginTop: 3 },
+          tabBarIconStyle: { marginTop: 0 },
+          tabBarStyle: {
+            height: 80,
+            borderTopWidth: 0,
+            backgroundColor: 'transparent',
+            paddingBottom: 8,
+            paddingTop: 4,
+            position: 'absolute'
+          },
+        }}
+      >
       <Tab.Screen name="Home" component={HomePageStack}
         options={{
           tabBarIcon: ({ focused }) => (
@@ -171,11 +171,6 @@ const BottomStackNavigator = () => {
             />
           ),
         }}
-        listeners={({ navigation }) => ({
-          tabPress: () => {
-            navigation.navigate('Catogaries', { screen: 'Catogaries' });
-          },
-        })}
       />
 
       <Tab.Screen

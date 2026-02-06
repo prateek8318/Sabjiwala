@@ -38,12 +38,23 @@ const OrderSummaryScreen = () => {
     // Debug log to check the data structure
     console.log('Order data for totals:', JSON.stringify(data, null, 2));
 
+    // Calculate item total from products array if not provided
+    let calculatedItemTotal = 0;
+    if (data?.products || data?.items) {
+      const products = data.products || data.items || [];
+      calculatedItemTotal = products.reduce((total: number, product: any) => {
+        const price = Number(product.price || 0);
+        const quantity = Number(product.quantity || 1);
+        return total + (price * quantity);
+      }, 0);
+    }
+
     const totals = {
-      itemTotal: Number(data?.itemPriceTotal || data?.itemTotal || 0),
+      itemTotal: Number(data?.itemPriceTotal || data?.itemTotal || calculatedItemTotal || 0),
       deliveryCharge: Number(data?.deliveryCharge || data?.shippingCharge || 0),
       handlingCharge: Number(data?.handlingCharge || 0),
-      couponDiscount: Math.abs(Number(data?.couponDiscount || 0)), // Ensure positive value
-      grandTotal: Number(data?.grandTotal || data?.totalAmount || 0),
+      couponDiscount: Math.abs(Number(data?.couponDiscount || data?.couponUsage?.[0]?.discountAmount || 0)), // Ensure positive value
+      grandTotal: Number(data?.grandTotal || data?.totalAmount || calculatedItemTotal || 0),
     };
 
     console.log('Calculated totals:', totals);
@@ -54,8 +65,43 @@ const OrderSummaryScreen = () => {
 
   // Check if order is eligible for rating (delivered/completed)
   const canRateOrder = React.useMemo(() => {
-    const status = (order?.status || '').toLowerCase();
-    return status.includes('delivered') || status.includes('completed');
+    if (!order || !order._id) {
+      console.log('canRateOrder: No order or order ID');
+      return false;
+    }
+    
+    // Check both status and orderStatus fields
+    const status = (order?.status || order?.orderStatus || '').toLowerCase().trim();
+    
+    // Check for delivered/completed status
+    const isDelivered = 
+      status.includes('delivered') || 
+      status.includes('completed') ||
+      status === 'delivered' ||
+      status === 'completed';
+    
+    // Also check if order has deliveredAt date as additional indicator
+    const hasDeliveredDate = !!(order?.deliveredAt || order?.delivered_on || order?.deliveryDate || order?.completedAt);
+    
+    // Exclude pending, cancelled, and return requested orders
+    const isExcluded = 
+      status.includes('pending') || 
+      status.includes('cancel') || 
+      status.includes('return_requested') ||
+      status.includes('returned_requested');
+    
+    const result = (isDelivered || hasDeliveredDate) && !isExcluded;
+    
+    // Log for debugging
+    console.log('canRateOrder check:', {
+      status: order?.status || order?.orderStatus,
+      isDelivered,
+      hasDeliveredDate,
+      isExcluded,
+      finalResult: result
+    });
+    
+    return result;
   }, [order]);
 
   // Extract shipping address with proper fallbacks
@@ -108,13 +154,14 @@ const OrderSummaryScreen = () => {
     console.log('Order ID:', order?._id);
     console.log('Order Status:', order?.status);
     console.log('Order Date:', order?.createdAt ? formatDate(order.createdAt) : 'N/A');
-    console.log('Total Items:', order?.items?.length || 0);
+    console.log('Total Items:', (order?.products || order?.items || []).length);
 
     // Log order items details
-    if (order?.items?.length) {
+    const orderItems = order?.products || order?.items || [];
+    if (orderItems.length) {
  
       console.log('--- Order Items ---');
-      order.items.forEach((item: any, index: number) => {
+      orderItems.forEach((item: any, index: number) => {
         console.log(`Item ${index + 1}:`, {
           name: item.productId?.name || item.product?.name || 'N/A',
           quantity: item.quantity,
@@ -368,53 +415,53 @@ const OrderSummaryScreen = () => {
           </View>
         </View>
 
+        {/* Rate Button - Only show for delivered/completed orders */}
+        {canRateOrder && (
+          <View style={[styles.sectionContainer, { marginTop: 0 }]}>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => {
+                console.log('Navigating to RateOrder with orderId:', order?._id);
+                if (order?._id) {
+                  navigation.navigate('RateOrder', { 
+                    orderId: order._id, 
+                    order: order 
+                  });
+                } else {
+                  console.error('Cannot rate: Order ID is missing');
+                }
+              }}
+              style={[styles.rateButton, { 
+                backgroundColor: '#fff',
+                borderWidth: 1,
+                borderColor: '#015304',
+                paddingVertical: 14,
+                borderRadius: 8,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row',
+                elevation: 3,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+              }]}
+            >
+              
+              <TextView style={[styles.rateButtonText, { 
+                color: '#015304',
+                fontWeight: '600',
+                fontSize: 16,
+              }]}>
+                Rate Orders
+              </TextView>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Bottom Spacer */}
         <View style={{ height: 100 }} />
       </ScrollView>
-
-      {/* Fixed Bottom Button - Only show for delivered/completed orders */}
-      {canRateOrder && (
-        <View style={styles.footer}>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => {
-              console.log('Navigating to RateOrder with orderId:', order?._id);
-              if (order?._id) {
-                navigation.navigate('RateOrder', { 
-                  orderId: order._id, 
-                  order: order 
-                });
-              } else {
-                console.error('Cannot rate: Order ID is missing');
-              }
-            }}
-            style={[styles.rateButton, { 
-              backgroundColor: '#fff',
-              borderWidth: 1,
-              borderColor: '#015304',
-              paddingVertical: 14,
-              borderRadius: 8,
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexDirection: 'row',
-              elevation: 3,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-            }]}
-          >
-            <Icon name="star" size={18} color="#015304" style={{ marginRight: 8 }} />
-            <TextView style={[styles.rateButtonText, { 
-              color: '#015304',
-              fontWeight: '600',
-              fontSize: 16,
-            }]}>
-              Rate Products
-            </TextView>
-          </TouchableOpacity>
-        </View>
-      )}
     </SafeAreaView>
   );
 };

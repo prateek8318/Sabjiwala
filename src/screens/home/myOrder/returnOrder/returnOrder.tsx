@@ -7,9 +7,12 @@ import {
   ScrollView,
   TouchableOpacity,
   View,
+  TextInput,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import Toast from 'react-native-toast-message';
 import { TextView } from '../../../../components';
-import { Colors } from '../../../../constant';
+import { Colors, Icon } from '../../../../constant';
 import {
   heightPercentageToDP as hp,
   widthPercentageToDP as wp,
@@ -34,6 +37,8 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
   const [submitting, setSubmitting] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Record<string, { quantity: number; reason: string; description: string }>>({});
   const [deliveryAddress, setDeliveryAddress] = useState<string>('Loading address...');
+  const [comment, setComment] = useState<string>('');
+  const [returnSubmitted, setReturnSubmitted] = useState<boolean>(false);
 
   const formatAddress = (addrObj: any) => {
     if (!addrObj) return '';
@@ -185,27 +190,55 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
       return;
     }
 
-    const payloadProducts = entries.map(([key, data]) => {
-      const [productId, variantId] = key.split('|');
-      return {
-        productId,
-        variantId: variantId || undefined,
-        quantity: data.quantity,
-        reason: data.reason,
-        description: data.description,
-        images: [],
-      };
-    });
-
     setSubmitting(true);
     try {
-      const res = await ApiService.createReturnRequest(orderId, {
-        products: payloadProducts,
+      const payloadProducts = entries.map(([key, data]) => {
+        const [productId, variantId] = key.split('|');
+        return {
+          productId,
+          variantId: variantId || undefined,
+          quantity: data.quantity,
+          reason: data.reason,
+          description: data.description,
+        };
       });
-      const message = res?.data?.message || 'Return request created successfully.';
-      Alert.alert('Success', message, [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+
+      const payload = {
+        products: payloadProducts,
+        comment: comment || 'Please arrange pickup',
+      };
+
+      const res = await ApiService.createReturnRequest(orderId, payload);
+      const returnData = res?.data?.returnOrder;
+      
+      setReturnSubmitted(true);
+      
+      if (returnData) {
+        Toast.show({
+          type: 'success',
+          text1: 'Return Request Created Successfully!',
+          text2: `Return ID: ${returnData._id} • Status: ${returnData.returnDetails?.status || 'requested'}`,
+          position: 'top',
+          visibilityTime: 4000,
+        });
+        
+        setTimeout(() => {
+          navigation.goBack();
+        }, 2000);
+      } else {
+        const message = res?.data?.message || 'Return request created successfully.';
+        Toast.show({
+          type: 'success',
+          text1: 'Success!',
+          text2: message,
+          position: 'top',
+          visibilityTime: 3000,
+        });
+        
+        setTimeout(() => {
+          navigation.goBack();
+        }, 2000);
+      }
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Unable to create return request. Please try again.';
       Alert.alert('Error', msg);
@@ -239,8 +272,11 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <TextView style={{ color: Colors.PRIMARY[300], fontWeight: '700' }}>{'<'}</TextView>
+        <TouchableOpacity 
+          style={styles.backBtn} 
+          onPress={() => navigation.navigate('MyOrder')}
+        >
+          <Icon name="arrow-left" family="Feather" size={24} color={Colors.PRIMARY[400]} />
         </TouchableOpacity>
         <TextView style={styles.headerTitle}>Return</TextView>
       </View>
@@ -322,49 +358,91 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
           </View>
         </View>
 
-        <View style={styles.section}>
-          <TextView style={styles.sectionTitle}>Order Details</TextView>
-          <TextView style={styles.tinyLabel}>Order ID</TextView>
-          <TextView style={{ color: '#000', marginBottom: 8 }}>#{order?._id || orderId}</TextView>
-          <TextView style={styles.tinyLabel}>Delivery Address</TextView>
-          <TextView style={{ color: '#000', marginBottom: 8 }}>{deliveryAddress}</TextView>
-          <TextView style={styles.tinyLabel}>Order Placed</TextView>
-          <TextView style={{ color: '#000', marginBottom: 8 }}>{formatDate(order?.createdAt || order?.orderDate)}</TextView>
-          <TextView style={styles.tinyLabel}>Order Delivered on</TextView>
-          <TextView style={{ color: '#000' }}>
-            {formatDate(
-              order?.deliveredAt ||
-              order?.delivered_on ||
-              order?.deliveryDate ||
-              order?.completedAt ||
-              order?.updatedAt
-            )}
-          </TextView>
+        <View style={[styles.section]}>
+          <View style={styles.row}>
+            <TextView style={styles.sectionTitle}>Order Details</TextView>
+          </View>
+          <View style={styles.row}>
+            <TextView style={styles.tinyLabel}>Order ID</TextView>
+            <TextView style={{ color: '#000' }}>#{order?._id || orderId}</TextView>
+          </View>
+          <View style={styles.row}>
+            <TextView style={styles.tinyLabel}>Pickup Address</TextView>
+            <TextView style={{ color: '#000' }}>{deliveryAddress}</TextView>
+          </View>
+          <View style={styles.row}>
+            <TextView style={styles.tinyLabel}>Order Placed</TextView>
+            <TextView style={{ color: '#000' }}>{formatDate(order?.createdAt || order?.orderDate)}</TextView>
+          </View>
+          <View style={styles.row}>
+            <TextView style={styles.tinyLabel}>Order Delivered on</TextView>
+            <TextView style={{ color: '#000' }}>
+              {formatDate(
+                order?.deliveredAt ||
+                order?.delivered_on ||
+                order?.deliveryDate ||
+                order?.completedAt ||
+                order?.updatedAt
+              )}
+            </TextView>
+          </View>
+        </View>
+
+        <View style={[styles.section]}>
+          <TextView style={styles.sectionTitle}>Return Comments (Optional)</TextView>
+          <TextInput
+            style={styles.commentInput}
+            placeholder="Add any special instructions for pickup..."
+            placeholderTextColor="#999"
+            value={comment}
+            onChangeText={setComment}
+            multiline
+            numberOfLines={3}
+            textAlignVertical="top"
+          />
+        </View>
+
+        <View style={[styles.section, { marginBottom: 100 }]}>
+          <TouchableOpacity
+            onPress={onSubmit}
+            disabled={
+              submitting ||
+              returnSubmitted ||
+              !deliveredState.isDelivered ||
+              (!deliveredState.windowOpen && !deliveredState.isReturnRequested)
+            }
+            style={[
+              styles.primaryBtn,
+              (returnSubmitted || !deliveredState.isDelivered || (!deliveredState.windowOpen && !deliveredState.isReturnRequested))
+                ? styles.disabledBtn
+                : null,
+            ]}
+          >
+            <LinearGradient
+              colors={returnSubmitted ? ['#a5d6a7', '#a5d6a7'] : ['#5A875C', '#015304']}
+              style={styles.gradientBtn}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              {submitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : returnSubmitted ? (
+                <TextView style={styles.btnText}>Return Requested</TextView>
+              ) : (
+                <TextView style={styles.btnText}>Return</TextView>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+          
+          {returnSubmitted && (
+            <View style={styles.waitingMessage}>
+              <TextView style={styles.waitingText}>Waiting for return acceptance...</TextView>
+            </View>
+          )}
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
-        <TouchableOpacity
-          onPress={onSubmit}
-          disabled={
-            submitting ||
-            !deliveredState.isDelivered ||
-            (!deliveredState.windowOpen && !deliveredState.isReturnRequested)
-          }
-          style={[
-            styles.primaryBtn,
-            (!deliveredState.isDelivered || (!deliveredState.windowOpen && !deliveredState.isReturnRequested))
-              ? styles.disabledBtn
-              : null,
-          ]}
-        >
-          {submitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <TextView style={styles.btnText}>Return</TextView>
-          )}
-        </TouchableOpacity>
-      </View>
+      <Toast />
 
       {loading && (
         <View

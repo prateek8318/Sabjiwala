@@ -76,7 +76,7 @@ import { Colors } from '../../../constant';
    flatListContent: {
      paddingHorizontal: 16,
      paddingTop: 12,
-     paddingBottom: 50, // Increased from 20 to 40 for more bottom space
+     paddingBottom: 16, // Increased from 20 to 40 for more bottom space
    },
    columnWrapper: {
      justifyContent: 'space-between',
@@ -86,7 +86,7 @@ import { Colors } from '../../../constant';
     bottom: 0,
     left: 0,
     right: 0,
-    overflow: 'hidden',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     borderBottomLeftRadius: 4,
     borderBottomRightRadius: 4,
   },
@@ -142,7 +142,7 @@ import { Colors } from '../../../constant';
    },
   emptyText: {
      fontSize: 16,
-     color: '#9E9E9E',
+     color: '#000',
      textAlign: 'center',
    },
   shimmerGrid: {

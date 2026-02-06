@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     ...Typography.BodyRegular14,
     fontFamily: 'Poppins-Regular',
     fontWeight: '400',
-    FontVariants: 'Poppins-Regular',
+    
   },
   groceryCard: {
     width: wp(100),

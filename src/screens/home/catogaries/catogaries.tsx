@@ -19,7 +19,6 @@ import { Colors } from '../../../constant';
 import ApiService, { IMAGE_BASE_URL } from '../../../service/apiService';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
-import { BlurView } from '@react-native-community/blur';
 
 type HomeStackProps = {
   Catogaries: undefined;
@@ -172,6 +171,7 @@ const Catogaries = () => {
             categoryId: item._id,
             categoryName: item.name,
           })
+// navigation.navigate("BottomStackNavigator", { screen: "MyOrder" })
         }
       >
         <View style={styles.itemCatView}>
@@ -182,12 +182,6 @@ const Catogaries = () => {
             onError={handleError}
           />
           <View style={styles.blurContainer}>
-            <BlurView
-              style={styles.blurView}
-              blurType="dark"
-              blurAmount={1}
-              reducedTransparencyFallbackColor="black"
-            />
             <TextView style={styles.itemCatTxt} numberOfLines={2}>
               {item.name}
             </TextView>
@@ -207,7 +201,7 @@ const Catogaries = () => {
       <View style={[styles.container, { flex: 1 }]}>
         <Header title="Categories" isBack={true} />
 
-        <View style={{ flex: 1, paddingBottom: 16 }}>
+        <View style={{ flex: 1 }}>
           {loading ? (
             renderShimmerGrid()
           ) : (

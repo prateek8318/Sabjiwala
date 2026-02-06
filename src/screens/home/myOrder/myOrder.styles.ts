@@ -228,12 +228,7 @@ export default StyleSheet.create({
     borderRadius: 6,
     marginRight: 8,
   },
-  addressName: {
-    color: '#000',
-    fontWeight: '600',
-    fontSize: 15,
-    marginBottom: 4,
-  },
+  
   addressLine: {
     color: '#444',
     fontSize: 14,

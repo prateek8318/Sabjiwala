@@ -8,13 +8,12 @@ import styles from './myOrder.styles';
 import Geolocation from 'react-native-geolocation-service';
 import { Platform } from 'react-native';
 import { request, check, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import Icon from 'react-native-vector-icons/Feather';
 
 interface Props {
   route: any;
   navigation: any;
 }
-
-const statusSteps = ['pending', 'accepted', 'packed', 'delivered', 'return'];
 
 const OrderTracking: React.FC<Props> = ({ route, navigation }) => {
   const { orderId, order: passedOrder } = route.params || {};
@@ -25,6 +24,25 @@ const OrderTracking: React.FC<Props> = ({ route, navigation }) => {
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; long: number } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [mapFailed, setMapFailed] = useState(false);
+
+  // Dynamic status steps based on current order status
+  const getStatusSteps = (currentStatus: string) => {
+    const status = currentStatus?.toLowerCase() || 'pending';
+    
+    // Define all possible status flows
+    const statusFlows: { [key: string]: string[] } = {
+      'pending': ['pending'],
+      'accepted': ['pending', 'accepted'],
+      'packed': ['pending', 'accepted', 'packed'],
+      'delivered': ['pending', 'accepted', 'packed', 'delivered'],
+      'return': ['pending', 'accepted', 'packed', 'delivered', 'return'],
+      'cancelled': ['pending', 'cancelled'],
+      'out_for_delivery': ['pending', 'accepted', 'packed', 'out_for_delivery'],
+    };
+
+    // Return the appropriate flow based on current status
+    return statusFlows[status] || ['pending'];
+  };
 
   const formatAddress = (addrObj: any) => {
     if (!addrObj) return '';
@@ -50,9 +68,30 @@ const OrderTracking: React.FC<Props> = ({ route, navigation }) => {
     const fetchDetail = async () => {
       if (!orderId) return;
       try {
-        const res = await ApiService.getOrderDetails(orderId);
-        const data = res?.data?.order || res?.data?.orders?.[0] || res?.data?.data || res?.data;
-        if (data) setOrder(data);
+        // First try to get order details
+        const detailsRes = await ApiService.getOrderDetails(orderId);
+        const orderData = detailsRes?.data?.data || (detailsRes as any)?.data?.order || (detailsRes as any)?.data?.orders?.[0] || (detailsRes as any)?.data;
+        if (orderData) setOrder(orderData);
+
+        // Then try to get tracking data
+        try {
+          console.log('Fetching tracking data for order:', orderId);
+          const trackingRes = await ApiService.trackOrder(orderId);
+          const trackingData = trackingRes?.data?.data;
+          if (trackingData) {
+            console.log('Tracking data received:', trackingData);
+            // Update order with tracking information
+            setOrder((prev: any) => ({
+              ...prev,
+              ...trackingData,
+              driver: trackingData.driver,
+              status: trackingData.status || prev?.status
+            }));
+          }
+        } catch (trackingError: any) {
+          console.log('Tracking API not available or failed:', trackingError?.response?.data || trackingError?.message);
+          // Continue with order details even if tracking fails
+        }
       } catch (err: any) {
         console.log('Order detail fetch error:', err?.response?.data || err?.message);
       } finally {
@@ -150,7 +189,8 @@ const OrderTracking: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const currentStatus = (order?.status || order?.orderStatus || 'pending').toLowerCase();
-  const statusIndex = statusSteps.findIndex((s) => currentStatus.includes(s)) ?? 0;
+  const statusSteps = getStatusSteps(currentStatus);
+  const statusIndex = statusSteps.findIndex((s: string) => currentStatus.includes(s)) ?? 0;
 
   const generateMapHTML = () => {
     const deliveryLat = mapCoords.lat;
@@ -273,7 +313,7 @@ const OrderTracking: React.FC<Props> = ({ route, navigation }) => {
           <View style={{ backgroundColor: '#F4F7F2', borderRadius: 12, padding: 12, marginBottom: 16 }}>
             <TextView style={{ color: '#000', fontWeight: '700' }}>Status: {currentStatus.toUpperCase()}</TextView>
             <View style={{ flexDirection: 'row', marginTop: 10, alignItems: 'center', justifyContent: 'space-between' }}>
-              {statusSteps.map((step, idx) => {
+              {statusSteps.map((step: string, idx: number) => {
                 const reached = idx <= statusIndex;
                 return (
                   <View key={step} style={{ alignItems: 'center', flex: 1 }}>

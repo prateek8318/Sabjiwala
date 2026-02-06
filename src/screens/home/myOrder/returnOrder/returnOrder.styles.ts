@@ -9,7 +9,7 @@ export default StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    paddingBottom: 16,
+    paddingBottom: 8,
   },
   header: {
     flexDirection: 'row',
@@ -27,8 +27,8 @@ export default StyleSheet.create({
   section: {
     backgroundColor: '#fff',
     marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: 4,
+    marginBottom: 2,
     borderRadius: 16,
     padding: 16,
     
@@ -43,6 +43,14 @@ export default StyleSheet.create({
     fontWeight: '700',
     color: '#333',
     marginBottom: 14,
+  },
+
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+    marginVertical: 2,
   },
 
   productRow: {
@@ -117,10 +125,14 @@ export default StyleSheet.create({
   },
 
   primaryBtn: {
-    backgroundColor: '#2e7d32',
-    borderRadius: 16,
+    borderRadius: 35,
+    overflow: 'hidden',
+  },
+  
+  gradientBtn: {
     paddingVertical: 18,
     alignItems: 'center',
+    borderRadius: 16,
   },
   disabledBtn: {
     backgroundColor: '#a5d6a7',
@@ -129,6 +141,32 @@ export default StyleSheet.create({
   btnText: {
     color: '#fff',
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: '600',
+  },
+
+  commentInput: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    color: '#000',
+    backgroundColor: '#f9f9f9',
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+
+  waitingMessage: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#f0f8f0',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+
+  waitingText: {
+    fontSize: 14,
+    color: '#2e7d32',
+    fontWeight: '500',
   },
 });

@@ -20,10 +20,14 @@ import { StackNavigationProp } from '@react-navigation/stack';
 
 type RootStackParamList = {
   OrderSummary: { order: any };
- 
+  Reorder: { orderId: string; order: any };
+  OrderTracking: { orderId: string; order: any };
+  ReturnOrder: { orderId: string; order: any };
 };
 
-type MyOrderScreenNavigationProp = StackNavigationProp<RootStackParamList, 'OrderSummary'>;
+type MyOrderScreenNavigationProp = StackNavigationProp<RootStackParamList, 'OrderSummary'> & {
+  navigate: (screen: keyof RootStackParamList, params: any) => void;
+};
 
 const MyOrder = () => {
   const navigation = useNavigation<MyOrderScreenNavigationProp>();
@@ -188,12 +192,27 @@ const MyOrder = () => {
     const items = item.items || item.products || [];
     const totalItems = items.length;
     const status = (item.status || item.orderStatus || '').toLowerCase();
+    
+    // More comprehensive status detection
     const isReturnRequested =
       status.includes('returned_requested') ||
       status.includes('return_requested') ||
-      status.includes('return requested');
-    const isDelivered = isReturnRequested || status.includes('delivered') || status.includes('completed');
-    const isCancelled = status.includes('cancel');
+      status.includes('return requested') ||
+      status.includes('return') ||
+      status.includes('return_pending') ||
+      status.includes('return_approved') ||
+      status.includes('return_completed');
+    
+    const isDelivered = 
+      status.includes('delivered') || 
+      status.includes('completed') ||
+      status.includes('delivered_completed') ||
+      status === 'delivered' ||
+      status === 'completed' ||
+      isReturnRequested; // If return is requested, it must have been delivered
+    
+    const isCancelled = status.includes('cancel') || status.includes('cancelled');
+    
     const deliveredDate =
       item.deliveredAt ||
       item.delivered_on ||
@@ -212,6 +231,20 @@ const MyOrder = () => {
     const displayItems = items.slice(0, 5);
     const extraCount = totalItems - displayItems.length;
 
+    // Debug logging
+    console.log('Order Debug:', {
+      orderId: item._id,
+      status: item.status || item.orderStatus,
+      statusLower: status,
+      isDelivered,
+      isReturnRequested,
+      isCancelled,
+      windowOpen,
+      deliveredDate,
+      diffHours,
+      buttonEnabled: isDelivered && !isCancelled && (windowOpen || isReturnRequested)
+    });
+
     return (
       <TouchableOpacity
         activeOpacity={0.9}
@@ -222,9 +255,20 @@ const MyOrder = () => {
       >
         {/* Status, price, and date on same line */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <TextView style={{ color: getStatusColor(item.status || item.orderStatus || ''), fontWeight: '700', fontSize: 14 }}>
-            {getDisplayStatus(item.status || item.orderStatus || '')}
-          </TextView>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {isReturnRequested && (
+              <View style={{
+                width: 8,
+                height: 8,
+                borderRadius: 4,
+                backgroundColor: '#FBC02D',
+                marginRight: 6,
+              }} />
+            )}
+            <TextView style={{ color: getStatusColor(item.status || item.orderStatus || ''), fontWeight: '700', fontSize: 14 }}>
+              {getDisplayStatus(item.status || item.orderStatus || '')}
+            </TextView>
+          </View>
           <View style={{ alignItems: 'flex-end', flexDirection: 'row', gap: 8 }}>
             <TextView style={{ color: '#000', fontWeight: '700', fontSize: 14 }}>₹{totals.grandTotal.toFixed(2)}</TextView>
             <TextView style={{ color: '#444', fontSize: 12 }}>{formatDate(item.createdAt || item.orderDate)}</TextView>
@@ -335,7 +379,7 @@ const MyOrder = () => {
           {/* Reorder Button */}
           <TouchableOpacity
             style={styles.actionBtn}
-            onPress={() => navigation.navigate('Reorder', { orderId: item._id, order: item })}
+            onPress={() => navigation.navigate('Reorder' as any, { orderId: item._id, order: item })}
           >
             <TextView style={styles.actionText}>Reorder</TextView>
           </TouchableOpacity>
@@ -346,7 +390,7 @@ const MyOrder = () => {
           {/* Track Button */}
           <TouchableOpacity
             style={styles.actionBtn}
-            onPress={() => navigation.navigate('OrderTracking', { orderId: item._id, order: item })}
+            onPress={() => navigation.navigate('OrderTracking' as any, { orderId: item._id, order: item })}
           >
             <TextView style={styles.actionText}>Track</TextView>
           </TouchableOpacity>
@@ -361,7 +405,17 @@ const MyOrder = () => {
               (!isDelivered || isCancelled || (!windowOpen && !isReturnRequested)) ? styles.actionBtnDisabled : null,
             ]}
             disabled={!isDelivered || isCancelled || (!windowOpen && !isReturnRequested)}
-            onPress={() => navigation.navigate('ReturnOrder', { orderId: item._id, order: item })}
+            onPress={() => {
+              console.log('Return button pressed:', { 
+                orderId: item._id, 
+                status: item.status,
+                isDelivered, 
+                windowOpen, 
+                isReturnRequested,
+                buttonEnabled: isDelivered && !isCancelled && (windowOpen || isReturnRequested)
+              });
+              navigation.navigate('ReturnOrder' as any, { orderId: item._id, order: item });
+            }}
           >
             <TextView
               style={[
@@ -369,7 +423,7 @@ const MyOrder = () => {
                 (!isDelivered || isCancelled || (!windowOpen && !isReturnRequested)) ? styles.actionTextDisabled : null,
               ]}
             >
-              Return
+              {isReturnRequested ? 'View Return' : 'Return'}
             </TextView>
           </TouchableOpacity>
         </View>

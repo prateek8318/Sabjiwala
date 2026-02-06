@@ -4,15 +4,16 @@
 // src/services/api.ts
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { storage } from './storage';
+import { OrderDetailsResponse, OrderTrackingResponse, LocationUpdatePayload, LocationUpdateEvent, OrderStatusUpdateEvent } from '../@types';
 
 
 
 // -------------------------------------------------
 // 1. Base URL (your live dev server)
 const BASE_URL = 'http://159.89.146.245:5010/api/';
-//  const BASE_URL = 'http://192.168.1.5:5002/api/';
-export const IMAGE_BASE_URL = 'http://159.89.146.245:5010/';
-//  export const IMAGE_BASE_URL = 'http://192.168.1.28:5002/';
+//  const BASE_URL = 'http://192.168.1.23:7006/api/';
+// export const IMAGE_BASE_URL = 'http://192.168.1.23:7006/';
+ export const IMAGE_BASE_URL = 'http://159.89.146.245:5010/';
 
 // 1. Base URL (your local dev server)
 // const BASE_URL = 'http://192.168.1.21:5002/api/';
@@ -26,8 +27,14 @@ const api = axios.create({
 });
 
 // -------------------------------------------------
-// 3. Pretty-print & time helpers
-const pretty = (obj: any) => JSON.stringify(obj, null, 2);
+// 3. Pretty-print & time helpers (dev only)
+const pretty = (obj: any) => {
+  try {
+    return JSON.stringify(obj, null, 2);
+  } catch {
+    return String(obj);
+  }
+};
 const now = () => new Date().toISOString().replace('T', ' ').substr(0, 19);
 
 // -------------------------------------------------
@@ -39,19 +46,20 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    console.log('\nAPI REQUEST');
-    console.log(`Time: ${now()}`);
-    console.log(`TOKEN:::: ${token}`);
-    console.log(`URL: ${config.baseURL}${config.url}`);
-    console.log(`Method: ${config.method?.toUpperCase()}`);
-    console.log(`Headers:`, pretty(config.headers || {}));
-    if (config.data) console.log(`Payload:`, pretty(config.data));
-    if (config.params) console.log(`Params:`, pretty(config.params));
-    console.log('─────────────────────────────────');
+    // Heavy logging can freeze JS on low-end devices; keep it DEV-only.
+    if (__DEV__) {
+      console.log('\nAPI REQUEST');
+      console.log(`Time: ${now()}`);
+      console.log(`URL: ${config.baseURL}${config.url}`);
+      console.log(`Method: ${config.method?.toUpperCase()}`);
+      // Don't print full token/payloads in logs (perf + security)
+      if (config.params) console.log(`Params:`, pretty(config.params));
+      console.log('─────────────────────────────────');
+    }
     return config;
   },
   (error) => {
-    console.log('REQUEST SETUP ERROR:', error);
+    if (__DEV__) console.log('REQUEST SETUP ERROR:', error);
     return Promise.reject(error);
   }
 );
@@ -60,31 +68,34 @@ api.interceptors.request.use(
 // 5. RESPONSE INTERCEPTOR – full log + 401 logout
 api.interceptors.response.use(
   (response: AxiosResponse) => {
-    console.log('\nAPI RESPONSE');
-    console.log(`Time: ${now()}`);
-    console.log(`URL: ${response.config.url}`);
-    console.log(`Status: ${response.status} ${response.statusText}`);
-    console.log(`Data:`, pretty(response.data));
-    console.log('─────────────────────────────────');
+    if (__DEV__) {
+      console.log('\nAPI RESPONSE');
+      console.log(`Time: ${now()}`);
+      console.log(`URL: ${response.config.url}`);
+      console.log(`Status: ${response.status} ${response.statusText}`);
+      // Avoid printing huge response bodies (freezes UI)
+      const dataType = Array.isArray(response.data) ? 'array' : typeof response.data;
+      console.log(`DataType: ${dataType}`);
+      console.log('─────────────────────────────────');
+    }
     return response;
   },
   (error) => {
-    console.log('\nAPI ERROR');
-    console.log(`Time: ${now()}`);
-    console.log(`URL: ${error.config?.url}`);
-    console.log(`Status: ${error.response?.status || 'Network Error'}`);
-    console.log(`Message: ${error.message}`);
-    if (error.response?.data) {
-      console.log(`Error Data:`, pretty(error.response.data));
+    if (__DEV__) {
+      console.log('\nAPI ERROR');
+      console.log(`Time: ${now()}`);
+      console.log(`URL: ${error.config?.url}`);
+      console.log(`Status: ${error.response?.status || 'Network Error'}`);
+      console.log(`Message: ${error.message}`);
     }
 
     // Auto-logout on 401
     if (error.response?.status === 401) {
       storage.removeToken();
-      console.log('Token expired → Logged out');
+      if (__DEV__) console.log('Token expired → Logged out');
     }
 
-    console.log('─────────────────────────────────');
+    if (__DEV__) console.log('─────────────────────────────────');
     return Promise.reject(error);
   }
 );
@@ -295,8 +306,8 @@ getHomeProductContent: async () => {
     return await api.get('user/order'); 
   },
 
-  getOrderDetails: async (orderId: string) => {
-    return await api.get('user/order', { params: { orderId } });
+  getOrderDetails: async (orderId: string): Promise<AxiosResponse<OrderDetailsResponse>> => {
+    return await api.get(`user/order/${orderId}`);
   },
 
   getOrderRatings: async (orderId: string) => {
@@ -369,6 +380,91 @@ getHomeProductContent: async () => {
   
   deleteNotification(notificationId: string) {
     return api.get(`user/cancel-notification/${notificationId}`);
+  },
+
+  // ─────────────────────────────────────────────
+  // ORDER TRACKING API FUNCTIONS
+  // ─────────────────────────────────────────────
+  
+  // Get order tracking details
+  trackOrder: async (orderId: string): Promise<AxiosResponse<OrderTrackingResponse>> => {
+    return await api.get(`user/order/${orderId}/track`);
+  },
+
+  // Get order status
+  getOrderStatus: async (orderId: string) => {
+    return await api.get(`user/order/${orderId}/status`);
+  },
+
+  // Driver location update (for driver app)
+  updateDriverLocation: async (orderId: string, locationData: LocationUpdatePayload) => {
+    return await api.patch(`driver/order/${orderId}/location`, locationData);
+  },
+
+  // Driver order status update (for driver app)
+  updateOrderStatus: async (orderId: string, status: string) => {
+    return await api.patch(`driver/order/${orderId}`, { status });
+  },
+
+  // ─────────────────────────────────────────────
+  // WEBSOCKET SERVICE FOR REAL-TIME TRACKING
+  // ─────────────────────────────────────────────
+  
+  // WebSocket connection for real-time tracking using React Native WebSocket
+  createTrackingSocket: (orderId: string, onLocationUpdate: (data: LocationUpdateEvent) => void, onStatusUpdate: (data: OrderStatusUpdateEvent) => void) => {
+    try {
+      const wsUrl = BASE_URL.replace('/api', '').replace('http', 'ws');
+      const ws = new WebSocket(`${wsUrl}/tracking?orderId=${orderId}&token=${storage.getToken()}`);
+
+      ws.onopen = () => {
+        console.log('WebSocket connected for order tracking:', orderId);
+        // Join order-specific room
+        ws.send(JSON.stringify({
+          type: 'join_order',
+          data: { orderId }
+        }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          
+          switch (message.type) {
+            case 'location_update':
+              onLocationUpdate(message.data);
+              break;
+            case 'status_update':
+              onStatusUpdate(message.data);
+              break;
+            default:
+              console.log('Unknown message type:', message.type);
+          }
+        } catch (error) {
+          console.log('Error parsing WebSocket message:', error);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.log('WebSocket connection error:', error);
+      };
+
+      ws.onclose = () => {
+        console.log('WebSocket disconnected from order tracking');
+      };
+
+      return ws;
+    } catch (error) {
+      console.log('WebSocket initialization error:', error);
+      return null;
+    }
+  },
+
+  // Disconnect tracking socket
+  disconnectTrackingSocket: (ws: WebSocket | null) => {
+    if (ws) {
+      ws.close();
+      console.log('WebSocket tracking socket disconnected');
+    }
   },
 };
 

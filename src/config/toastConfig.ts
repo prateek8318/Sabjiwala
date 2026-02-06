@@ -1,6 +1,7 @@
 import { Colors } from '../constant';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View, Text } from 'react-native';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from '../constant/dimentions';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export const toastConfig = {
   success: ({ text1, text2 }: { text1?: string; text2?: string }) => (

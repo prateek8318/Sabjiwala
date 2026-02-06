@@ -12,7 +12,6 @@ import {
   Animated,
   StyleSheet,
   TouchableWithoutFeedback,
-  Text,
 } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
@@ -58,7 +57,7 @@ const getFullScreenCardWidthPercent = () => {
 };
 
 const SubCategoryList = ({ route }: any) => {
-  const { categoryId, categoryName } = route.params;
+  const { categoryId, categoryName } = route.params || {};
   const navigation = useNavigation<any>();
   const isFocused = useIsFocused();
 
@@ -76,9 +75,6 @@ const SubCategoryList = ({ route }: any) => {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("relevance");
   const [filterTypes, setFilterTypes] = useState<string[]>([]);
-
-  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
-  const [showVariantModal, setShowVariantModal] = useState(false);
 
   // Cart state for floating button
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -211,8 +207,10 @@ const SubCategoryList = ({ route }: any) => {
   const loadSubCategories = async () => {
     try {
       const res = await ApiService.getSubCategoryList(categoryId);
+      
       if (res?.status === 200 && res?.data) {
         const apiData = res.data.subCategoryData || res.data.data || [];
+        
         if (Array.isArray(apiData) && apiData.length > 0) {
           setSubCategories(apiData);
           setSelectedSubId(apiData[0]._id);
@@ -224,6 +222,7 @@ const SubCategoryList = ({ route }: any) => {
         setSubCategories([]);
       }
     } catch (err) {
+      console.log('SubCategories load error:', err);
       setSubCategories([]);
     } finally {
       setLoading(false);
@@ -231,8 +230,11 @@ const SubCategoryList = ({ route }: any) => {
   };
 
   useEffect(() => {
-    if (categoryId) loadSubCategories();
-    else setLoading(false);
+    if (categoryId) {
+      loadSubCategories();
+    } else {
+      setLoading(false);
+    }
   }, [categoryId]);
 
   // Load cart data for floating button
@@ -265,15 +267,7 @@ const SubCategoryList = ({ route }: any) => {
     }
   }, [recentlyAddedProducts.length]);
 
-  // Refresh cart when screen comes into focus
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      loadCart();
-    });
-    return unsubscribe;
-  }, [navigation, loadCart]);
-
-  // Also load cart on initial mount
+  // Load cart when screen is focused (and on first mount)
   useFocusEffect(
     useCallback(() => {
       loadCart();
@@ -319,7 +313,8 @@ const SubCategoryList = ({ route }: any) => {
 
     if (isFocused) {
       tabNavigator.setOptions({
-        tabBarStyle: [{ ...TAB_BAR_BASE_STYLE }, { display: "none" }],
+        // Using an array style here can cause odd artifacts on Android; keep it simple.
+        tabBarStyle: { display: "none" },
       });
     } else {
       tabNavigator.setOptions({
@@ -339,7 +334,6 @@ const SubCategoryList = ({ route }: any) => {
 
   const renderSubItem = ({ item }: any) => {
     const img = item.image ? ApiService.getImage(item.image) : "https://via.placeholder.com/300x150.png?text=No+Image";
-    console.log('SubCategoryList Image → id:', item?._id, '| name:', item?.name, '| raw:', item?.image, '| final:', img);
     const isSelected = selectedSubId === item._id;
 
     return (
@@ -362,19 +356,6 @@ const SubCategoryList = ({ route }: any) => {
         {isSelected && <View style={styles.activeUnderline} />}
       </Pressable>
     );
-  };
-
-  const handleAddPress = (item: any) => {
-    if (item?.variants && item.variants.length > 1) {
-      setSelectedProduct(item);
-      setShowVariantModal(true);
-    } else {
-      addToCart(item, item.variants?.[0]);
-    }
-  };
-
-  const addToCart = (product: any, variant: any) => {
-    console.log("Added to cart:", product.name, variant);
   };
 
   // Handle product added callback from ProductCard
@@ -436,87 +417,6 @@ const SubCategoryList = ({ route }: any) => {
     loadCart();
   };
 
-  // Update cart quantity with optimistic updates (instant response)
-  const updateCartQty = async (
-    productId: string,
-    variantId: string | undefined,
-    qty: number,
-    productItem?: any,
-  ) => {
-    const pid = productId?.toString();
-    if (!pid) {
-      console.log('updateCartQty: No productId provided');
-      return;
-    }
-
-    const vid = variantId ? variantId.toString() : undefined;
-    
-    try {
-      // 🔹 OPTIMISTIC UPDATE - Update UI immediately before API call
-      setCartItems(prev => {
-        const existingIndex = prev.findIndex((item: any) => {
-          const itemProductId = item?.productId?._id || item?.productId || item?._id || item?.id || '';
-          const itemVariantId = item?.variantId?._id || item?.variantId || undefined;
-          return itemProductId === pid && itemVariantId === vid;
-        });
-
-        if (qty > 0) {
-          if (existingIndex >= 0) {
-            // Update existing item quantity
-            const updated = [...prev];
-            updated[existingIndex] = {
-              ...updated[existingIndex],
-              quantity: qty,
-            };
-            return updated;
-          } else {
-            // Add new item
-            const newCartItem = {
-              productId: {
-                _id: pid,
-                name: productItem?.name || '',
-                images: [productItem?.image || productItem?.variants?.[0]?.images?.[0] || productItem?.ProductVarient?.[0]?.images?.[0]].filter(Boolean),
-              },
-              variantId: vid,
-              quantity: qty,
-            };
-            return [...prev, newCartItem];
-          }
-        } else {
-          // Remove item (qty = 0)
-          if (existingIndex >= 0) {
-            return prev.filter((_, index) => index !== existingIndex);
-          }
-          return prev;
-        }
-      });
-
-      // Make API call
-      if (qty > 0) {
-        await ApiService.addToCart(pid, vid, qty.toString());
-        
-        // Notify parent only when adding first item (qty === 1)
-        if (productItem && qty === 1) {
-          handleProductAdded(productItem);
-        }
-      } else {
-        await ApiService.removeCartItem(pid, vid);
-        
-        // Notify parent that product was removed
-        if (productItem) {
-          handleProductAdded({ ...productItem, removed: true });
-        }
-      }
-      
-      // Refresh cart to ensure sync with server
-      await loadCart();
-    } catch (e) {
-      console.error('updateCartQty error:', e);
-      // Revert to previous state by refreshing from server
-      await loadCart();
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <Header 
@@ -536,6 +436,9 @@ const SubCategoryList = ({ route }: any) => {
       ) : subCategories.length === 0 ? (
         <View style={styles.loaderContainer}>
           <TextView>No subcategories found</TextView>
+          <TextView style={{ marginTop: 10, fontSize: 12, color: '#666' }}>
+            Category ID: {categoryId || 'Not provided'}
+          </TextView>
         </View>
       ) : (
         <>
@@ -557,7 +460,7 @@ const SubCategoryList = ({ route }: any) => {
                 />
                 {searchQuery ? (
                   <Pressable onPress={() => setSearchQuery("")} style={{ padding: 10 }}>
-                    <Icon name="close" family="Feather" size={20} color="#000" />
+                
                   </Pressable>
                 ) : null}
               </View>
@@ -576,34 +479,15 @@ const SubCategoryList = ({ route }: any) => {
                   <TextView style={{ marginTop: 0, fontSize: 16, color: "#999" }}>No products found</TextView>
                 </View>
               ) : (
-                <FlatList
-                  data={products}
-                  numColumns={2}
-                  columnWrapperStyle={{
-                    justifyContent: "space-between",
-                    paddingHorizontal: CONTAINER_PADDING,
-                  }}
-                  contentContainerStyle={{ paddingVertical: 16 }}
-                  keyExtractor={(item) => item.id}
-                  renderItem={({ item }) => {
-                    return (
-                      <View
-                        style={{
-                          width: "49%",
-                          marginBottom: 10,
-                        }}
-                      >
-                        <ProductCard
-                          cardArray={[item]}
-                          horizontal={false}
-                          numOfColumn={1}
-                          type="OFFER"
-                          onProductAdded={handleProductAdded}
-                        />
-                      </View>
-                    );
-                  }}
-                />
+                <View style={{ flex: 1, paddingVertical: 16 }}>
+                  <ProductCard
+                    cardArray={products}
+                    horizontal={false}
+                    numOfColumn={2}
+                    type="OFFER"
+                    onProductAdded={handleProductAdded}
+                  />
+                </View>
               )}
             </View>
           ) : (
@@ -622,24 +506,15 @@ const SubCategoryList = ({ route }: any) => {
                 {productLoading ? (
                   renderShimmerGrid()
                 ) : (
-                <FlatList
-                    data={products}
-                    numColumns={2}
-                    columnWrapperStyle={{ justifyContent: "space-between" }}
-                    contentContainerStyle={{ paddingBottom: 0 }}
-                    keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => (
-                      <View style={styles.productCardWrapper}>
-                        <ProductCard
-                          cardArray={[item]}
-                          horizontal={false}
-                          numOfColumn={2}
-                          type="OFFER"
-                          onProductAdded={handleProductAdded}
-                        />
-                      </View>
-                    )}
-                  />
+                  <View style={{ flex: 1 }}>
+                    <ProductCard
+                      cardArray={products}
+                      horizontal={false}
+                      numOfColumn={2}
+                      type="OFFER"
+                      onProductAdded={handleProductAdded}
+                    />
+                  </View>
                 )}
               </View>
             </View>
@@ -651,12 +526,12 @@ const SubCategoryList = ({ route }: any) => {
         <TouchableWithoutFeedback onPress={() => setShowSortFilter(false)}>
           <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" }}>
             <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
-              <View style={{ 
-                backgroundColor: "#fff", 
-                borderTopLeftRadius: 16, 
-                borderTopRightRadius: 16, 
+              <View style={{
+                backgroundColor: "#fff",
+                borderTopLeftRadius: 16,
+                borderTopRightRadius: 16,
                 paddingBottom: 0, // Remove extra padding
-                maxHeight: "90%" 
+                maxHeight: "90%"
               }}>
             <ScrollView>
               <View style={{ padding: 16 }}>
@@ -667,12 +542,12 @@ const SubCategoryList = ({ route }: any) => {
                   { label: "Price (High to Low)", value: "price_desc" },
                   { label: "Discount (High to Low)", value: "discount" },
                 ].map((opt) => (
-                  <Pressable 
-                    key={opt.value} 
+                  <Pressable
+                    key={opt.value}
                     onPress={() => {
                       setSortBy(opt.value);
                       setShowSortFilter(false);
-                    }} 
+                    }}
                     style={{ flexDirection: "row", alignItems: "center", paddingVertical: 12 }}
                   >
                     <View style={{
@@ -691,139 +566,6 @@ const SubCategoryList = ({ route }: any) => {
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
-      </Modal>
-
-      {/* Variant Modal */}
-      <Modal 
-        visible={showVariantModal} 
-        transparent 
-        animationType="slide"
-        onRequestClose={() => setShowVariantModal(false)}
-      >
-        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <Pressable 
-            style={{ flex: 1 }} 
-            onPress={() => setShowVariantModal(false)}
-          />
-          <View style={{ backgroundColor: "white", borderTopLeftRadius: 12, borderTopRightRadius: 12, paddingBottom: 0 }}>
-            <Pressable 
-              onPress={() => setShowVariantModal(false)} 
-              style={{ padding: 16, alignSelf: "flex-end" }}
-            >
-              <TextView style={{ fontSize: 28, color: "#666" }}>×</TextView>
-            </Pressable>
-            {selectedProduct?.variants?.map((v: any, i: number) => {
-              const pid = selectedProduct?.id || selectedProduct?._id;
-              const vid = v?._id;
-              
-              // Look up quantity from cartItems by matching both productId and variantId
-              const findCartItem = (item: any) => {
-                const itemProductId = item?.productId?._id || item?.productId || item?._id || item?.id || '';
-                const itemVariantId = item?.variantId?._id || item?.variantId || undefined;
-                return itemProductId === pid && itemVariantId === vid;
-              };
-              
-              const matchingCartItem = cartItems.find(findCartItem);
-              const quantity = matchingCartItem?.quantity || 0;
-
-              return (
-                <View key={i} style={{ flexDirection: "row", alignItems: "center", padding: 12, borderWidth: 1, borderColor: "#ddd", borderRadius: 12, marginBottom:
-                i === selectedProduct.variants.length - 1 ? 0 : 10, gap: 12 }}>
-                  <Image source={{ uri: selectedProduct.image }} style={{ width: 60, height: 55, borderRadius: 8 }} />
-                  <View style={{ flex: 1 }}>
-                    <TextView>{selectedProduct.name}</TextView>
-                    {/* Weight and Price in same row */}
-                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
-                      <TextView style={{ fontSize: 13, color: "#666" }}>{v.stock || v.weight} {v.unit || "kg"}</TextView>
-                      <View style={{ flexDirection: "row", alignItems: "center" }}>
-                        <TextView style={{ fontWeight: "700" }}>₹{v.price}</TextView>
-                        {v.originalPrice && <TextView style={{ textDecorationLine: "line-through", fontSize: 12, marginLeft: 8,  }}>₹{v.originalPrice}</TextView>}
-                      </View>
-                    </View>
-                  </View>
-                  
-                  {/* Quantity Controls or Add Button */}
-                  {quantity > 0 ? (
-                    <LinearGradient
-                      colors={["#5A875C", "#015304"]}
-                      start={{ x: 0, y: 0.5 }}
-                      end={{ x: 1, y: 0 }}
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 6,
-                        borderRadius: 20,
-                        paddingHorizontal: 2,
-                        paddingVertical: 4,
-                        minWidth: 60,
-                        justifyContent: "space-between"
-                      }}
-                    >
-                      <Pressable
-                        onPress={() => {
-                          if (!pid) return;
-                          updateCartQty(pid, vid, quantity - 1, selectedProduct);
-                        }}
-                        style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 12,
-                          backgroundColor: "rgba(255, 255, 255, 0.3)",
-                          justifyContent: "center",
-                          alignItems: "center",
-                          borderWidth: 1,
-                          borderColor: "rgba(255, 255, 255, 0.5)",
-                        }}
-                      >
-                        <Text style={{ fontSize: 16, color: "#fff", fontWeight: "bold" }}>-</Text>
-                      </Pressable>
-
-                      <Text style={{ minWidth: 20, textAlign: "center", fontWeight: "700", color: "#fff", fontSize: 14 }}>
-                        {quantity}
-                      </Text>
-
-                      <Pressable
-                        onPress={() => {
-                          if (!pid) return;
-                          updateCartQty(pid, vid, quantity + 1, selectedProduct);
-                        }}
-                        style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 12,
-                          backgroundColor: "rgba(255, 255, 255, 0.3)",
-                          justifyContent: "center",
-                          alignItems: "center",
-                          borderWidth: 1,
-                          borderColor: "rgba(255, 255, 255, 0.5)",
-                        }}
-                      >
-                        <Text style={{ fontSize: 16, color: "#fff", fontWeight: "bold" }}>+</Text>
-                      </Pressable>
-                    </LinearGradient>
-                  ) : (
-                    <Pressable
-                      onPress={async () => {
-                        if (!pid) return;
-                        await updateCartQty(pid, vid, 1, selectedProduct);
-                      }}
-                      style={{ borderRadius: 20, overflow: "hidden" }}
-                    >
-                      <LinearGradient
-                        colors={["#5A875C", "#015304"]}
-                        start={{ x: 0, y: 0.5 }}
-                        end={{ x: 1, y: 0 }}
-                        style={{ paddingVertical: 4, paddingHorizontal: 14, borderRadius: 20 }}
-                      >
-                        <TextView style={{ color: "white" }}>Add</TextView>
-                      </LinearGradient>
-                    </Pressable>
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        </View>
       </Modal>
 
       {/* Floating Cart Button */}
