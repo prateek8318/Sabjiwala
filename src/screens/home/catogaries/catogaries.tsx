@@ -8,6 +8,7 @@ import {
   Animated,
   StyleSheet,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Header, TextView } from '../../../components';
@@ -160,8 +161,16 @@ const Catogaries = () => {
       const imagePath = cleaned ? `${IMAGE_BASE_URL}${cleaned}` : null;
       return imagePath || FALLBACK_IMAGE;
     });
+    const [imageLoading, setImageLoading] = useState(true);
 
-    const handleError = () => setUri(FALLBACK_IMAGE);
+    const handleError = () => {
+      setUri(FALLBACK_IMAGE);
+      setImageLoading(false);
+    };
+
+    const onLoad = () => {
+      setImageLoading(false);
+    };
 
     return (
       <Pressable
@@ -180,7 +189,22 @@ const Catogaries = () => {
             style={styles.categoryImage}
             resizeMode="cover"
             onError={handleError}
+            onLoad={onLoad}
           />
+          {imageLoading && (
+            <View style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: '#f0f0f0',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}>
+              <ActivityIndicator size="small" color="#ccc" />
+            </View>
+          )}
           <View style={styles.blurContainer}>
             <TextView style={styles.itemCatTxt} numberOfLines={2}>
               {item.name}

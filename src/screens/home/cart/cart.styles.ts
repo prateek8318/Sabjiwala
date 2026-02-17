@@ -187,10 +187,18 @@ const styles: any = StyleSheet.create({
     alignItems: 'center',
   },
 
+  quantityButtonDisabled: {
+    opacity: 0.5,
+  },
+
   quantityButtonText: {
     fontSize: hp(2.2),
     fontWeight: '600',
     color: '#02214C',
+  },
+
+  quantityButtonTextDisabled: {
+    color: '#888888',
   },
 
   quantityNumber: {

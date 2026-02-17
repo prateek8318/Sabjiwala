@@ -599,8 +599,8 @@ const Dashboard: FC = () => {
     if (newCartItems.length === 0) {
       setRecentlyAddedProducts([]);
     } else if (recentlyAddedProducts.length > 0) {
-      // Sirf delay se clear karo jab cart me items ho (animation ke liye)
-      setTimeout(() => setRecentlyAddedProducts([]), 1200);
+      // Reduced delay for better responsiveness
+      setTimeout(() => setRecentlyAddedProducts([]), 600); // Reduced from 1200ms
     }
   } catch (err) {
     console.log('Cart load error:', err);
@@ -627,32 +627,49 @@ const Dashboard: FC = () => {
   useEffect(() => {
     if (!lastAddedId) return;
     bounceValue.setValue(0);
+    // Faster and more responsive animation
     Animated.sequence([
       Animated.timing(bounceValue, {
-        toValue: -12,
-        duration: 140,
+        toValue: -8,
+        duration: 100, // Reduced from 140ms
         useNativeDriver: true,
       }),
       Animated.spring(bounceValue, {
         toValue: 0,
-        friction: 4,
+        tension: 100, // More snappy
+        friction: 6,   // Slightly more damping
         useNativeDriver: true,
       }),
     ]).start();
   }, [lastAddedId, bounceValue]);
 
   const handleProductAdded = (product: any) => {
-    const productImage =
+    // Get the raw image path from various possible sources
+    const rawImage =
       product?.image ||
       product?.variants?.[0]?.images?.[0] ||
       product?.ProductVarient?.[0]?.images?.[0] ||
       product?.primary_image?.[0];
 
+    // Process the image URL to ensure it's a full URL
+    let processedImage = rawImage;
+    if (rawImage) {
+      if (rawImage.startsWith('http')) {
+        // Already a full URL
+        processedImage = rawImage;
+      } else {
+        // It's a relative path, clean it and add base URL
+        const cleanPath = rawImage.replace(/\\/g, '/').replace(/^\//, '');
+        processedImage = `${IMAGE_BASE_URL}${cleanPath}`;
+      }
+    }
+
     const productWithImage = {
       ...product,
-      image: productImage,
+      image: processedImage,
     };
 
+    // Immediate state update for responsiveness
     setRecentlyAddedProducts(prev => {
       const filtered = prev.filter(
         p => (p.id || p._id) !== (product.id || product._id)
@@ -660,6 +677,7 @@ const Dashboard: FC = () => {
       return [productWithImage, ...filtered].slice(0, 3);
     });
 
+    // Trigger animation immediately after state update
     setLastAddedId(
       (product.id || product._id || Date.now().toString()).toString()
     );
@@ -1442,9 +1460,21 @@ const Dashboard: FC = () => {
                     }
 
                     return productsToShow.map((product, index) => {
-                      const imageUri = product?.image
-                        ? ApiService.getImage(product.image)
-                        : null;
+                      // Better image URL processing
+                      let imageUri = product?.image;
+                      if (imageUri) {
+                        // If it's already a full URL, use as is
+                        if (imageUri.startsWith('http')) {
+                          // Already a full URL
+                        } else {
+                          // It's a relative path, clean it and add base URL
+                          const cleanPath = imageUri.replace(/\\/g, '/').replace(/^\//, '');
+                          imageUri = `${IMAGE_BASE_URL}${cleanPath}`;
+                        }
+                      } else {
+                        imageUri = null;
+                      }
+                      
                       const Container: any = index === 0 ? Animated.View : View;
 
                       return (

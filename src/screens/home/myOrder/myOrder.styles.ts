@@ -120,7 +120,7 @@ export default StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: '#949494',
-    marginVertical: 16,
+    marginVertical: 8,
   },
   itemsCountText: {
     fontSize: 16,

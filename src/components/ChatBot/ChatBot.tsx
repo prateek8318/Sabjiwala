@@ -9,6 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
+  Keyboard,
+  Dimensions,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Colors from '../../constant/colors';
@@ -30,7 +32,23 @@ const ChatBot = ({ onClose }: { onClose: () => void }) => {
     },
   ]);
   const [inputText, setInputText] = useState('');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
 
   const handleSend = async () => {
     if (inputText.trim() === '') return;
@@ -91,42 +109,47 @@ const ChatBot = ({ onClose }: { onClose: () => void }) => {
   );
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-    >
-      <SafeAreaView style={{flex: 1}}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-           
-          </TouchableOpacity>
-        </View>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView 
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 100}
+        enabled
+      >
+        <View style={styles.innerContainer}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Icon name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
 
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.messagesContainer}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-        onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
-      />
-
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder="Type your message..."
-            placeholderTextColor="#000000"
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            renderItem={renderMessage}
+            keyExtractor={item => item.id}
+            contentContainerStyle={styles.messagesContainer}
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+            onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
+            style={styles.flatList}
           />
-          <TouchableOpacity onPress={handleSend} style={styles.sendButton}>
-            <Icon name="send" size={24} color={Colors.PRIMARY[300]} />
-          </TouchableOpacity>
+
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              value={inputText}
+              onChangeText={setInputText}
+              placeholder="Type your message..."
+              placeholderTextColor="#000000"
+              multiline={false}
+            />
+            <TouchableOpacity onPress={handleSend} style={styles.sendButton}>
+              <Icon name="send" size={24} color={Colors.PRIMARY[300]} />
+            </TouchableOpacity>
+          </View>
         </View>
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -135,15 +158,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.PRIMARY[300],
   },
+  keyboardContainer: {
+    flex: 1,
+  },
+  innerContainer: {
+    flex: 1,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
+    padding: 5,
     backgroundColor: Colors.PRIMARY[300],
   },
   closeButton: {
     position: 'absolute',
     right: 16,
+  },
+  flatList: {
+    flex: 1,
   },
   messagesContainer: {
     padding: 16,
@@ -191,7 +223,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.PRIMARY[300],
     borderTopWidth: 1,
     borderTopColor: Colors.NEUTRAL[200],
-    paddingBottom: 20,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
   },
   input: {
     flex: 1,

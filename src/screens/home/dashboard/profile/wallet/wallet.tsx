@@ -280,13 +280,15 @@ const Wallet: FC = () => {
           <Header title="Wallet" />
         </View>
 
-        <ScrollView
+        <KeyboardAwareScrollView
           showsVerticalScrollIndicator={true}
           style={styles.scrollView}
           contentContainerStyle={[styles.scrollContent, { flexGrow: 1, paddingBottom: 16 }]}
           keyboardShouldPersistTaps="handled"
           nestedScrollEnabled={true}
           bounces={true}
+          enableOnAndroid={true}
+          extraScrollHeight={hp(5)}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -457,7 +459,7 @@ const Wallet: FC = () => {
               />
             )}
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
 
         {/* Bottom View - Always Visible */}
         <View style={styles.bottomView}>
@@ -551,7 +553,7 @@ const Wallet: FC = () => {
                   >
                     <View style={styles.paymentMethodLeft}>
                       <Icon 
-                        name="phone" 
+                        name="cellphone" 
                         size={24} 
                         color={Colors.PRIMARY[100]} 
                         style={styles.paymentIcon}
@@ -585,7 +587,7 @@ const Wallet: FC = () => {
                   >
                     <View style={styles.paymentMethodLeft}>
                       <Icon 
-                        name="amazon" 
+                        name="cart" 
                         size={24} 
                         color={Colors.PRIMARY[100]} 
                         style={styles.paymentIcon}

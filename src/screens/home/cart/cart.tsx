@@ -46,6 +46,7 @@ const Cart = ({ navigation }: any) => {
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [showAddAddressModal, setShowAddAddressModal] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [minimumCartValue, setMinimumCartValue] = useState(0);
   const [isFreeDelivery, setIsFreeDelivery] = useState(false);
   const [remainingForFreeDelivery, setRemainingForFreeDelivery] = useState(0);
@@ -87,6 +88,7 @@ const Cart = ({ navigation }: any) => {
   const [showAddressSelectionModal, setShowAddressSelectionModal] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<{ variantId: string; productId: string; name?: string } | null>(null);
+  const [updatingItems, setUpdatingItems] = useState<Set<string>>(new Set());
   const isFocused = useIsFocused();
 
   // Hide bottom tab bar when Cart screen is focused
@@ -382,7 +384,7 @@ const Cart = ({ navigation }: any) => {
     setCouponError(error);
   }, [appliedCoupon, coupons, totals.itemPriceTotal, totals.grandTotal]);
 
-  // ADD ADDRESS
+  // ADD/UPDATE ADDRESS
   const handleAddAddress = async () => {
     // Validate required fields
     if (!addressForm.houseNoOrFlatNo || !addressForm.city || !addressForm.pincode || !addressForm.receiverName || !addressForm.receiverNo) {
@@ -422,9 +424,28 @@ const Cart = ({ navigation }: any) => {
     setAddressErrors({});
     try {
       setAddingAddress(true);
-      await ApiService.addAddress(addressForm);
+      
+      if (editingAddressId) {
+        // Update existing address
+        await ApiService.updateAddress(editingAddressId, addressForm);
+        Toast.show({
+          type: "success",
+          text1: "Address Updated",
+          text2: "Address has been updated successfully!",
+        });
+      } else {
+        // Add new address
+        await ApiService.addAddress(addressForm);
+        Toast.show({
+          type: "success",
+          text1: "Address Added",
+          text2: "Address has been added successfully!",
+        });
+      }
+      
       setShowAddAddressModal(false);
       setShowAddressSelectionModal(false);
+      setEditingAddressId(null);
       setAddressForm({
         addressType: "home",
         floor: "",
@@ -437,14 +458,9 @@ const Cart = ({ navigation }: any) => {
       });
       setAddressErrors({});
       await fetchAddresses();
-      Toast.show({
-        type: "success",
-        text1: "Address Added",
-        text2: "Address has been added successfully!",
-      });
     } catch (err: any) {
-      console.log("Add address error:", err);
-      const errorMessage = err?.response?.data?.message || err?.message || "Failed to add address";
+      console.log("Address save error:", err);
+      const errorMessage = err?.response?.data?.message || err?.message || `Failed to ${editingAddressId ? 'update' : 'add'} address`;
       Toast.show({
         type: "error",
         text1: "Error",
@@ -536,12 +552,16 @@ const Cart = ({ navigation }: any) => {
 
     const currentQuantity = item.quantity || 1;
     const newQuantity = currentQuantity + delta;
+    const itemId = item._id;
 
     if (newQuantity <= 0) {
       // Stronger feedback when removing last item
       Vibration.vibrate([0, 50, 20, 50]);
       return removeItem(item.variantId?._id || "", item.productId._id);
     }
+
+    // Add item to loading state
+    setUpdatingItems(prev => new Set(prev).add(itemId));
 
     try {
       // First make the API call to update the cart
@@ -593,6 +613,13 @@ const Cart = ({ navigation }: any) => {
       });
       // Refresh cart to ensure UI is in sync with server
       fetchCart(true);
+    } finally {
+      // Remove item from loading state
+      setUpdatingItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(itemId);
+        return newSet;
+      });
     }
   };
 
@@ -1042,9 +1069,16 @@ const Cart = ({ navigation }: any) => {
                         <View style={styles.quantityContainer}>
                           <TouchableOpacity
                             onPress={() => updateQuantity(item, -1)}
-                            style={styles.quantityButton}
+                            style={[
+                              styles.quantityButton,
+                              updatingItems.has(item._id) && styles.quantityButtonDisabled
+                            ]}
+                            disabled={updatingItems.has(item._id)}
                           >
-                            <Text style={styles.quantityButtonText}>−</Text>
+                            <Text style={[
+                              styles.quantityButtonText,
+                              updatingItems.has(item._id) && styles.quantityButtonTextDisabled
+                            ]}>−</Text>
                           </TouchableOpacity>
 
                           <Text style={styles.quantityNumber}>
@@ -1053,9 +1087,16 @@ const Cart = ({ navigation }: any) => {
 
                           <TouchableOpacity
                             onPress={() => updateQuantity(item, +1)}
-                            style={styles.quantityButton}
+                            style={[
+                              styles.quantityButton,
+                              updatingItems.has(item._id) && styles.quantityButtonDisabled
+                            ]}
+                            disabled={updatingItems.has(item._id)}
                           >
-                            <Text style={styles.quantityButtonText}>+</Text>
+                            <Text style={[
+                              styles.quantityButtonText,
+                              updatingItems.has(item._id) && styles.quantityButtonTextDisabled
+                            ]}>+</Text>
                           </TouchableOpacity>
                         </View>
                       </LinearGradient>
@@ -1891,13 +1932,6 @@ const Cart = ({ navigation }: any) => {
                   <TouchableOpacity
                     onPress={() => {
                       const trimmed = remarkText.trim();
-                      if (!trimmed) {
-                        Toast.show({
-                          type: "error",
-                          text1: "Please add a remark",
-                        });
-                        return;
-                      }
                       setRemarkText(trimmed);
                       setShowRemarkModal(false);
                     }}
@@ -1961,7 +1995,9 @@ const Cart = ({ navigation }: any) => {
               }} style={{ paddingRight: 10 }}>
                 <Icon name="arrow-back" size={24} color="#000" />
               </TouchableOpacity>
-              <Text style={{ fontSize: 18, fontWeight: "700", color: "#000" }}>Add New Address</Text>
+              <Text style={{ fontSize: 18, fontWeight: "700", color: "#000" }}>
+                {editingAddressId ? "Edit Address" : "Add New Address"}
+              </Text>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -2176,7 +2212,9 @@ const Cart = ({ navigation }: any) => {
                 {addingAddress ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>Save Address</Text>
+                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>
+                    {editingAddressId ? "Update Address" : "Save Address"}
+                  </Text>
                 )}
               </TouchableOpacity>
             </ScrollView>
@@ -2242,6 +2280,27 @@ const Cart = ({ navigation }: any) => {
                             </View>
                           )}
                         </View>
+                        <TouchableOpacity
+                          onPress={() => {
+                            // Set the address form with current address data for editing
+                            setEditingAddressId(address._id);
+                            setAddressForm({
+                              addressType: address.addressType || "home",
+                              floor: address.floor || "",
+                              houseNoOrFlatNo: address.houseNoOrFlatNo || "",
+                              landmark: address.landmark || "",
+                              pincode: address.pincode || "",
+                              city: address.city || "",
+                              receiverName: address.receiverName || "",
+                              receiverNo: address.receiverNo || "",
+                            });
+                            setShowAddressSelectionModal(false);
+                            setShowAddAddressModal(true);
+                          }}
+                          style={{ padding: 8 }}
+                        >
+                          <Icon name="create-outline" size={20} color="#4CAF50" />
+                        </TouchableOpacity>
                       </View>
                       <Text style={{ marginTop: 8, fontSize: 14, color: "#000", fontWeight: "600" }}>
                         {address.receiverName} - {address.receiverNo}
@@ -2261,6 +2320,7 @@ const Cart = ({ navigation }: any) => {
               {/* Add New Address Button */}
               <TouchableOpacity
                 onPress={() => {
+                  setEditingAddressId(null);
                   setShowAddressSelectionModal(false);
                   setShowAddAddressModal(true);
                 }}

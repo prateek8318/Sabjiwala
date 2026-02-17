@@ -127,18 +127,6 @@ const ProductCard: FC<ProductCardProps> = ({
     }
   }, []);
 
-  // Load cart on mount
-  useEffect(() => {
-    loadCart();
-  }, [loadCart]);
-
-  // Reload cart when screen comes into focus (e.g., when returning from cart screen)
-  useFocusEffect(
-    useCallback(() => {
-      loadCart();
-    }, [loadCart])
-  );
-
   const extractWishlistIds = useCallback((items: any[] = []) => {
     return items
       .map((i: any) =>
@@ -153,26 +141,6 @@ const ProductCard: FC<ProductCardProps> = ({
       )
       .filter(Boolean);
   }, []);
-
-  useEffect(() => {
-    const loadWishlist = async () => {
-      try {
-        const res = await ApiService.getWishlist();
-        console.log('Dashboard ProductCard - Wishlist response:', res?.data);
-
-        const items = getWishlistItemsFromResponse(res);
-        const ids = extractWishlistIds(items);
-        console.log('Dashboard ProductCard - Loaded wishlist IDs:', ids);
-        setWishlist(new Set(ids));
-      } catch (e) {
-        console.log("wishlist load error", e);
-      }
-    };
-    loadWishlist();
-  }, [extractWishlistIds]);
-
-  // Get the FavoritesContext
-  const { refreshFavorites } = useFavorites();
 
   // Helper function to extract wishlist items from API response
   const getWishlistItemsFromResponse = (res: any) => {
@@ -192,6 +160,40 @@ const ProductCard: FC<ProductCardProps> = ({
     }
     return items;
   };
+
+  const loadWishlist = useCallback(async () => {
+    try {
+      const res = await ApiService.getWishlist();
+      console.log('Dashboard ProductCard - Wishlist response:', res?.data);
+
+      const items = getWishlistItemsFromResponse(res);
+      const ids = extractWishlistIds(items);
+      console.log('Dashboard ProductCard - Loaded wishlist IDs:', ids);
+      setWishlist(new Set(ids));
+    } catch (e) {
+      console.log("wishlist load error", e);
+    }
+  }, [extractWishlistIds]);
+
+  // Load cart on mount
+  useEffect(() => {
+    loadCart();
+  }, [loadCart]);
+
+  // Reload cart when screen comes into focus (e.g., when returning from cart screen)
+  useFocusEffect(
+    useCallback(() => {
+      loadCart();
+      loadWishlist(); // Also reload wishlist to sync heart icon state
+    }, [loadCart, loadWishlist])
+  );
+
+  useEffect(() => {
+    loadWishlist();
+  }, [loadWishlist]);
+
+  // Get the FavoritesContext
+  const { refreshFavorites } = useFavorites();
 
   // Toggle favorite
   const toggleWishlist = async (productId: string, productName?: string) => {

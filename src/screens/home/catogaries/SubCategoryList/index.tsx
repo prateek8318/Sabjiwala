@@ -434,10 +434,17 @@ const SubCategoryList = ({ route }: any) => {
       {loading ? (
         renderShimmerGrid()
       ) : subCategories.length === 0 ? (
-        <View style={styles.loaderContainer}>
-          <TextView>No subcategories found</TextView>
-          <TextView style={{ marginTop: 10, fontSize: 12, color: '#666' }}>
-            Category ID: {categoryId || 'Not provided'}
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 20, paddingVertical: 50 }}>
+          <Icon 
+            name="folder-open" 
+            size={60} 
+            color={Colors.PRIMARY[200]} 
+            style={{ marginBottom: 15 }}
+            family="MaterialCommunityIcons"
+          />
+          <TextView style={{ fontSize: 16, color: "#999", textAlign: "center" }}>No subcategories found</TextView>
+          <TextView style={{ fontSize: 12, color: "#bbb", textAlign: "center", marginTop: 5 }}>
+            This category is currently empty
           </TextView>
         </View>
       ) : (
@@ -505,6 +512,20 @@ const SubCategoryList = ({ route }: any) => {
                 </View>
                 {productLoading ? (
                   renderShimmerGrid()
+                ) : products.length === 0 ? (
+                  <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 20, marginTop: -50 }}>
+                    <Icon 
+                      name="package-variant" 
+                      size={60} 
+                      color={Colors.PRIMARY[200]} 
+                      style={{ marginBottom: 15 }}
+                      family="MaterialCommunityIcons"
+                    />
+                    <TextView style={{ fontSize: 16, color: "#999", textAlign: "center" }}>No products found</TextView>
+                    <TextView style={{ fontSize: 12, color: "#bbb", textAlign: "center", marginTop: 5 }}>
+                      This subcategory is currently empty
+                    </TextView>
+                  </View>
                 ) : (
                   <View style={{ flex: 1 }}>
                     <ProductCard

@@ -397,21 +397,29 @@ const OrderSummaryScreen = () => {
               <View style={[styles.statusDot, { backgroundColor: '#4CAF50', marginLeft: 8 }]} />
             </View>
 
-            <TextView style={{ color: '#666', marginBottom: 4 }}>
-              {shippingAddress?.houseNoOrFlatNo || ''} {shippingAddress?.floor ? `, Floor: ${shippingAddress.floor}` : ''}
-            </TextView>
+            {(shippingAddress?.houseNoOrFlatNo || shippingAddress?.floor) && (
+              <TextView style={{ color: '#666', marginBottom: 4 }}>
+                {shippingAddress?.houseNoOrFlatNo || ''}{shippingAddress?.floor ? `, Floor: ${shippingAddress.floor}` : ''}
+              </TextView>
+            )}
 
-            <TextView style={{ color: '#666', marginBottom: 4 }}>
-              {shippingAddress?.landmark || ''}
-            </TextView>
+            {shippingAddress?.landmark && (
+              <TextView style={{ color: '#666', marginBottom: 4 }}>
+                {shippingAddress?.landmark}
+              </TextView>
+            )}
 
-            <TextView style={{ color: '#666', marginBottom: 4 }}>
-              {shippingAddress?.city || ''} - {shippingAddress?.pincode || ''}
-            </TextView>
+            {(shippingAddress?.city || shippingAddress?.pincode) && (
+              <TextView style={{ color: '#666', marginBottom: 4 }}>
+                {shippingAddress?.city || ''}{shippingAddress?.city && shippingAddress?.pincode ? ' - ' : ''}{shippingAddress?.pincode || ''}
+              </TextView>
+            )}
 
-            <TextView style={{ color: '#666', marginTop: 8 }}>
-              Mobile: {shippingAddress?.receiverNo || 'N/A'}
-            </TextView>
+            {shippingAddress?.receiverNo && (
+              <TextView style={{ color: '#666', marginTop: 8 }}>
+                Mobile: {shippingAddress?.receiverNo}
+              </TextView>
+            )}
           </View>
         </View>
 
