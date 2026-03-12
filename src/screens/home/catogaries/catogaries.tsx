@@ -9,6 +9,7 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Header, TextView } from '../../../components';
@@ -46,6 +47,7 @@ const Catogaries = () => {
   const navigation = useNavigation<CatogariesScreenNavigationType>();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
 
   const fetchCategories = async () => {
     try {
@@ -68,8 +70,14 @@ const Catogaries = () => {
       });
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchCategories();
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -237,6 +245,14 @@ const Catogaries = () => {
               contentContainerStyle={[styles.flatListContent, { flexGrow: 1 }]}
               columnWrapperStyle={styles.columnWrapper}
               showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={[Colors.PRIMARY[400]]}
+                  tintColor={Colors.PRIMARY[400]}
+                />
+              }
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
                   <TextView style={styles.emptyText}>No categories found</TextView>

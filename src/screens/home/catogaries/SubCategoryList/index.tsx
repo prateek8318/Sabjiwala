@@ -229,13 +229,24 @@ const SubCategoryList = ({ route }: any) => {
     }
   };
 
-  useEffect(() => {
-    if (categoryId) {
-      loadSubCategories();
-    } else {
-      setLoading(false);
-    }
-  }, [categoryId]);
+ useEffect(() => {
+  if (!categoryId) {
+    setLoading(false);
+    return;
+  }
+
+  // 🔥 RESET ALL PREVIOUS STATE
+  setLoading(true);
+  setSubCategories([]);
+  setSelectedSubId(null);
+  setProducts([]);
+  setAllProducts([]);
+  setFilterTypes([]);
+  setSearchQuery("");
+  setIsSearching(false);
+
+  loadSubCategories();
+}, [categoryId]);
 
   // Load cart data for floating button
   const loadCart = useCallback(async () => {

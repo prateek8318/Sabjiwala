@@ -43,6 +43,9 @@ const HomePageStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Dashboard" component={Dashboard} />
     <Stack.Screen name="TypeProductList" component={TypeProductList} />
+    {/* Ye do add karo ✅ */}
+    <Stack.Screen name="subCategoryList" component={SubCategoryList} />
+    <Stack.Screen name="productList" component={ProductList} />
   </Stack.Navigator>
 );
 const CatogariesPageStack = () => (
