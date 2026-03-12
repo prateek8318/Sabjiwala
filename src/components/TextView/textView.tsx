@@ -8,7 +8,8 @@ interface TextProps {
   style?: StyleProp<TextStyle>,
   children?: React.ReactNode | any,
   onPress?: () => void,
-  numberOfLines?: number
+  numberOfLines?: number,
+  ellipsizeMode?: 'head' | 'middle' | 'tail' | 'clip'
 }
 
 const TextView: FC<TextProps> = ({
@@ -16,11 +17,13 @@ const TextView: FC<TextProps> = ({
   children,
   onPress,
   numberOfLines,
+  ellipsizeMode,
 }) => {
 
   return (
     <Text
       numberOfLines={numberOfLines}
+      ellipsizeMode={ellipsizeMode}
       style={[Typography.BodyRegular12, style]}
       allowFontScaling={false}
       onPress={onPress}

@@ -56,19 +56,37 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
 
   useEffect(() => {
     const fetchOrder = async () => {
-      if (!orderId) return;
+      if (!orderId) {
+        console.log('No orderId provided to ReturnOrder screen');
+        Alert.alert('Error', 'Order ID is missing. Please try again.');
+        navigation.goBack();
+        return;
+      }
+      
       try {
+        console.log('Fetching order details for:', orderId);
         const res = await ApiService.getOrderDetails(orderId);
         const data = res?.data?.order || res?.data?.orders?.[0] || res?.data?.data || res?.data;
-        if (data) setOrder(data);
+        
+        if (data) {
+          console.log('Order data fetched successfully:', data._id);
+          setOrder(data);
+        } else {
+          console.log('No order data found in response:', res);
+          Alert.alert('Error', 'Order not found. Please try again.');
+          navigation.goBack();
+        }
       } catch (err: any) {
         console.log('Return order fetch error:', err?.response?.data || err?.message);
+        Alert.alert('Error', 'Failed to load order details. Please try again.');
+        navigation.goBack();
       } finally {
         setLoading(false);
       }
     };
+    
     if (!passedOrder) fetchOrder();
-  }, [orderId, passedOrder]);
+  }, [orderId, passedOrder, navigation]);
 
   useEffect(() => {
     const resolveAddress = async () => {
@@ -173,24 +191,41 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
     });
   };
 
-  const onSubmit = async () => {
-    if (!deliveredState.isDelivered) {
-      Alert.alert('Return unavailable', 'Return is available after delivery.');
-      return;
-    }
+  const formatDateTime = (dateStr: string) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    const date = d.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+    const time = d.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+    return `${date}, ${time}`;
+  };
 
-    if (!deliveredState.windowOpen && !deliveredState.isReturnRequested) {
-      Alert.alert('Return unavailable', 'Return window is closed for this order.');
+  const onSubmit = async () => {
+    console.log('Return form submission started');
+    
+    if (!deliveredState.isDelivered) {
+      console.log('Return blocked: Order not delivered');
+      Alert.alert('Return unavailable', 'Return is available after delivery.');
       return;
     }
 
     const entries = Object.entries(selectedItems);
     if (!entries.length) {
+      console.log('Return blocked: No items selected');
       Alert.alert('Select items', 'Please select at least one item to return.');
       return;
     }
 
+    console.log('Submitting return request with items:', entries.length);
     setSubmitting(true);
+    
     try {
       const payloadProducts = entries.map(([key, data]) => {
         const [productId, variantId] = key.split('|');
@@ -208,8 +243,11 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
         comment: comment || 'Please arrange pickup',
       };
 
+      console.log('Return request payload:', { orderId, payload });
       const res = await ApiService.createReturnRequest(orderId, payload);
       const returnData = res?.data?.returnOrder;
+      
+      console.log('Return request response:', res?.data);
       
       setReturnSubmitted(true);
       
@@ -240,6 +278,7 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
         }, 2000);
       }
     } catch (err: any) {
+      console.log('Return request error:', err?.response?.data || err?.message);
       const msg = err?.response?.data?.message || 'Unable to create return request. Please try again.';
       Alert.alert('Error', msg);
     } finally {
@@ -274,7 +313,7 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backBtn} 
-          onPress={() => navigation.navigate('MyOrder')}
+          onPress={() => navigation.goBack()}
         >
           <Icon name="arrow-left" family="Feather" size={24} color={Colors.PRIMARY[400]} />
         </TouchableOpacity>
@@ -364,7 +403,13 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
           </View>
           <View style={styles.row}>
             <TextView style={styles.tinyLabel}>Order ID</TextView>
-            <TextView style={{ color: '#000' }}>#{order?._id || orderId}</TextView>
+            <TextView 
+              style={{ color: '#000', flex: 1, textAlign: 'right' }}
+              numberOfLines={1}
+              ellipsizeMode="middle"
+            >
+              #{order?._id || orderId}
+            </TextView>
           </View>
           <View style={styles.row}>
             <TextView style={styles.tinyLabel}>Pickup Address</TextView>
@@ -372,12 +417,12 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
           </View>
           <View style={styles.row}>
             <TextView style={styles.tinyLabel}>Order Placed</TextView>
-            <TextView style={{ color: '#000' }}>{formatDate(order?.createdAt || order?.orderDate)}</TextView>
+            <TextView style={{ color: '#000' }}>{formatDateTime(order?.createdAt || order?.orderDate)}</TextView>
           </View>
           <View style={styles.row}>
             <TextView style={styles.tinyLabel}>Order Delivered on</TextView>
             <TextView style={{ color: '#000' }}>
-              {formatDate(
+              {formatDateTime(
                 order?.deliveredAt ||
                 order?.delivered_on ||
                 order?.deliveryDate ||
@@ -408,12 +453,11 @@ const ReturnOrder: React.FC<Props> = ({ route, navigation }) => {
             disabled={
               submitting ||
               returnSubmitted ||
-              !deliveredState.isDelivered ||
-              (!deliveredState.windowOpen && !deliveredState.isReturnRequested)
+              !deliveredState.isDelivered
             }
             style={[
               styles.primaryBtn,
-              (returnSubmitted || !deliveredState.isDelivered || (!deliveredState.windowOpen && !deliveredState.isReturnRequested))
+              (returnSubmitted || !deliveredState.isDelivered)
                 ? styles.disabledBtn
                 : null,
             ]}

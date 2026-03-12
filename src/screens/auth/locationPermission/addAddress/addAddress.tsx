@@ -42,8 +42,6 @@ const AddAddress: FC = () => {
   const editingAddress = route?.params?.address;
   const fromAddressScreen = route?.params?.fromAddressScreen;
   const isEdit = !!editingAddress;
-  const sanitizeText = (text: string, limit: number) =>
-    text ? text.replace(/\s+/g, ' ').trim().slice(0, limit) : '';
 
   useEffect(() => {
     if (editingAddress) {
@@ -65,8 +63,8 @@ const AddAddress: FC = () => {
         setAddressType(prefill.addressType);
       }
       setFloor(prefill.floor || 'Ground');
-      setHouseNoOrFlatNo(sanitizeText(prefill.houseNoOrFlatNo || '', 60));
-      setLandmark(sanitizeText(prefill.landmark || '', 80));
+      setHouseNoOrFlatNo(prefill.houseNoOrFlatNo || '');
+      setLandmark(prefill.landmark || '');
       setPincode(prefill.pincode || '');
       setCity(prefill.city || '');
       if (prefill.lat && prefill.long) {
@@ -146,6 +144,27 @@ const AddAddress: FC = () => {
 
   const saveAddress = async () => {
     if (!validateRequired()) return;
+
+    // For editing, check if any changes were made
+    if (isEdit && editingAddress?._id) {
+      const hasChanges = 
+        (editingAddress.addressType || 'home') !== addressType ||
+        (editingAddress.floor || '') !== floor ||
+        (editingAddress.houseNoOrFlatNo || '') !== houseNoOrFlatNo ||
+        (editingAddress.landmark || '') !== landmark ||
+        (editingAddress.pincode || '') !== pincode ||
+        (editingAddress.city || '') !== city ||
+        (editingAddress.receiverName || '') !== receiverName ||
+        (editingAddress.receiverNo || '') !== receiverNo;
+
+      if (!hasChanges) {
+        showToast('success', 'No Changes', 'No changes were made to the address');
+        setTimeout(() => {
+          navigation.goBack();
+        }, 1500);
+        return;
+      }
+    }
 
     const payload = {
       addressType: addressType,           // "home", "work", "other"
@@ -283,9 +302,8 @@ const AddAddress: FC = () => {
                   setTouched((prev) => ({ ...prev, houseNoOrFlatNo: true }))
                 }
                 onChangeText={(txt) => {
-                  const sanitized = sanitizeText(txt, 60);
-                  setHouseNoOrFlatNo(sanitized);
-                  clearErrorIfValid('houseNoOrFlatNo', sanitized);
+                  setHouseNoOrFlatNo(txt.slice(0, 60));
+                  clearErrorIfValid('houseNoOrFlatNo', txt);
                 }}
                 placeHolderTextStyle={placeholderColor}
                 inputStyle={styles.inputView}

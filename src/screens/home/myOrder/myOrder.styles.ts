@@ -222,6 +222,15 @@ export default StyleSheet.create({
     flexShrink: 1,
     flexWrap: 'wrap',
   },
+  orderIdValue: {
+    color: '#000',
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'right',
+    flex: 2,
+    marginBottom: 0,
+    flexShrink: 0,
+  },
   statusDot: {
     width: 12,
     height: 12,

@@ -219,6 +219,22 @@ const OrderSummaryScreen = () => {
     });
   };
 
+  const formatDateTime = (dateStr: string): string => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    const date = d.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+    const time = d.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+    return `${date}, ${time}`;
+  };
+
   const getStatusColor = (status: string): string => {
     const s = status?.toLowerCase();
     if (!s) return '#666';
@@ -366,7 +382,13 @@ const OrderSummaryScreen = () => {
           <View style={[styles.card, { paddingVertical: 12 }]}>
             <View style={[styles.detailRow, { marginBottom: 8 }]}>
               <TextView style={styles.detailLabel}>Order ID:</TextView>
-              <TextView style={styles.detailValue}>#{order?._id}</TextView>
+              <TextView 
+                style={styles.orderIdValue}
+                numberOfLines={1}
+                ellipsizeMode="middle"
+              >
+                #{order?._id}
+              </TextView>
             </View>
 
             <View style={[styles.detailRow, { marginBottom: 8 }]}>
@@ -379,7 +401,7 @@ const OrderSummaryScreen = () => {
             <View style={styles.detailRow}>
               <TextView style={styles.detailLabel}>Order Placed On:</TextView>
               <TextView style={styles.detailValue}>
-                {formatDate(order?.createdAt || order?.orderDate)}
+                {formatDateTime(order?.createdAt || order?.orderDate)}
               </TextView>
             </View>
           </View>

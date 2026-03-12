@@ -11,7 +11,7 @@ import {
   Pressable,
   Animated,
 } from 'react-native';
-import { FC, useRef } from 'react';
+import { FC, useRef, memo } from 'react';
 import _ from 'lodash';
 import {
   widthPercentageToDP as wp,
@@ -1186,4 +1186,4 @@ const ProductCard: FC<ProductCardProps> = ({
   );
 };
 
-export default ProductCard;
+export default memo(ProductCard);

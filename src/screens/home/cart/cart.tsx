@@ -83,6 +83,8 @@ const Cart = ({ navigation }: any) => {
   const [couponLoading, setCouponLoading] = useState(false);
   const [showRemarkModal, setShowRemarkModal] = useState(false);
   const [remarkText, setRemarkText] = useState("");
+  const [remarkError, setRemarkError] = useState("");
+  const [shopDetailsAdded, setShopDetailsAdded] = useState(false);
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [showAddressSelectionModal, setShowAddressSelectionModal] = useState(false);
@@ -338,7 +340,15 @@ const Cart = ({ navigation }: any) => {
 
   const handleApplyCoupon = (code: string) => {
     const trimmed = code.trim();
-    if (!trimmed) return;
+    if (!trimmed) {
+      setCouponError("Please enter coupon");
+      Toast.show({
+        type: "error",
+        text1: "Coupon Error",
+        text2: "Please enter coupon",
+      });
+      return;
+    }
     if (appliedCoupon && appliedCoupon.toLowerCase() === trimmed.toLowerCase()) {
       Toast.show({
         type: "info",
@@ -426,6 +436,44 @@ const Cart = ({ navigation }: any) => {
       setAddingAddress(true);
       
       if (editingAddressId) {
+        // Check if any changes were made before updating
+        const originalAddress = addresses.find(addr => addr._id === editingAddressId);
+        if (originalAddress) {
+          const hasChanges = 
+            (originalAddress.addressType || 'home') !== addressForm.addressType ||
+            (originalAddress.floor || '') !== addressForm.floor ||
+            (originalAddress.houseNoOrFlatNo || '') !== addressForm.houseNoOrFlatNo ||
+            (originalAddress.landmark || '') !== addressForm.landmark ||
+            (originalAddress.pincode || '') !== addressForm.pincode ||
+            (originalAddress.city || '') !== addressForm.city ||
+            (originalAddress.receiverName || '') !== addressForm.receiverName ||
+            (originalAddress.receiverNo || '') !== addressForm.receiverNo;
+
+          if (!hasChanges) {
+            Toast.show({
+              type: "info",
+              text1: "No Changes",
+              text2: "No changes were made to the address",
+            });
+            // Close modal without making API call
+            setShowAddAddressModal(false);
+            setShowAddressSelectionModal(false);
+            setEditingAddressId(null);
+            setAddressForm({
+              addressType: "home",
+              floor: "",
+              houseNoOrFlatNo: "",
+              landmark: "",
+              pincode: "",
+              city: "",
+              receiverName: "",
+              receiverNo: "",
+            });
+            setAddressErrors({});
+            return;
+          }
+        }
+
         // Update existing address
         await ApiService.updateAddress(editingAddressId, addressForm);
         Toast.show({
@@ -1109,7 +1157,10 @@ const Cart = ({ navigation }: any) => {
             {/* Baki sab same — Coupon, Delivery, Payment, Tip, etc */}
             <TouchableOpacity
               style={styles.couponButton}
-              onPress={() => setCouponSheetVisible(true)}
+              onPress={() => {
+                setCouponSheetVisible(true);
+                setCouponError(null); // Clear any previous errors
+              }}
             >
               <Text style={styles.couponText}>See Available Coupons</Text>
               <MaterialIcons name="arrow-forward-ios" size={16} color="#000" />
@@ -1425,7 +1476,14 @@ const Cart = ({ navigation }: any) => {
                   Add any other detail for shop
                 </Text>
                 <TouchableOpacity
-                  onPress={() => setShowRemarkModal(true)}
+                  onPress={() => {
+                    setShowRemarkModal(true);
+                    setRemarkError(""); // Clear any previous error
+                    // Clear form data only if adding new (not editing)
+                    if (!shopDetailsAdded) {
+                      setRemarkText("");
+                    }
+                  }}
                   style={{
                     borderRadius: 25,
                     overflow: "hidden",
@@ -1444,7 +1502,7 @@ const Cart = ({ navigation }: any) => {
                     }}
                   >
                     <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>
-                      Add
+                      {shopDetailsAdded ? "Edit" : "Add"}
                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>
@@ -1512,7 +1570,13 @@ const Cart = ({ navigation }: any) => {
               placeholder="Enter Coupon Code"
               placeholderTextColor="#015304"
               value={manualCoupon}
-              onChangeText={setManualCoupon}
+              onChangeText={(text) => {
+                setManualCoupon(text);
+                // Clear error when user starts typing
+                if (couponError) {
+                  setCouponError(null);
+                }
+              }}
               style={{
                 flex: 1,
                 borderWidth: 1,
@@ -1526,7 +1590,10 @@ const Cart = ({ navigation }: any) => {
 
             <Pressable
               onPress={() => {
-                if (!manualCoupon.trim()) return;
+                if (!manualCoupon.trim()) {
+                  setCouponError("Please enter coupon");
+                  return;
+                }
                 handleApplyCoupon(manualCoupon.trim());
               }}
               style={{
@@ -1553,6 +1620,15 @@ const Cart = ({ navigation }: any) => {
               )}
             </Pressable>
           </View>
+
+          {/* Coupon Error Message */}
+          {couponError && (
+            <View style={{ paddingHorizontal: 16, marginTop: 4 }}>
+              <Text style={{ color: "#C62828", fontSize: 12 }}>
+                {couponError}
+              </Text>
+            </View>
+          )}
 
           {/* Available Coupons Title */}
           <Text
@@ -1911,17 +1987,23 @@ const Cart = ({ navigation }: any) => {
             <View style={{ flex: 1, alignItems: "center", justifyContent: "center", zIndex: 2 }}>
               <TouchableWithoutFeedback>
                 <View style={{ backgroundColor: "#fff", width: "84%", borderRadius: 12, padding: 16 }}>
+                  <Text style={{ fontSize: 18, fontWeight: "700", color: "#000", marginBottom: 12, textAlign: "center" }}>
+                    {shopDetailsAdded ? "Edit Shop Details" : "Add Shop Details"}
+                  </Text>
 
                   <TextInput
                     value={remarkText}
-                    onChangeText={setRemarkText}
-                    placeholder="Add Your remark here."
+                    onChangeText={(text) => {
+                      setRemarkText(text);
+                      setRemarkError(""); // Clear error when user starts typing
+                    }}
+                    placeholder={shopDetailsAdded ? "Edit your shop details here." : "Add your shop details here."}
                     placeholderTextColor="#888"
                     multiline
                     style={{
                       minHeight: 180,
                       borderWidth: 1,
-                      borderColor: "#ccc",
+                      borderColor: remarkError ? "#ff4444" : "#ccc",
                       borderStyle: "dashed",
                       borderRadius: 10,
                       padding: 12,
@@ -1929,11 +2011,32 @@ const Cart = ({ navigation }: any) => {
                       color: "#000",
                     }}
                   />
+                  {remarkError ? (
+                    <Text style={{ color: "#ff4444", fontSize: 12, marginTop: 4 }}>
+                      {remarkError}
+                    </Text>
+                  ) : null}
                   <TouchableOpacity
                     onPress={() => {
                       const trimmed = remarkText.trim();
+                      if (!trimmed) {
+                        setRemarkError("Please enter remark before submit");
+                        return;
+                      }
+                      setRemarkError("");
                       setRemarkText(trimmed);
                       setShowRemarkModal(false);
+                      
+                      // Show success message
+                      const isUpdate = shopDetailsAdded;
+                      Toast.show({
+                        type: "success",
+                        text1: isUpdate ? "Successfully Updated" : "Successfully Added",
+                        text2: `Shop details have been ${isUpdate ? "updated" : "added"} successfully`,
+                      });
+                      
+                      // Mark as added (this will change the button to Edit mode for future interactions)
+                      setShopDetailsAdded(true);
                     }}
                     activeOpacity={0.8}
                     style={{ marginTop: 16 }}
@@ -1955,7 +2058,7 @@ const Cart = ({ navigation }: any) => {
                           fontSize: 16,
                         }}
                       >
-                        Submit
+                        {shopDetailsAdded ? "Update" : "Submit"}
                       </Text>
                     </LinearGradient>
                   </TouchableOpacity>

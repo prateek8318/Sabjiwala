@@ -107,6 +107,22 @@ const MyOrder = () => {
     });
   };
 
+  const formatDateTime = (dateStr: string) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    const date = d.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+    const time = d.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+    return `${date}, ${time}`;
+  };
+
   const getStatusColor = (status: string) => {
     const s = status?.toLowerCase();
     if (!s) return '#666';
@@ -209,10 +225,12 @@ const MyOrder = () => {
       status.includes('delivered_completed') ||
       status === 'delivered' ||
       status === 'completed' ||
+      status === 'delivered_completed' ||
       isReturnRequested; // If return is requested, it must have been delivered
     
     const isCancelled = status.includes('cancel') || status.includes('cancelled');
     
+    // Try multiple possible date fields for delivery date
     const deliveredDate =
       item.deliveredAt ||
       item.delivered_on ||
@@ -220,11 +238,17 @@ const MyOrder = () => {
       item.completedAt ||
       item.updatedAt ||
       item.statusUpdatedAt ||
-      item.deliveredDate;
+      item.deliveredDate ||
+      item.orderDeliveredAt ||
+      item.delivery_completed_at;
+    
     const deliveredAt = deliveredDate ? new Date(deliveredDate) : null;
     const diffHours = deliveredAt ? (Date.now() - deliveredAt.getTime()) / 36e5 : Infinity;
     const RETURN_WINDOW_HOURS = 72;
     const windowOpen = diffHours <= RETURN_WINDOW_HOURS;
+
+    // For debugging, always show return button for delivered orders regardless of time window
+    const shouldShowReturnButton = isDelivered && !isCancelled;
 
     const totals = computeOrderTotals(item);
 
@@ -242,7 +266,7 @@ const MyOrder = () => {
       windowOpen,
       deliveredDate,
       diffHours,
-      buttonEnabled: isDelivered && !isCancelled && (windowOpen || isReturnRequested)
+      shouldShowReturnButton
     });
 
     return (
@@ -254,7 +278,7 @@ const MyOrder = () => {
         style={[styles.orderCard, { backgroundColor: '#fff' }]}
       >
         {/* Status, price, and date on same line */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             {isReturnRequested && (
               <View style={{
@@ -269,9 +293,11 @@ const MyOrder = () => {
               {getDisplayStatus(item.status || item.orderStatus || '')}
             </TextView>
           </View>
-          <View style={{ alignItems: 'flex-end', flexDirection: 'row', gap: 8 }}>
+          <View style={{ alignItems: 'flex-end' }}>
             <TextView style={{ color: '#000', fontWeight: '700', fontSize: 14 }}>₹{totals.grandTotal.toFixed(2)}</TextView>
-            <TextView style={{ color: '#444', fontSize: 12 }}>{formatDate(item.createdAt || item.orderDate)}</TextView>
+            <TextView style={{ color: '#444', fontSize: 11, marginTop: 2 }}>
+              {formatDateTime(item.createdAt || item.orderDate)}
+            </TextView>
           </View>
         </View>
 
@@ -402,9 +428,9 @@ const MyOrder = () => {
           <TouchableOpacity
             style={[
               styles.actionBtn,
-              (!isDelivered || isCancelled || (!windowOpen && !isReturnRequested)) ? styles.actionBtnDisabled : null,
+              !shouldShowReturnButton ? styles.actionBtnDisabled : null,
             ]}
-            disabled={!isDelivered || isCancelled || (!windowOpen && !isReturnRequested)}
+            disabled={!shouldShowReturnButton}
             onPress={() => {
               console.log('Return button pressed:', { 
                 orderId: item._id, 
@@ -412,7 +438,7 @@ const MyOrder = () => {
                 isDelivered, 
                 windowOpen, 
                 isReturnRequested,
-                buttonEnabled: isDelivered && !isCancelled && (windowOpen || isReturnRequested)
+                shouldShowReturnButton
               });
               navigation.navigate('ReturnOrder' as any, { orderId: item._id, order: item });
             }}
@@ -420,7 +446,7 @@ const MyOrder = () => {
             <TextView
               style={[
                 styles.actionText,
-                (!isDelivered || isCancelled || (!windowOpen && !isReturnRequested)) ? styles.actionTextDisabled : null,
+                !shouldShowReturnButton ? styles.actionTextDisabled : null,
               ]}
             >
               {isReturnRequested ? 'View Return' : 'Return'}

@@ -22,13 +22,6 @@ const Favorites = () => {
   const { refreshFavorites } = useFavorites();
   const [isLoading, setIsLoading] = useState(true);
   
-  // Refresh favorites when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      refreshFavorites();
-      loadFavorites();
-    }, [])
-  );
   const [favoriteProducts, setFavoriteProducts] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [updatingProducts, setUpdatingProducts] = useState<{ [key: string]: boolean }>({});
@@ -308,12 +301,14 @@ const Favorites = () => {
   useFocusEffect(
     useCallback(() => {
       const loadData = async () => {
-        await loadFavorites();
-        await loadCart();
-        await refreshFavorites();
+        await Promise.all([
+          loadFavorites(),
+          loadCart(),
+          refreshFavorites()
+        ]);
       };
       loadData();
-    }, [refreshFavorites])
+    }, [])
   );
 
   // Toggle favorite - Remove from favorites

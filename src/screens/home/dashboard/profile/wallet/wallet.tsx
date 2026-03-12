@@ -257,16 +257,10 @@ const Wallet: FC = () => {
         return;
       }
 
-      const friendlyMessage = normalizedMessage.includes('card')
-        ? 'Please double‑check your card details and try again.'
-        : normalizedMessage.includes('upi')
-          ? 'Please re-enter your UPI ID (e.g., username@bank) and try again.'
-          : normalizedMessage || 'Payment failed. Please try again.';
-
       Toast.show({
         type: 'error',
         text1: 'Payment failed',
-        text2: friendlyMessage,
+        text2: 'Please try again or contact support if the issue persists.',
       });
     } finally {
       setProcessingPayment(false);
