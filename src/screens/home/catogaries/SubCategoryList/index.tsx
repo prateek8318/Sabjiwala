@@ -57,7 +57,7 @@ const getFullScreenCardWidthPercent = () => {
 };
 
 const SubCategoryList = ({ route }: any) => {
-  const { categoryId, categoryName } = route.params || {};
+  const { categoryId, categoryName, key } = route.params || {};
   const navigation = useNavigation<any>();
   const isFocused = useIsFocused();
 
@@ -235,7 +235,7 @@ const SubCategoryList = ({ route }: any) => {
     return;
   }
 
-  // 🔥 RESET ALL PREVIOUS STATE
+  // 🔥 RESET ALL PREVIOUS STATE - AGGRESSIVE RESET
   setLoading(true);
   setSubCategories([]);
   setSelectedSubId(null);
@@ -244,9 +244,11 @@ const SubCategoryList = ({ route }: any) => {
   setFilterTypes([]);
   setSearchQuery("");
   setIsSearching(false);
+  setSelectedTypes([]);
+  setSortBy("relevance");
 
   loadSubCategories();
-}, [categoryId]);
+}, [categoryId, key]); // Add key to force remount
 
   // Load cart data for floating button
   const loadCart = useCallback(async () => {
@@ -282,6 +284,8 @@ const SubCategoryList = ({ route }: any) => {
   useFocusEffect(
     useCallback(() => {
       loadCart();
+      // Don't reset categories on focus - only on initial mount or categoryId change
+      // This prevents page refresh when add button is clicked
     }, [loadCart])
   );
 

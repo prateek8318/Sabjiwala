@@ -11,7 +11,7 @@ import { OrderDetailsResponse, OrderTrackingResponse, LocationUpdatePayload, Loc
 // -------------------------------------------------
 // 1. Base URL (your live dev server)
 const BASE_URL = 'http://159.89.146.245:5010/api/';
-//  const BASE_URL = 'http://192.168.1.23:7006/api/';
+//  const BASE_URL = 'http://192.168.1.29:7006/api/';
 // export const IMAGE_BASE_URL = 'http://192.168.1.23:7006/';
  export const IMAGE_BASE_URL = 'http://159.89.146.245:5010/';
 

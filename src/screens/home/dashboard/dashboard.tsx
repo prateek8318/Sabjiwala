@@ -849,15 +849,21 @@ const Dashboard: FC = () => {
           <Pressable
             key={item.id}
             style={{ alignItems: 'center' }}
-            onPress={() =>
-              navigation.navigate('Catogaries', {
-                screen: 'subCategoryList',
-                params: {
-                  categoryId: item.id,
-                  categoryName: item.name,
-                },
-              })
-            }
+            onPress={() => {
+              // Reset category tab first, then navigate
+              navigation.navigate('BottomStackNavigator', { screen: 'Catogaries' });
+              // Small delay to ensure tab switch, then navigate to subcategory
+              setTimeout(() => {
+                navigation.navigate('Catogaries', {
+                  screen: 'subCategoryList',
+                  params: {
+                    categoryId: item.id,
+                    categoryName: item.name,
+                    key: Date.now().toString(), // Force remount
+                  },
+                });
+              }, 100);
+            }}
           >
             <View style={styles.groceryCard1}>
               {item.image && (
@@ -879,15 +885,21 @@ const Dashboard: FC = () => {
           <Pressable
             key={item.id}
             style={{ alignItems: 'center' }}
-            onPress={() =>
-              navigation.navigate('Catogaries', {
-                screen: 'subCategoryList',
-                params: {
-                  categoryId: item.id,
-                  categoryName: item.name,
-                },
-              })
-            }
+            onPress={() => {
+              // Reset category tab first, then navigate
+              navigation.navigate('BottomStackNavigator', { screen: 'Catogaries' });
+              // Small delay to ensure tab switch, then navigate to subcategory
+              setTimeout(() => {
+                navigation.navigate('Catogaries', {
+                  screen: 'subCategoryList',
+                  params: {
+                    categoryId: item.id,
+                    categoryName: item.name,
+                    key: Date.now().toString(), // Force remount
+                  },
+                });
+              }, 100);
+            }}
           >
             <View style={styles.commonGroceryCard}>
               {item.image && (
