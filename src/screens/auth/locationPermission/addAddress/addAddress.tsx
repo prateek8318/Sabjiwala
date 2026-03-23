@@ -19,6 +19,7 @@ import InputText from '../../../../components/InputText/TextInput';
 import ApiService from '../../../../service/apiService';
 import { LocalStorage } from '../../../../helpers/localstorage';
 import { UserData, UserDataContext } from '../../../../context/userDataContext';
+import { usePincodeAutoFill } from '../../../../hooks/usePincodeAutoFill';
 
 const AddAddress: FC = () => {
   const navigation = useNavigation<any>();
@@ -38,10 +39,26 @@ const AddAddress: FC = () => {
   const [coords, setCoords] = useState<{ lat?: number; long?: number }>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  
+  const { pincodeLoading, handlePincodeChange: handlePincodeAutoFill } = usePincodeAutoFill();
 
   const editingAddress = route?.params?.address;
   const fromAddressScreen = route?.params?.fromAddressScreen;
   const isEdit = !!editingAddress;
+
+  const clearFormData = () => {
+    setAddressType('home');
+    setFloor('');
+    setHouseNoOrFlatNo('');
+    setLandmark('');
+    setPincode('');
+    setCity('');
+    setReceiverName('');
+    setReceiverNo('');
+    setCoords({});
+    setErrors({});
+    setTouched({});
+  };
 
   useEffect(() => {
     if (editingAddress) {
@@ -72,6 +89,37 @@ const AddAddress: FC = () => {
       }
     }
   }, [editingAddress, route?.params?.prefillAddress]);
+
+  useEffect(() => {
+    // Clear form data when component unmounts (user navigates back without saving)
+    return () => {
+      if (!isEdit) {
+        clearFormData();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+      if (e.data.action.type === 'GO_BACK') {
+        // Clear form data when going back without saving
+        if (!isEdit && !loading) {
+          clearFormData();
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, isEdit, loading]);
+
+  const handlePincodeChange = (txt: string) => {
+    handlePincodeAutoFill(
+      txt,
+      setPincode,
+      clearErrorIfValid,
+      setCity
+    );
+  };
 
   const showToast = (
     type: 'success' | 'error',
@@ -345,11 +393,7 @@ const AddAddress: FC = () => {
                 onFocus={() =>
                   setTouched((prev) => ({ ...prev, pincode: true }))
                 }
-                onChangeText={(txt) => {
-              const onlyDigits = txt.replace(/[^0-9]/g, '').slice(0, 6);
-              setPincode(onlyDigits);
-              clearErrorIfValid('pincode', onlyDigits);
-                }}
+                onChangeText={handlePincodeChange}
                 keyboardType="number-pad"
                 maxLength={6}
                 placeHolderTextStyle={placeholderColor}
@@ -360,6 +404,7 @@ const AddAddress: FC = () => {
                 ]}
                 error={errors.pincode}
                 touched={touched.pincode}
+                editable={!pincodeLoading}
               />
 
               <InputText

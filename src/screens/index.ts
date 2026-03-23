@@ -20,6 +20,7 @@ import Notifications from './home/dashboard/notifications/notifications';
 import PrivacyPolicy from './home/dashboard/profile/privacyPolicy/privacyPolicy';
 import AboutUs from './home/dashboard/profile/aboutUs/aboutUs';
 import TermsCondition from './home/dashboard/profile/termsCondition/termsCondition';
+import RefundPolicy from './home/dashboard/profile/refundPolicy/refundPolicy';
 
 //Catogaries Screens
 import Catogaries from './home/catogaries/catogaries';
@@ -59,6 +60,7 @@ export {
   PrivacyPolicy,
   AboutUs,
   TermsCondition,
+  RefundPolicy,
   Catogaries,
   ProductDetail,
   Products,

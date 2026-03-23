@@ -1,34 +1,26 @@
-import React, { FC, useContext, useState } from 'react';
+import React, { FC } from 'react';
 import {
   SafeAreaView,
-  KeyboardAvoidingView,
-  Platform,
-  View,
-  Image,
-  TouchableOpacity,
-  FlatList,
   ScrollView,
-  Pressable,
-  Modal,
-  Alert,
-  Text,
+  View,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
-import styles from './privacyPolicy.styles';
+import styles from './refundPolicy.styles';
 import { HomeStackProps } from '../../../../../@types';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Header, TextView } from '../../../../../components';
 import { useCmsContent } from '../../../../../hooks/useCmsContent';
 
-type PrivacyPolicyScreenNavigationType = NativeStackNavigationProp<
+type RefundPolicyScreenNavigationType = NativeStackNavigationProp<
   HomeStackProps,
-  'PrivacyPolicy'
+  'RefundPolicy'
 >;
 
-const PrivacyPolicy: FC = () => {
-  const navigation = useNavigation<PrivacyPolicyScreenNavigationType>();
-  const { content, loading, error, refetch } = useCmsContent('privacy-policy');
+const RefundPolicy: FC = () => {
+  const navigation = useNavigation<RefundPolicyScreenNavigationType>();
+  const { content, loading, error, refetch } = useCmsContent('refund-policy');
 
   const renderContent = () => {
     if (loading) {
@@ -78,7 +70,7 @@ const PrivacyPolicy: FC = () => {
         keyboardShouldPersistTaps="handled"
       >
         <View>
-          <Header title="Privacy & Policy" />
+          <Header title="Refund Policy" />
         </View>
 
         <View>
@@ -89,4 +81,4 @@ const PrivacyPolicy: FC = () => {
   );
 };
 
-export default PrivacyPolicy;
+export default RefundPolicy;

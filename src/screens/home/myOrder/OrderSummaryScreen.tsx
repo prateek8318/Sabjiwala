@@ -162,11 +162,19 @@ const OrderSummaryScreen = () => {
  
       console.log('--- Order Items ---');
       orderItems.forEach((item: any, index: number) => {
+        const productObj = item.productId || item.product || item;
+        const variantObj = item.variantId || item.variant;
+        const weight = variantObj?.weight || variantObj?.stock || variantObj?.name || '1';
+        const unit = variantObj?.unit || 'kg';
+        
         console.log(`Item ${index + 1}:`, {
-          name: item.productId?.name || item.product?.name || 'N/A',
+          name: productObj?.name || item.product?.name || 'N/A',
           quantity: item.quantity,
           price: item.price,
-          variant: item.variantId?.name || item.variant?.name || 'N/A'
+          variant: variantObj?.name || variantObj?.title || 'N/A',
+          weight: weight,
+          unit: unit,
+          weightDisplay: `${weight} ${unit} × ${item.quantity} Unit`
         });
       });
     }
@@ -318,6 +326,10 @@ const OrderSummaryScreen = () => {
           const qty = Number(product.quantity || 1);
           const lineTotal = unitPrice * qty;
 
+          // Get weight/quantity information
+          const weight = variantObj?.weight || variantObj?.stock || variantObj?.name || '1';
+          const unit = variantObj?.unit || 'kg';
+
           return (
             <View key={idx} style={styles.productItem}>
               <Image source={source} style={styles.productImage} />
@@ -327,6 +339,9 @@ const OrderSummaryScreen = () => {
                 </TextView>
                 <TextView style={styles.productQuantity}>
                   Qty: {qty} × ₹{unitPrice.toFixed(2)}
+                </TextView>
+                <TextView style={styles.productWeight}>
+                  {weight} {unit} × {qty} Unit
                 </TextView>
               </View>
               <TextView style={styles.productPrice}>

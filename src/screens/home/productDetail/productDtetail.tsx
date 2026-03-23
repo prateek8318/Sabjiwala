@@ -38,6 +38,7 @@ const ProductDetail = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [expandedSections, setExpandedSections] = useState({ highlights: true, info: true });
+  const [updatingCart, setUpdatingCart] = useState(false);
   const carouselRef = useRef<FlatList<string> | null>(null);
 
   useEffect(() => {
@@ -328,7 +329,12 @@ const ProductDetail = () => {
     setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const updateCart = async (newQty: number) => {
+    // Prevent multiple simultaneous updates
+    if (updatingCart) return;
+    
     try {
+      setUpdatingCart(true);
+      
       const productIdentifier = (
         product?._id ||
         product?.id ||
@@ -347,14 +353,26 @@ const ProductDetail = () => {
       const finalVariantId = variantId?.toString();
 
       if (!productIdentifier) return;
+      
+      // Make API call first
       if (newQty > 0) {
         await ApiService.addToCart(productIdentifier, finalVariantId, newQty.toString());
       } else {
         await ApiService.removeCartItem(productIdentifier, finalVariantId);
       }
+      
+      // Update UI after successful API call
       setCartQty(newQty);
+      
+      // Reload cart data to ensure synchronization across all variants
+      // This ensures that when switching variants, the correct quantity is shown
+      await loadCartQuantity(selectedQty);
     } catch (error) {
       console.log(error);
+      // On error, reload cart to ensure correct state
+      await loadCartQuantity(selectedQty);
+    } finally {
+      setUpdatingCart(false);
     }
   };
 
@@ -635,14 +653,20 @@ const handleShare = async () => {
       <View style={styles.bottomCartBar}>
         <LinearGradient colors={['#FFFFFF', '#FFFFFF']} style={styles.cartGradient}>
           {cartQty === 0 ? (
-            <Pressable onPress={handleAddToCart} style={{ flex: 1 }}>
+            <Pressable 
+              onPress={handleAddToCart} 
+              disabled={updatingCart}
+              style={{ flex: 1 }}
+            >
               <LinearGradient
                 colors={['#5A875C', '#015304']}
                 start={{ x: 0, y: 0.5 }}
                 end={{ x: 1, y: 0 }}
-                style={[styles.addToCartBtn, { flex: 1 }]}
+                style={[styles.addToCartBtn, { flex: 1, opacity: updatingCart ? 0.5 : 1 }]}
               >
-                <Text style={[styles.addToCartText, { color: '#fff' }]}>Add to Cart</Text>
+                <Text style={[styles.addToCartText, { color: '#fff' }]}>
+                  {updatingCart ? 'Adding...' : 'Add to Cart'}
+                </Text>
                 <Icon name="chevron-right" family="Entypo" size={26} color="#fff" />
               </LinearGradient>
             </Pressable>
@@ -670,16 +694,20 @@ const handleShare = async () => {
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Pressable
                   onPress={() => updateCart(cartQty - 1)}
-                  style={{
-                    backgroundColor: '#fff',
-                    borderRadius: 4,
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    borderWidth: 1,
-                    borderColor: '#ccc',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
+                  disabled={updatingCart}
+                  style={[
+                    {
+                      backgroundColor: '#fff',
+                      borderRadius: 4,
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderWidth: 1,
+                      borderColor: '#ccc',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    },
+                    updatingCart && { opacity: 0.5 }
+                  ]}
                 >
                   <Text style={{ fontSize: 16, color: '#000', fontWeight: '600' }}>-</Text>
                 </Pressable>
@@ -690,16 +718,20 @@ const handleShare = async () => {
 
                 <Pressable
                   onPress={() => updateCart(cartQty + 1)}
-                  style={{
-                    backgroundColor: '#fff',
-                    borderRadius: 4,
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    borderWidth: 1,
-                    borderColor: '#ccc',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
+                  disabled={updatingCart}
+                  style={[
+                    {
+                      backgroundColor: '#fff',
+                      borderRadius: 4,
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderWidth: 1,
+                      borderColor: '#ccc',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    },
+                    updatingCart && { opacity: 0.5 }
+                  ]}
                 >
                   <Text style={{ fontSize: 16, color: '#000', fontWeight: '600' }}>+</Text>
                 </Pressable>

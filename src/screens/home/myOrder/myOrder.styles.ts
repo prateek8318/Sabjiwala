@@ -158,6 +158,11 @@ export default StyleSheet.create({
     fontSize: 13,
     opacity: 0.8,
   },
+  productWeight: {
+    color: '#666',
+    fontSize: 12,
+    marginTop: 2,
+  },
   productPrice: {
     color: '#000',
     fontWeight: '700',

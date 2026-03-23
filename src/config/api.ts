@@ -1,12 +1,15 @@
 // Centralized API configuration
 export const API_CONFIG = {
   // Use environment variable or default to production
-  BASE_URL: 'http://159.89.146.245:5010/api/',
-  IMAGE_BASE_URL: 'http://159.89.146.245:5010/',
+  // BASE_URL: 'http://159.89.146.245:5010/api/',
+  // IMAGE_BASE_URL: 'http://159.89.146.245:5010/',
   
   // Development override (uncomment for local development)
-  // BASE_URL: 'http://192.168.1.23:7006/api/',
-  // IMAGE_BASE_URL: 'http://192.168.1.23:7006/',
+  BASE_URL: 'http://192.168.1.25:7006/api/',
+  IMAGE_BASE_URL: 'http://192.168.1.25:7006/',
+  
+  // External APIs
+  POSTAL_PINCODE_API: 'https://api.postalpincode.in/pincode/',
   
   TIMEOUT: 30000,
   
@@ -44,6 +47,9 @@ export const API_CONFIG = {
     
     // Notifications
     NOTIFICATIONS: 'user/get-notification',
+    
+    // CMS
+    CMS: 'user/cms',
   }
 };
 

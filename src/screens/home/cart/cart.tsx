@@ -28,6 +28,7 @@ import ConfettiCannon from 'react-native-confetti-cannon';
 import Toast from 'react-native-toast-message';
 import { Images, RazorpayConfig } from "../../../constant";
 import RazorpayCheckout from 'react-native-razorpay';
+import { usePincodeAutoFill } from '../../../hooks/usePincodeAutoFill';
 const styles: any = cartStyles;
 
 const Cart = ({ navigation }: any) => {
@@ -52,7 +53,6 @@ const Cart = ({ navigation }: any) => {
   const [remainingForFreeDelivery, setRemainingForFreeDelivery] = useState(0);
   const [addressForm, setAddressForm] = useState({
     addressType: "home",
-    floor: "",
     houseNoOrFlatNo: "",
     landmark: "",
     pincode: "",
@@ -65,6 +65,7 @@ const Cart = ({ navigation }: any) => {
     receiverNo?: string;
     pincode?: string;
   }>({});
+  const [hasAddressChanges, setHasAddressChanges] = useState<boolean>(false);
 
   const [totals, setTotals] = useState({
     itemPriceTotal: 0,
@@ -84,6 +85,7 @@ const Cart = ({ navigation }: any) => {
   const [showRemarkModal, setShowRemarkModal] = useState(false);
   const [remarkText, setRemarkText] = useState("");
   const [remarkError, setRemarkError] = useState("");
+  const [tempRemarkText, setTempRemarkText] = useState(""); // Temporary text for editing
   const [shopDetailsAdded, setShopDetailsAdded] = useState(false);
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponError, setCouponError] = useState<string | null>(null);
@@ -92,6 +94,63 @@ const Cart = ({ navigation }: any) => {
   const [pendingDelete, setPendingDelete] = useState<{ variantId: string; productId: string; name?: string } | null>(null);
   const [updatingItems, setUpdatingItems] = useState<Set<string>>(new Set());
   const isFocused = useIsFocused();
+  
+  // Pincode auto-fill functionality
+  const { pincodeLoading, handlePincodeChange: handlePincodeAutoFill } = usePincodeAutoFill();
+
+  // Clear error function for pincode validation
+  const clearErrorIfValid = (field: string, value: string) => {
+    if (value.trim()) {
+      setAddressErrors((prev) => {
+        if (!prev[field as keyof typeof prev]) return prev;
+        const newErrors = { ...prev };
+        delete newErrors[field as keyof typeof prev];
+        return newErrors;
+      });
+    }
+  };
+
+  // Clear address form function
+  const clearAddressForm = () => {
+    setAddressForm({
+      addressType: "home",
+      houseNoOrFlatNo: "",
+      landmark: "",
+      pincode: "",
+      city: "",
+      receiverName: "",
+      receiverNo: "",
+    });
+    setAddressErrors({});
+    setHasAddressChanges(false);
+  };
+
+  // Check if address form has changes
+  const checkAddressChanges = (formData: any, originalAddress: any) => {
+    if (!originalAddress) {
+      setHasAddressChanges(true);
+      return;
+    }
+    
+    const hasChanges = 
+      (originalAddress.addressType || 'home') !== formData.addressType ||
+      (originalAddress.houseNoOrFlatNo || '') !== formData.houseNoOrFlatNo ||
+      (originalAddress.landmark || '') !== formData.landmark ||
+      (originalAddress.pincode || '') !== formData.pincode ||
+      (originalAddress.city || '') !== formData.city ||
+      (originalAddress.receiverName || '') !== formData.receiverName ||
+      (originalAddress.receiverNo || '') !== formData.receiverNo;
+    
+    setHasAddressChanges(hasChanges);
+  };
+
+  // Monitor address form changes
+  useEffect(() => {
+    if (editingAddressId) {
+      const originalAddress = addresses.find(addr => addr._id === editingAddressId);
+      checkAddressChanges(addressForm, originalAddress);
+    }
+  }, [addressForm, editingAddressId, addresses]);
 
   // Hide bottom tab bar when Cart screen is focused
   useFocusEffect(
@@ -166,7 +225,6 @@ const Cart = ({ navigation }: any) => {
     if (!addr) return "";
     const parts: string[] = [];
     if (addr.houseNoOrFlatNo) parts.push(addr.houseNoOrFlatNo);
-    if (addr.floor) parts.push(`Floor ${addr.floor}`);
     if (addr.landmark) parts.push(addr.landmark);
     if (addr.city) parts.push(addr.city);
     if (addr.pincode) parts.push(addr.pincode);
@@ -437,41 +495,18 @@ const Cart = ({ navigation }: any) => {
       
       if (editingAddressId) {
         // Check if any changes were made before updating
-        const originalAddress = addresses.find(addr => addr._id === editingAddressId);
-        if (originalAddress) {
-          const hasChanges = 
-            (originalAddress.addressType || 'home') !== addressForm.addressType ||
-            (originalAddress.floor || '') !== addressForm.floor ||
-            (originalAddress.houseNoOrFlatNo || '') !== addressForm.houseNoOrFlatNo ||
-            (originalAddress.landmark || '') !== addressForm.landmark ||
-            (originalAddress.pincode || '') !== addressForm.pincode ||
-            (originalAddress.city || '') !== addressForm.city ||
-            (originalAddress.receiverName || '') !== addressForm.receiverName ||
-            (originalAddress.receiverNo || '') !== addressForm.receiverNo;
-
-          if (!hasChanges) {
-            Toast.show({
-              type: "info",
-              text1: "No Changes",
-              text2: "No changes were made to the address",
-            });
-            // Close modal without making API call
-            setShowAddAddressModal(false);
-            setShowAddressSelectionModal(false);
-            setEditingAddressId(null);
-            setAddressForm({
-              addressType: "home",
-              floor: "",
-              houseNoOrFlatNo: "",
-              landmark: "",
-              pincode: "",
-              city: "",
-              receiverName: "",
-              receiverNo: "",
-            });
-            setAddressErrors({});
-            return;
-          }
+        if (!hasAddressChanges) {
+          Toast.show({
+            type: "info",
+            text1: "No Changes",
+            text2: "No changes were made to the address",
+          });
+          // Close modal without making API call
+          setShowAddAddressModal(false);
+          setShowAddressSelectionModal(false);
+          setEditingAddressId(null);
+          clearAddressForm();
+          return;
         }
 
         // Update existing address
@@ -494,16 +529,7 @@ const Cart = ({ navigation }: any) => {
       setShowAddAddressModal(false);
       setShowAddressSelectionModal(false);
       setEditingAddressId(null);
-      setAddressForm({
-        addressType: "home",
-        floor: "",
-        houseNoOrFlatNo: "",
-        landmark: "",
-        pincode: "",
-        city: "",
-        receiverName: "",
-        receiverNo: "",
-      });
+      clearAddressForm();
       setAddressErrors({});
       await fetchAddresses();
     } catch (err: any) {
@@ -1230,7 +1256,7 @@ const Cart = ({ navigation }: any) => {
             <View style={styles.savingsBox}>
               <Text style={styles.savingsText}>Your Total Saving</Text>
               <Text style={styles.savingsText}>
-                ₹{Math.max(0, Number(totals.itemMrpTotal || 0) - Number(totals.itemPriceTotal || 0))}
+                ₹{Math.max(0, Number(totals.itemMrpTotal || 0) - Number(totals.itemPriceTotal || 0)).toFixed(2)}
               </Text>
             </View>
             <View style={{ marginHorizontal: 16, marginTop: 18 }}>
@@ -1479,6 +1505,8 @@ const Cart = ({ navigation }: any) => {
                   onPress={() => {
                     setShowRemarkModal(true);
                     setRemarkError(""); // Clear any previous error
+                    // Copy current text to temporary state for editing
+                    setTempRemarkText(remarkText);
                     // Clear form data only if adding new (not editing)
                     if (!shopDetailsAdded) {
                       setRemarkText("");
@@ -1970,9 +1998,23 @@ const Cart = ({ navigation }: any) => {
         visible={showRemarkModal}
         transparent
         animationType="fade"
-        onRequestClose={() => setShowRemarkModal(false)}
+        onRequestClose={() => {
+                    // Restore original text when closing without saving
+                    if (shopDetailsAdded) {
+                      setTempRemarkText(remarkText);
+                    }
+                    setShowRemarkModal(false);
+                    setRemarkError("");
+                  }}
       >
-        <TouchableWithoutFeedback onPress={() => setShowRemarkModal(false)}>
+        <TouchableWithoutFeedback onPress={() => {
+                    // Restore original text when closing without saving
+                    if (shopDetailsAdded) {
+                      setTempRemarkText(remarkText);
+                    }
+                    setShowRemarkModal(false);
+                    setRemarkError("");
+                  }}>
           <View style={{ flex: 1 }}>
             <View style={{ ...StyleSheet.absoluteFillObject, zIndex: 0 }}>
               <CustomBlurView />
@@ -1987,14 +2029,41 @@ const Cart = ({ navigation }: any) => {
             <View style={{ flex: 1, alignItems: "center", justifyContent: "center", zIndex: 2 }}>
               <TouchableWithoutFeedback>
                 <View style={{ backgroundColor: "#fff", width: "84%", borderRadius: 12, padding: 16 }}>
-                  <Text style={{ fontSize: 18, fontWeight: "700", color: "#000", marginBottom: 12, textAlign: "center" }}>
-                    {shopDetailsAdded ? "Edit Shop Details" : "Add Shop Details"}
-                  </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={{ fontSize: 18, fontWeight: "700", color: "#000", flex: 1, textAlign: 'center' }}>
+                  {shopDetailsAdded ? "Edit Shop Details" : "Add Shop Details"}
+                </Text>
+                <TouchableOpacity 
+                  onPress={() => {
+                    // Restore original text when closing without saving
+                    if (shopDetailsAdded) {
+                      setTempRemarkText(remarkText);
+                    }
+                    setShowRemarkModal(false);
+                    setRemarkError("");
+                  }}
+                  style={{ 
+                    width: 30, 
+                    height: 30, 
+                    borderRadius: 15, 
+                    backgroundColor: '#f5f5f5', 
+                    justifyContent: 'center', 
+                    alignItems: 'center',
+                    marginLeft: 10
+                  }}
+                >
+                  <MaterialIcons name="close" size={18} color="#666" />
+                </TouchableOpacity>
+              </View>
 
                   <TextInput
-                    value={remarkText}
+                    value={shopDetailsAdded ? tempRemarkText : remarkText}
                     onChangeText={(text) => {
-                      setRemarkText(text);
+                      if (shopDetailsAdded) {
+                        setTempRemarkText(text);
+                      } else {
+                        setRemarkText(text);
+                      }
                       setRemarkError(""); // Clear error when user starts typing
                     }}
                     placeholder={shopDetailsAdded ? "Edit your shop details here." : "Add your shop details here."}
@@ -2018,16 +2087,31 @@ const Cart = ({ navigation }: any) => {
                   ) : null}
                   <TouchableOpacity
                     onPress={() => {
-                      const trimmed = remarkText.trim();
+                      const textToCheck = shopDetailsAdded ? tempRemarkText : remarkText;
+                      const trimmed = textToCheck.trim();
                       if (!trimmed) {
                         setRemarkError("Please enter remark before submit");
                         return;
                       }
                       setRemarkError("");
-                      setRemarkText(trimmed);
+                      
+                      // Check if there are actual changes in edit mode
+                      if (shopDetailsAdded) {
+                        const originalText = remarkText.trim();
+                        const newText = trimmed;
+                        
+                        if (originalText === newText) {
+                          // No changes made, just close the modal
+                          setShowRemarkModal(false);
+                          return;
+                        }
+                        
+                        // Update the main text state only if there are changes
+                        setRemarkText(trimmed);
+                      }
                       setShowRemarkModal(false);
                       
-                      // Show success message
+                      // Show success message only for actual changes
                       const isUpdate = shopDetailsAdded;
                       Toast.show({
                         type: "success",
@@ -2077,7 +2161,7 @@ const Cart = ({ navigation }: any) => {
         animationType="slide"
         onRequestClose={() => {
           setShowAddAddressModal(false);
-          setAddressErrors({});
+          clearAddressForm();
         }}
       >
         <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" }}>
@@ -2094,7 +2178,7 @@ const Cart = ({ navigation }: any) => {
             <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 20 }}>
               <TouchableOpacity onPress={() => {
                 setShowAddAddressModal(false);
-                setAddressErrors({});
+                clearAddressForm();
               }} style={{ paddingRight: 10 }}>
                 <Icon name="arrow-back" size={24} color="#000" />
               </TouchableOpacity>
@@ -2205,26 +2289,6 @@ const Cart = ({ navigation }: any) => {
                 />
               </View>
 
-              {/* Floor */}
-              <View style={{ marginBottom: 16 }}>
-                <Text style={{ fontSize: 14, fontWeight: "600", color: "#000", marginBottom: 8 }}>Floor</Text>
-                <TextInput
-                  placeholder="Enter floor (optional)"
-                  placeholderTextColor="#999"
-                  value={addressForm.floor}
-                  onChangeText={(text) => setAddressForm({ ...addressForm, floor: text })}
-                  style={{
-                    borderWidth: 1,
-                    borderColor: "#ddd",
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    paddingVertical: 12,
-                    fontSize: 14,
-                    color: "#000",
-                  }}
-                />
-              </View>
-
               {/* Landmark */}
               <View style={{ marginBottom: 16 }}>
                 <Text style={{ fontSize: 14, fontWeight: "600", color: "#000", marginBottom: 8 }}>Landmark</Text>
@@ -2243,6 +2307,45 @@ const Cart = ({ navigation }: any) => {
                     color: "#000",
                   }}
                 />
+              </View>
+
+              {/* Pincode */}
+              <View style={{ marginBottom: 20 }}>
+                <Text style={{ fontSize: 14, fontWeight: "600", color: "#000", marginBottom: 8 }}>Pincode *</Text>
+                <TextInput
+                  placeholder="Enter pincode"
+                  placeholderTextColor="#999"
+                  value={addressForm.pincode}
+                  onChangeText={(text) => {
+                    handlePincodeAutoFill(
+                      text,
+                      (value) => setAddressForm({ ...addressForm, pincode: value }),
+                      clearErrorIfValid,
+                      (city) => setAddressForm({ ...addressForm, city }),
+                      undefined, // setState - not used in cart form
+                      undefined, // setDistrict - not used in cart form
+                      undefined  // setPostOffice - not used in cart form
+                    );
+                  }}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  editable={!pincodeLoading}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: addressErrors.pincode ? "#FF3B30" : "#ddd",
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 12,
+                    fontSize: 14,
+                    color: "#000",
+                    backgroundColor: pincodeLoading ? "#f5f5f5" : "#fff",
+                  }}
+                />
+                {addressErrors.pincode && (
+                  <Text style={{ color: "#FF3B30", fontSize: 12, marginTop: 4 }}>
+                    {addressErrors.pincode}
+                  </Text>
+                )}
               </View>
 
               {/* City */}
@@ -2265,47 +2368,12 @@ const Cart = ({ navigation }: any) => {
                 />
               </View>
 
-              {/* Pincode */}
-              <View style={{ marginBottom: 20 }}>
-                <Text style={{ fontSize: 14, fontWeight: "600", color: "#000", marginBottom: 8 }}>Pincode *</Text>
-                <TextInput
-                  placeholder="Enter pincode"
-                  placeholderTextColor="#999"
-                  value={addressForm.pincode}
-                  onChangeText={(text) => {
-                    // Only allow digits and limit to 6
-                    const digitsOnly = text.replace(/[^0-9]/g, '').slice(0, 6);
-                    setAddressForm({ ...addressForm, pincode: digitsOnly });
-                    // Clear error when user types
-                    if (addressErrors.pincode) {
-                      setAddressErrors({ ...addressErrors, pincode: undefined });
-                    }
-                  }}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  style={{
-                    borderWidth: 1,
-                    borderColor: addressErrors.pincode ? "#FF3B30" : "#ddd",
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    paddingVertical: 12,
-                    fontSize: 14,
-                    color: "#000",
-                  }}
-                />
-                {addressErrors.pincode && (
-                  <Text style={{ color: "#FF3B30", fontSize: 12, marginTop: 4 }}>
-                    {addressErrors.pincode}
-                  </Text>
-                )}
-              </View>
-
               {/* Save Button */}
               <TouchableOpacity
                 onPress={handleAddAddress}
-                disabled={addingAddress}
+                disabled={addingAddress || (editingAddressId ? !hasAddressChanges : false)}
                 style={{
-                  backgroundColor: addingAddress ? "#ccc" : "#1B5E20",
+                  backgroundColor: addingAddress || (editingAddressId ? !hasAddressChanges : false) ? "#ccc" : "#1B5E20",
                   borderRadius: 25,
                   padding: 16,
                   alignItems: "center",
@@ -2389,7 +2457,6 @@ const Cart = ({ navigation }: any) => {
                             setEditingAddressId(address._id);
                             setAddressForm({
                               addressType: address.addressType || "home",
-                              floor: address.floor || "",
                               houseNoOrFlatNo: address.houseNoOrFlatNo || "",
                               landmark: address.landmark || "",
                               pincode: address.pincode || "",
@@ -2397,6 +2464,7 @@ const Cart = ({ navigation }: any) => {
                               receiverName: address.receiverName || "",
                               receiverNo: address.receiverNo || "",
                             });
+                            setHasAddressChanges(false);
                             setShowAddressSelectionModal(false);
                             setShowAddAddressModal(true);
                           }}
@@ -2424,6 +2492,7 @@ const Cart = ({ navigation }: any) => {
               <TouchableOpacity
                 onPress={() => {
                   setEditingAddressId(null);
+                  setHasAddressChanges(false);
                   setShowAddressSelectionModal(false);
                   setShowAddAddressModal(true);
                 }}

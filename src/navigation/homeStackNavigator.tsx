@@ -16,6 +16,7 @@ import {
   Products,
   Profile,
   ReferEarn,
+  RefundPolicy,
   Search,
   Support,
   TermsCondition,
@@ -98,6 +99,11 @@ const HomeStackNavigator: FC = () => {
         <HomeStack.Screen
           name="TermsCondition"
           component={TermsCondition}
+          options={{ headerShown: false }}
+        />
+        <HomeStack.Screen
+          name="RefundPolicy"
+          component={RefundPolicy}
           options={{ headerShown: false }}
         />
         <HomeStack.Screen

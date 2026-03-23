@@ -9,6 +9,8 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Alert,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -27,10 +29,48 @@ const Reorder = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [addingToCart, setAddingToCart] = useState<{ [key: string]: boolean }>({});
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [customAlert, setCustomAlert] = useState<{
+    visible: boolean;
+    type: 'success' | 'error';
+    title: string;
+    message: string;
+    showActions?: boolean;
+  }>({
+    visible: false,
+    type: 'success',
+    title: '',
+    message: '',
+    showActions: true,
+  });
 
   useEffect(() => {
     fetchOrderDetails();
   }, [orderId]);
+
+  // Helper functions to show custom alerts
+  const showSuccessAlert = (title: string, message: string, showActions = true) => {
+    setCustomAlert({
+      visible: true,
+      type: 'success',
+      title,
+      message,
+      showActions,
+    });
+  };
+
+  const showErrorAlert = (title: string, message: string) => {
+    setCustomAlert({
+      visible: true,
+      type: 'error',
+      title,
+      message,
+      showActions: false,
+    });
+  };
+
+  const hideAlert = () => {
+    setCustomAlert(prev => ({ ...prev, visible: false }));
+  };
 
   const fetchOrderDetails = async () => {
     try {
@@ -61,28 +101,19 @@ const Reorder = () => {
     const variantId = item.variantId?._id || item.variantId;
     const quantity = item.quantity || 1;
 
-    if (!productId || !variantId) {
-      Alert.alert('Error', 'Product information is missing');
+    if (!productId) {
+      showErrorAlert('Error', 'Product information is missing');
       return;
     }
 
     try {
       setAddingToCart({ ...addingToCart, [productId]: true });
-      await ApiService.addToCart(productId, variantId, quantity.toString());
-      Alert.alert('Success', 'Item added to cart!', [
-        {
-          text: 'Continue Shopping',
-          style: 'cancel',
-        },
-        {
-          text: 'Go to Cart',
-          onPress: () => navigation.navigate('Cart'),
-        },
-      ]);
+      await ApiService.addToCart(productId, variantId || '', quantity.toString());
+      showSuccessAlert('Success', 'Item added to cart!');
     } catch (err: any) {
       console.log('Add to cart error:', err);
       const errorMessage = err?.response?.data?.message || err?.message || 'Failed to add item to cart';
-      Alert.alert('Error', errorMessage);
+      showErrorAlert('Error', errorMessage);
     } finally {
       setAddingToCart({ ...addingToCart, [productId]: false });
     }
@@ -99,9 +130,9 @@ const Reorder = () => {
         const variantId = item.variantId?._id || item.variantId;
         const quantity = item.quantity || 1;
 
-        if (productId && variantId) {
+        if (productId) {
           try {
-            await ApiService.addToCart(productId, variantId, quantity.toString());
+            await ApiService.addToCart(productId, variantId || '', quantity.toString());
             successCount++;
           } catch (err) {
             failCount++;
@@ -112,25 +143,15 @@ const Reorder = () => {
       }
 
       if (successCount > 0) {
-        Alert.alert(
+        showSuccessAlert(
           'Success',
-          `${successCount} item(s) added to cart${failCount > 0 ? `, ${failCount} failed` : ''}`,
-          [
-            {
-              text: 'Continue Shopping',
-              style: 'cancel',
-            },
-            {
-              text: 'Go to Cart',
-              onPress: () => navigation.navigate('Cart'),
-            },
-          ]
+          `${successCount} item(s) added to cart${failCount > 0 ? `, ${failCount} failed` : ''}`
         );
       } else {
-        Alert.alert('Error', 'Failed to add items to cart');
+        showErrorAlert('Error', 'Failed to add items to cart');
       }
     } catch (err) {
-      Alert.alert('Error', 'Failed to add items to cart');
+      showErrorAlert('Error', 'Failed to add items to cart');
     }
   };
 
@@ -311,6 +332,142 @@ const Reorder = () => {
 
       {/* Pagination */}
       {renderPagination()}
+
+      {/* Custom Alert Modal */}
+      <Modal
+        visible={customAlert.visible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={hideAlert}
+      >
+        <Pressable 
+          style={{ 
+            flex: 1, 
+            backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+            justifyContent: 'center', 
+            alignItems: 'center' 
+          }}
+          onPress={hideAlert}
+        >
+          <Pressable 
+            style={{ 
+              backgroundColor: 'white', 
+              borderRadius: 20, 
+              padding: 24, 
+              margin: 20, 
+              width: '80%',
+              maxWidth: 320,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              elevation: 5,
+            }}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* Alert Icon */}
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+              {customAlert.type === 'success' ? (
+                <View style={{ 
+                  width: 60, 
+                  height: 60, 
+                  borderRadius: 30, 
+                  backgroundColor: '#4CAF50', 
+                  justifyContent: 'center', 
+                  alignItems: 'center' 
+                }}>
+                  <Icon name="checkmark" size={30} color="white" />
+                </View>
+              ) : (
+                <View style={{ 
+                  width: 60, 
+                  height: 60, 
+                  borderRadius: 30, 
+                  backgroundColor: '#F44336', 
+                  justifyContent: 'center', 
+                  alignItems: 'center' 
+                }}>
+                  <Icon name="close" size={30} color="white" />
+                </View>
+              )}
+            </View>
+
+            {/* Alert Title */}
+            <Text style={{ 
+              fontSize: 20, 
+              fontWeight: '700', 
+              color: '#000', 
+              textAlign: 'center', 
+              marginBottom: 8 
+            }}>
+              {customAlert.title}
+            </Text>
+
+            {/* Alert Message */}
+            <Text style={{ 
+              fontSize: 16, 
+              color: '#666', 
+              textAlign: 'center', 
+              marginBottom: 24,
+              lineHeight: 22,
+            }}>
+              {customAlert.message}
+            </Text>
+
+            {/* Action Buttons */}
+            {customAlert.showActions ? (
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <TouchableOpacity
+                  style={{ 
+                    flex: 1, 
+                    padding: 12, 
+                    borderRadius: 8, 
+                    borderWidth: 1, 
+                    borderColor: '#ddd',
+                    alignItems: 'center',
+                  }}
+                  onPress={hideAlert}
+                >
+                  <Text style={{ color: '#666', fontWeight: '600' }}>
+                    Continue Shopping
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ 
+                    flex: 1, 
+                    padding: 12, 
+                    borderRadius: 8, 
+                    backgroundColor: '#4CAF50',
+                    alignItems: 'center',
+                  }}
+                  onPress={() => {
+                    hideAlert();
+                    navigation.navigate('Cart');
+                  }}
+                >
+                  <Text style={{ color: 'white', fontWeight: '600' }}>
+                    Go to Cart
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={{ 
+                  padding: 12, 
+                  borderRadius: 8, 
+                  backgroundColor: customAlert.type === 'success' ? '#4CAF50' : '#F44336',
+                  alignItems: 'center',
+                }}
+                onPress={hideAlert}
+              >
+                <Text style={{ color: 'white', fontWeight: '600' }}>
+                  OK
+                </Text>
+              </TouchableOpacity>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 };

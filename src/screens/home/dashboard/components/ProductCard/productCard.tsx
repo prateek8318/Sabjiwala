@@ -363,7 +363,7 @@ const ProductCard: FC<ProductCardProps> = ({
         }
       }
       
-      // Refresh cart to ensure sync with server
+      // Refresh cart to ensure sync with server and update all related states
       await loadCart();
     } catch (e) {
       console.error('updateCartQty error:', e);
@@ -1068,15 +1068,14 @@ const ProductCard: FC<ProductCardProps> = ({
                     const pid = getProductId(selectedProduct);
                     const vid = v?._id;
                     
-                    // Look up quantity from cartItems by matching both productId and variantId
-                    const findCartItem = (item: any) => {
-                      const itemProductId = item?.productId?._id || item?.productId || item?._id || item?.id || '';
-                      const itemVariantId = item?.variantId?._id || item?.variantId || undefined;
-                      return itemProductId === pid && itemVariantId === vid;
-                    };
+                    // Calculate current quantity by checking both cartMap and cartVariantMap
+                    // This ensures we get the most up-to-date quantity
+                    const totalProductQty = pid ? (cartMap[pid] || 0) : 0;
+                    const variantInfo = pid ? cartVariantMap[pid] : undefined;
                     
-                    const matchingCartItem = cartItems.find(findCartItem);
-                    const quantity = matchingCartItem?.quantity || 0;
+                    // If this specific variant is selected, use its quantity
+                    // Otherwise, this variant is not in cart yet
+                    const quantity = (variantInfo?.variantId === vid) ? (variantInfo?.quantity || 0) : 0;
 
                     if (quantity > 0) {
                       return (

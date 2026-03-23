@@ -10,9 +10,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.PRIMARY[300],
   },
-  txtHeading: {
+  txtTitle: {
     color: "#000",
-    fontFamily: Fonts.Medium,
+    fontFamily: Fonts.Bold,
     fontSize: wp(5),
     marginTop: hp(1),
     padding: hp(1),
@@ -22,13 +22,6 @@ const styles = StyleSheet.create({
     color: "#000",
     textAlign: 'left',
     letterSpacing: 1,
-    marginTop: hp(1),
-    padding: hp(1),
-  },
-  txtTitle: {
-    color: "#000",
-    fontFamily: Fonts.Bold,
-    fontSize: wp(5),
     marginTop: hp(1),
     padding: hp(1),
   },

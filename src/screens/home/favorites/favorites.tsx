@@ -196,11 +196,39 @@ const Favorites = () => {
         if (item.product && typeof item.product === 'object' && (item.product.productName || item.product.name)) {
           console.log('Using nested product data');
           productData = transformProduct(item.product, productId);
+          
+          // Check if variants are missing, if so fetch full product details
+          if (!item.product.ProductVarient && !item.product.variants) {
+            console.log('Variants missing in nested product, fetching full details');
+            try {
+              const productRes = await ApiService.getProductDetail(productId);
+              const product = productRes?.data?.productData || productRes?.data?.data || productRes?.data;
+              if (product && (product.productName || product.name)) {
+                productData = transformProduct(product, productId);
+              }
+            } catch (fetchError) {
+              console.log('Error fetching product details for variants:', fetchError);
+            }
+          }
         }
         // Case 2: Product details directly in item
         else if (item.productName || item.name || item.primary_image || item.ProductVarient) {
           console.log('Using direct item data');
           productData = transformProduct(item, productId);
+          
+          // Check if variants are missing, if so fetch full product details
+          if (!item.ProductVarient && !item.variants) {
+            console.log('Variants missing in direct item, fetching full details');
+            try {
+              const productRes = await ApiService.getProductDetail(productId);
+              const product = productRes?.data?.productData || productRes?.data?.data || productRes?.data;
+              if (product && (product.productName || product.name)) {
+                productData = transformProduct(product, productId);
+              }
+            } catch (fetchError) {
+              console.log('Error fetching product details for variants:', fetchError);
+            }
+          }
         }
         // Case 3: Only productId available, fetch product details from API
         else {
@@ -378,7 +406,7 @@ const Favorites = () => {
 
 
   // Update cart qty
-  const updateCartQty = async (productId: string, variantId: string, newQty: number) => {
+  const updateCartQty = async (productId: string, variantId: string | undefined, newQty: number) => {
     try {
       // Set loading state for this specific product
       setUpdatingProducts(prev => ({ ...prev, [productId]: true }));
@@ -386,8 +414,20 @@ const Favorites = () => {
 
       if (newQty < 0) return;
 
-      // Update UI immediately for better UX
-      const isVariant = variantId !== productId;
+      const isVariant = variantId && variantId !== productId;
+
+      // Make API call first
+      if (newQty === 0) {
+        await ApiService.removeCartItem(productId, isVariant ? variantId : undefined);
+      } else {
+        await ApiService.addToCart(
+          productId,
+          isVariant ? variantId : undefined,
+          newQty.toString()
+        );
+      }
+
+      // Only update UI after successful API call
       if (isVariant) {
         setCartVariantMap(prev => ({
           ...prev,
@@ -404,18 +444,7 @@ const Favorites = () => {
         }));
       }
 
-      // Make API call
-      if (newQty === 0) {
-        await ApiService.removeCartItem(productId, isVariant ? variantId : undefined);
-      } else {
-        await ApiService.addToCart(
-          productId,
-          isVariant ? variantId : undefined,
-          newQty.toString()
-        );
-      }
-
-      // Refresh cart data in the background
+      // Refresh cart data in the background to ensure sync
       loadCart().catch(console.error);
     } catch (error) {
       console.error('Error updating cart:', error);
@@ -423,25 +452,16 @@ const Favorites = () => {
         ...prev,
         [productId]: false
       }));
+      // Refresh cart to ensure UI is in sync with server
+      loadCart().catch(console.error);
       return;
-    }
-
-    // If not showing, fetch variants and show
-    try {
-      const res = await ApiService.getProductVariants(productId);
-      const variants = res?.data?.variants || [];
-
-      setProductVariants(prev => ({
-        ...prev,
-        [productId]: variants
-      }));
-
-      setShowVariantOptions(prev => ({
-        ...prev,
-        [productId]: true
-      }));
-    } catch (error) {
-      console.error('Error fetching variants:', error);
+    } finally {
+      // Clear loading state
+      setUpdatingProducts(prev => {
+        const newState = { ...prev };
+        delete newState[productId];
+        return newState;
+      });
     }
   };
 
@@ -599,16 +619,20 @@ const Favorites = () => {
                     e.stopPropagation();
                     updateCartQty(productId, undefined, (cartMap[productId] || cartVariantMap[productId]?.quantity || 0) - 1);
                   }}
-                  style={{
-                    height: hp(3),
-                    width: hp(3),
-                    borderRadius: hp(3),
-                    borderWidth: 1,
-                    borderColor: '#000',
-                    backgroundColor: '#fff',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
+                  disabled={updatingProducts[productId]}
+                  style={[
+                    {
+                      height: hp(3),
+                      width: hp(3),
+                      borderRadius: hp(3),
+                      borderWidth: 1,
+                      borderColor: '#000',
+                      backgroundColor: '#fff',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    },
+                    updatingProducts[productId] && { opacity: 0.5 }
+                  ]}
                 >
                   <Text style={{ fontSize: hp(2), color: '#000', fontWeight: '600', marginBottom: 2 }}>-</Text>
                 </Pressable>
@@ -622,16 +646,20 @@ const Favorites = () => {
                     e.stopPropagation();
                     updateCartQty(productId, undefined, (cartMap[productId] || cartVariantMap[productId]?.quantity || 0) + 1);
                   }}
-                  style={{
-                    height: hp(3),
-                    width: hp(3),
-                    borderRadius: hp(3),
-                    borderWidth: 1,
-                    borderColor: '#000',
-                    backgroundColor: '#fff',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
+                  disabled={updatingProducts[productId]}
+                  style={[
+                    {
+                      height: hp(3),
+                      width: hp(3),
+                      borderRadius: hp(3),
+                      borderWidth: 1,
+                      borderColor: '#000',
+                      backgroundColor: '#fff',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    },
+                    updatingProducts[productId] && { opacity: 0.5 }
+                  ]}
                 >
                   <Text style={{ fontSize: hp(2), color: '#000', fontWeight: '600' }}>+</Text>
                 </Pressable>
@@ -662,10 +690,14 @@ const Favorites = () => {
                   e.stopPropagation();
                   updateCartQty(productId, undefined, 1);
                 }}
+                disabled={updatingProducts[productId]}
               >
                 <LinearGradient
                   colors={['#5A875C', '#015304']}
-                  style={styles.addProductButon}
+                  style={[
+                    styles.addProductButon,
+                    updatingProducts[productId] && { opacity: 0.5 }
+                  ]}
                   start={{ x: 0, y: 0.5 }}
                   end={{ x: 1, y: 0 }}
                 >
@@ -830,26 +862,48 @@ const Favorites = () => {
                               gap: 12,
                             }}
                           >
-                            <Pressable onPress={() => updateCartQty(productId, v._id, currentQty - 1)}>
-                              <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>-</Text>
+                            <Pressable 
+                              onPress={() => updateCartQty(productId, v._id, currentQty - 1)}
+                              disabled={updatingProducts[productId]}
+                            >
+                              <Text style={{ 
+                                color: '#fff', 
+                                fontSize: 18, 
+                                fontWeight: 'bold',
+                                opacity: updatingProducts[productId] ? 0.5 : 1
+                              }}>-</Text>
                             </Pressable>
                             <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14, minWidth: 24, textAlign: 'center' }}>
                               {currentQty}
                             </Text>
-                            <Pressable onPress={() => updateCartQty(productId, v._id, currentQty + 1)}>
-                              <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>+</Text>
+                            <Pressable 
+                              onPress={() => updateCartQty(productId, v._id, currentQty + 1)}
+                              disabled={updatingProducts[productId]}
+                            >
+                              <Text style={{ 
+                                color: '#fff', 
+                                fontSize: 18, 
+                                fontWeight: 'bold',
+                                opacity: updatingProducts[productId] ? 0.5 : 1
+                              }}>+</Text>
                             </Pressable>
                           </LinearGradient>
                         );
                       }
 
                       return (
-                        <Pressable onPress={() => updateCartQty(productId, v._id, 1)}>
+                        <Pressable 
+                          onPress={() => updateCartQty(productId, v._id, 1)}
+                          disabled={updatingProducts[productId]}
+                        >
                           <LinearGradient
                             colors={['#5A875C', '#015304']}
                             start={{ x: 0, y: 0.5 }}
                             end={{ x: 1, y: 0 }}
-                            style={{ paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 }}
+                            style={[
+                              { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
+                              updatingProducts[productId] && { opacity: 0.5 }
+                            ]}
                           >
                             <TextView style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Add</TextView>
                           </LinearGradient>

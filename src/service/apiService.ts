@@ -1,8 +1,7 @@
-
-
 ///6.11.25
 // src/services/api.ts
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { API_CONFIG } from '../config/api';
 import { storage } from './storage';
 import { OrderDetailsResponse, OrderTrackingResponse, LocationUpdatePayload, LocationUpdateEvent, OrderStatusUpdateEvent } from '../@types';
 
@@ -11,13 +10,11 @@ import { OrderDetailsResponse, OrderTrackingResponse, LocationUpdatePayload, Loc
 // -------------------------------------------------
 // 1. Base URL (your live dev server)
 const BASE_URL = 'http://159.89.146.245:5010/api/';
-//  const BASE_URL = 'http://192.168.1.29:7006/api/';
-// export const IMAGE_BASE_URL = 'http://192.168.1.23:7006/';
  export const IMAGE_BASE_URL = 'http://159.89.146.245:5010/';
 
 // 1. Base URL (your local dev server)
-// const BASE_URL = 'http://192.168.1.21:5002/api/';
-// export const IMAGE_BASE_URL = 'http://192.168.1.21:5002/';
+// const BASE_URL = 'http://192.168.1.25:7006/api/';
+// export const IMAGE_BASE_URL = 'http://192.168.1.25:7006/';
 
 // -------------------------------------------------
 // 2. Axios instance
@@ -380,6 +377,71 @@ getHomeProductContent: async () => {
   
   deleteNotification(notificationId: string) {
     return api.get(`user/cancel-notification/${notificationId}`);
+  },
+
+  // ─────────────────────────────────────────────
+  // CMS API FUNCTIONS
+  // ─────────────────────────────────────────────
+  
+  // Get CMS content by type
+  getCmsContent: async (contentType?: string) => {
+    // Always call the general endpoint to get all data (better data structure)
+    const endpoint = 'user/cms';
+    return contentType ? api.get(endpoint, { params: { contentType } }) : api.get(endpoint);
+  },
+
+  // Get all products globally - enhanced version
+  getAllProducts: async () => {
+    try {
+      // Try the new proper endpoint first
+      const endpoints = [
+        'user/products/all',               // New proper endpoint
+        'user/getsubCategoryProductList/all',  // Working fallback endpoint
+        'user/homeProductContent',         // Home content fallback
+      ];
+
+      for (const endpoint of endpoints) {
+        try {
+          console.log(`[ApiService] Trying endpoint: ${endpoint}`);
+          const response = await api.get(endpoint);
+          console.log(`[ApiService] Success with endpoint: ${endpoint}`);
+          return response;
+        } catch (error: any) {
+          console.log(`[ApiService] Failed endpoint ${endpoint}:`, error?.response?.status || 'No status');
+          continue;
+        }
+      }
+
+      throw new Error('All endpoints failed');
+
+    } catch (error) {
+      console.log('[ApiService] getAllProducts completely failed:', error);
+      throw error;
+    }
+  },
+
+  // New search products API
+  searchProducts: async (searchTerm: string, options?: {
+    category?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: string;
+    page?: number;
+  }) => {
+    const params = new URLSearchParams();
+    params.append('search', searchTerm);
+    
+    if (options?.category) params.append('category', options.category);
+    if (options?.minPrice) params.append('minPrice', options.minPrice.toString());
+    if (options?.maxPrice) params.append('maxPrice', options.maxPrice.toString());
+    if (options?.limit) params.append('limit', options.limit.toString());
+    if (options?.sortBy) params.append('sortBy', options.sortBy);
+    if (options?.sortOrder) params.append('sortOrder', options.sortOrder);
+    if (options?.page) params.append('page', options.page.toString());
+
+    return await api.get(`user/searchProductList?${params.toString()}`);
   },
 
   // ─────────────────────────────────────────────

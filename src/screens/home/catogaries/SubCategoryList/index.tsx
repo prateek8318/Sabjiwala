@@ -66,6 +66,8 @@ const SubCategoryList = ({ route }: any) => {
   const [selectedSubId, setSelectedSubId] = useState<string | null>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [globalProducts, setGlobalProducts] = useState<any[]>([]);
+  const [globalProductsLoading, setGlobalProductsLoading] = useState(false);
   const [productLoading, setProductLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -171,6 +173,67 @@ const SubCategoryList = ({ route }: any) => {
     };
   };
 
+  const loadGlobalProducts = async () => {
+    try {
+      setGlobalProductsLoading(true);
+      
+      // Use the new enhanced getAllProducts method
+      const res = await ApiService.getAllProducts();
+      console.log('[SubCategoryList] Using getAllProducts method');
+      console.log('[SubCategoryList] Global products API response:', res);
+      console.log('[SubCategoryList] Response keys:', Object.keys(res?.data || {}));
+      console.log('[SubCategoryList] Full response data:', JSON.stringify(res?.data, null, 2));
+      
+      // Extract data based on the actual API response structure
+      let apiData = [];
+      
+      if (res?.data?.success && res?.data?.paginateData) {
+        // New API structure with paginateData
+        apiData = res.data.paginateData;
+        console.log('[SubCategoryList] Using paginateData, found:', apiData.length, 'products');
+      } else if (res?.data?.data?.products) {
+        // Alternative structure
+        apiData = res.data.data.products;
+        console.log('[SubCategoryList] Using data.products, found:', apiData.length, 'products');
+      } else if (res?.data?.products) {
+        // Simple products array
+        apiData = res.data.products;
+        console.log('[SubCategoryList] Using products, found:', apiData.length, 'products');
+      } else if (Array.isArray(res?.data)) {
+        // Direct array response
+        apiData = res.data;
+        console.log('[SubCategoryList] Using direct array, found:', apiData.length, 'products');
+      } else {
+        // Fallback - try to find any array in the response
+        const findArrays = (obj: any, result: any[] = []): any[] => {
+          if (Array.isArray(obj)) {
+            result.push(obj);
+          } else if (obj && typeof obj === 'object') {
+            Object.values(obj).forEach(value => findArrays(value, result));
+          }
+          return result;
+        };
+        const arrays = findArrays(res.data);
+        apiData = arrays.reduce((largest, current) => 
+          (current?.length || 0) > (largest?.length || 0) ? current : largest, []
+        );
+        console.log('[SubCategoryList] Using fallback array detection, found:', apiData.length, 'products');
+      }
+      
+      console.log('[SubCategoryList] Final apiData length:', Array.isArray(apiData) ? apiData.length : 'not array');
+      console.log('[SubCategoryList] First few products:', Array.isArray(apiData) ? apiData.slice(0, 3) : []);
+      
+      const cardItems = Array.isArray(apiData) ? apiData.map(transformToCardItem) : [];
+      console.log('[SubCategoryList] Transformed cardItems length:', cardItems.length);
+      setGlobalProducts(cardItems);
+    } catch (err) {
+      console.log('[SubCategoryList] Global products load error:', err);
+      setGlobalProducts([]);
+    } finally {
+      setGlobalProductsLoading(false);
+    }
+  };
+
   const loadProductsForSub = async (subId: string) => {
     try {
       setProductLoading(true);
@@ -241,6 +304,7 @@ const SubCategoryList = ({ route }: any) => {
   setSelectedSubId(null);
   setProducts([]);
   setAllProducts([]);
+  setGlobalProducts([]);
   setFilterTypes([]);
   setSearchQuery("");
   setIsSearching(false);
@@ -248,6 +312,7 @@ const SubCategoryList = ({ route }: any) => {
   setSortBy("relevance");
 
   loadSubCategories();
+  loadGlobalProducts(); // Load global products for search
 }, [categoryId, key]); // Add key to force remount
 
   // Load cart data for floating button
@@ -291,13 +356,17 @@ const SubCategoryList = ({ route }: any) => {
 
   // Search + Filter + Sort Logic
   useEffect(() => {
-    let filtered = [...allProducts];
+    let filtered;
 
-    // Search
+    // Search - Use global products when searching, otherwise use subcategory products
     if (isSearching && searchQuery.trim()) {
+      filtered = [...globalProducts];
+      // Apply search filter
       filtered = filtered.filter(item =>
         item.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
+    } else {
+      filtered = [...allProducts];
     }
 
     // Type Filter
@@ -313,7 +382,7 @@ const SubCategoryList = ({ route }: any) => {
     else if (sortBy === "discount") filtered.sort((a, b) => (b.oldPrice - b.price) - (a.oldPrice - a.price));
 
     setProducts(filtered);
-  }, [allProducts, searchQuery, isSearching, selectedTypes, sortBy]);
+  }, [allProducts, globalProducts, searchQuery, isSearching, selectedTypes, sortBy]);
 
   const toggleFilter = (type: string) => {
     setSelectedTypes(prev =>
@@ -493,7 +562,7 @@ const SubCategoryList = ({ route }: any) => {
                   <Image source={require("../../../../assets/images/search.png")} style={{ width: 250, height: 300 }} resizeMode="contain" />
                   
                 </View>
-              ) : productLoading ? (
+              ) : (productLoading || globalProductsLoading) ? (
                 renderShimmerGrid()
               ) : products.length === 0 ? (
                 <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>

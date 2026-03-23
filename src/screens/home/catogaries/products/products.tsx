@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { FlatList, Image, Pressable, SafeAreaView, TouchableOpacity, View, Text } from 'react-native';
+import { FlatList, Image, Pressable, SafeAreaView, TouchableOpacity, View, Text, TextInput, ScrollView, Alert, Vibration } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
+import { Icon } from '../../../../constant';
 
 import ApiService, { IMAGE_BASE_URL } from '../../../../service/apiService';
 import styles from './products.styles';
@@ -8,9 +10,9 @@ import { Colors, Images } from '../../../../constant';
 import { Header, TextView } from '../../../../components';
 import ProductCard from './components/ProductCard/productCard';
 import RBSheet from 'react-native-raw-bottom-sheet';
-import LinearGradient from 'react-native-linear-gradient';
 import CustomBlurView from '../../../../components/BlurView/blurView';
 import { ProductCardItem } from '../../../../@types';
+import Toast from 'react-native-toast-message';
 
 const Products = () => {
   const navigation = useNavigation();
@@ -20,6 +22,12 @@ const Products = () => {
   const [loading, setLoading] = useState(false);
   const [productLoading, setProductLoading] = useState(false);
   const [products, setProducts] = useState<ProductCardItem[]>([]);
+  const [allProducts, setAllProducts] = useState<ProductCardItem[]>([]);
+  const [globalProducts, setGlobalProducts] = useState<ProductCardItem[]>([]);
+  const [globalProductsLoading, setGlobalProductsLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [addingToCart, setAddingToCart] = useState<Set<string>>(new Set());
 
   const addProductBottomSheet = useRef<any>(null);
   const searchProductBottomSheet = useRef<any>(null);
@@ -74,6 +82,108 @@ const Products = () => {
     };
   }, []);
 
+  // Add to cart function - REMOVED VALIDATION for 0 price or missing information
+  const handleAddToCart = async (item: ProductCardItem) => {
+    const productId = item.id?.toString();
+    const variantId = item.variantId?.toString() || '';
+    
+    if (!productId) {
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Product information is missing",
+      });
+      return;
+    }
+
+    // Add haptic feedback
+    Vibration.vibrate(30);
+
+    try {
+      setAddingToCart(prev => new Set(prev).add(productId));
+      
+      // Call API to add to cart - NO VALIDATION for price or missing info
+      await ApiService.addToCart(productId, variantId, '1');
+      
+      Toast.show({
+        type: "success",
+        text1: "Success",
+        text2: "Item added to cart!",
+      });
+    } catch (err: any) {
+      console.log('Add to cart error:', err);
+      const errorMessage = err?.response?.data?.message || err?.message || 'Failed to add item to cart';
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: errorMessage,
+      });
+    } finally {
+      setAddingToCart(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(productId);
+        return newSet;
+      });
+    }
+  };
+
+  const loadGlobalProducts = async () => {
+    try {
+      setGlobalProductsLoading(true);
+      
+      // Use the enhanced getAllProducts method
+      const res = await ApiService.getAllProducts();
+      console.log('[Products] Using getAllProducts method');
+      console.log('[Products] Global products API response:', res);
+      console.log('[Products] Response keys:', Object.keys(res?.data || {}));
+      
+      // Extract data based on the actual API response structure
+      let apiData = [];
+      
+      if (res?.data?.success && res?.data?.paginateData) {
+        // New API structure with paginateData
+        apiData = res.data.paginateData;
+        console.log('[Products] Using paginateData, found:', apiData.length, 'products');
+      } else if (res?.data?.data?.products) {
+        // Alternative structure
+        apiData = res.data.data.products;
+        console.log('[Products] Using data.products, found:', apiData.length, 'products');
+      } else if (res?.data?.products) {
+        // Simple products array
+        apiData = res.data.products;
+        console.log('[Products] Using products, found:', apiData.length, 'products');
+      } else if (Array.isArray(res?.data)) {
+        // Direct array response
+        apiData = res.data;
+        console.log('[Products] Using direct array, found:', apiData.length, 'products');
+      } else {
+        // Fallback - try to find any array in the response
+        const findArrays = (obj: any, result: any[] = []): any[] => {
+          if (Array.isArray(obj)) {
+            result.push(obj);
+          } else if (obj && typeof obj === 'object') {
+            Object.values(obj).forEach(value => findArrays(value, result));
+          }
+          return result;
+        };
+        const arrays = findArrays(res.data);
+        apiData = arrays.reduce((largest, current) => 
+          (current?.length || 0) > (largest?.length || 0) ? current : largest, []
+        );
+        console.log('[Products] Using fallback array detection, found:', apiData.length, 'products');
+      }
+      
+      const cardItems = Array.isArray(apiData) ? apiData.map(transformProductToCard) : [];
+      console.log('[Products] Transformed cardItems length:', cardItems.length);
+      setGlobalProducts(cardItems);
+    } catch (err) {
+      console.log('[Products] Global products load error:', err);
+      setGlobalProducts([]);
+    } finally {
+      setGlobalProductsLoading(false);
+    }
+  };
+
   const fetchProducts = useCallback(async (subCategoryId: string | null) => {
     if (!subCategoryId) return;
     try {
@@ -81,12 +191,16 @@ const Products = () => {
       const res = await ApiService.getSubCategoryProducts(subCategoryId);
       if (res?.status === 200 && res?.data?.paginateData) {
         const apiProducts = res.data.paginateData;
-        setProducts(apiProducts.map((p: any) => transformProductToCard(p)));
+        const transformedProducts = apiProducts.map((p: any) => transformProductToCard(p));
+        setProducts(transformedProducts);
+        setAllProducts(transformedProducts); // Update allProducts for non-search state
       } else {
         setProducts([]);
+        setAllProducts([]);
       }
     } catch (err) {
       setProducts([]);
+      setAllProducts([]);
       console.log('Error fetching products for subcategory:', err);
     } finally {
       setProductLoading(false);
@@ -120,7 +234,26 @@ const Products = () => {
     };
 
     fetchSubCategories();
+    loadGlobalProducts(); // Load global products for search
   }, [route?.params?.catId, fetchProducts]);
+
+  // Search + Filter Logic
+  useEffect(() => {
+    let filtered;
+
+    // Search - Use global products when searching, otherwise use subcategory products
+    if (isSearching && searchQuery.trim()) {
+      filtered = [...globalProducts];
+      // Apply search filter
+      filtered = filtered.filter(item =>
+        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    } else {
+      filtered = [...allProducts];
+    }
+
+    setProducts(filtered);
+  }, [allProducts, globalProducts, searchQuery, isSearching]);
 
   // ✅ Render each subcategory item
   const renderProductType = ({ item }: any) => {
@@ -160,9 +293,14 @@ const Products = () => {
     <SafeAreaView style={styles.container}>
       <Header
         title={route?.params?.catName || 'Products'}
+        isBack={false}
         rightIcon={true}
-        rightIconName={Images.ic_search}
-        rightIconPress={() => navigation.navigate('Search')}
+        rightIconPress={() => { setIsSearching(true); setSearchQuery(''); }}
+        rightIconComponent={
+          <View style={{ padding: 8 }}>
+            <Icon name="search" family="Feather" size={22} color="#000" />
+          </View>
+        }
       />
 
       {isBlur && <CustomBlurView />}
@@ -188,15 +326,71 @@ const Products = () => {
 
           {/* Product grid placeholder — your existing component */}
           <View style={{ flex: 1 }}>
-            {productLoading ? (
-              <TextView style={{ textAlign: 'center', marginTop: 20 }}>Loading products...</TextView>
+            {/* SEARCH MODE */}
+            {isSearching ? (
+              <View style={{ flex: 1, backgroundColor: '#fff' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee' }}>
+                  <Pressable onPress={() => setIsSearching(false)} style={{ padding: 8 }}>
+                    <Icon name="arrow-left" family="Feather" size={26} color="#000" />
+                  </Pressable>
+                  <TextInput
+                    style={{ flex: 1, height: 40, paddingHorizontal: 12, backgroundColor: '#f5f5f5', borderRadius: 20, marginHorizontal: 8 }}
+                    placeholder="Search products..."
+                    placeholderTextColor="#999"
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    autoFocus
+                  />
+                  {searchQuery ? (
+                    <Pressable onPress={() => setSearchQuery('')} style={{ padding: 8 }}>
+                      <Icon name="x" family="Feather" size={20} color="#999" />
+                    </Pressable>
+                  ) : null}
+                </View>
+
+                {searchQuery.trim() === "" ? (
+                  <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                    <TextView style={{ fontSize: 16, color: "#999" }}>Start typing to search products</TextView>
+                    <Image source={require("../../../../assets/images/search.png")} style={{ width: 250, height: 300 }} resizeMode="contain" />
+                  </View>
+                ) : (productLoading || globalProductsLoading) ? (
+                  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <TextView style={{ textAlign: 'center', marginTop: 20 }}>Loading...</TextView>
+                  </View>
+                ) : products.length === 0 ? (
+                  <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                    <Image source={require("../../../../assets/images/search.png")} style={{ width: 140, height: 120, opacity: 0.5 }} resizeMode="contain" />
+                    <TextView style={{ fontSize: 16, color: "#999" }}>No products found</TextView>
+                  </View>
+                ) : (
+                  <View style={{ flex: 1, paddingVertical: 16 }}>
+                    <ProductCard
+                      cardArray={products}
+                      type="OFFER"
+                      horizontal={false}
+                      numOfColumn={2}
+                      onAddAction={handleAddToCart}
+                      addingToCart={addingToCart}
+                    />
+                  </View>
+                )}
+              </View>
             ) : (
-              <ProductCard
-                cardArray={products}
-                type="OFFER"
-                horizontal={false}
-                numOfColumn={2}
-              />
+              /* NORMAL MODE */
+              <View style={{ flex: 1 }}>
+                {productLoading ? (
+                  <TextView style={{ textAlign: 'center', marginTop: 20 }}>Loading products...</TextView>
+                ) : (
+                  <ProductCard
+                    cardArray={products}
+                    type="OFFER"
+                    horizontal={false}
+                    numOfColumn={2}
+                    onAddAction={handleAddToCart}
+                    addingToCart={addingToCart}
+                  />
+                )}
+              </View>
             )}
           </View>
         </View>

@@ -24,6 +24,7 @@ export type HomeStackProps = {
   ReferEarn:undefined;
   PrivacyPolicy:undefined;
   TermsCondition:undefined;
+  RefundPolicy:undefined;
   Support:undefined;
   AboutUs:undefined;
   InviteFriend:undefined;

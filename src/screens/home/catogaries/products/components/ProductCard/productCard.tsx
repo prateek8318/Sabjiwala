@@ -31,6 +31,7 @@ interface ProductCardProps {
   horizontal?: boolean;
   onAddAction?: any;
   numOfColumn?: number;
+  addingToCart?: Set<string>;
 }
 
 const ProductCard: FC<ProductCardProps> = ({
@@ -39,6 +40,7 @@ const ProductCard: FC<ProductCardProps> = ({
   horizontal,
   onAddAction,
   numOfColumn,
+  addingToCart,
 }) => {
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
 
@@ -142,6 +144,7 @@ const ProductCard: FC<ProductCardProps> = ({
   const renderProductItem = ({ item }: { item: (typeof cardArray)[0] }) => {
     const productId = item.id?.toString() || item._id?.toString();
     const isFavorite = wishlist.has(productId);
+    const isAdding = addingToCart?.has(productId) || false;
     
     return (
       <Pressable style={styles.cardProduct}>
@@ -212,7 +215,7 @@ const ProductCard: FC<ProductCardProps> = ({
             </View>
           </View>
           {type === 'OFFER' && (
-            <Pressable onPress={() => onAddAction()}>
+            <Pressable onPress={() => onAddAction && onAddAction(item)} disabled={isAdding}>
               <LinearGradient
                 colors={['#5A875C', '#015304']}
                 style={[
@@ -220,12 +223,17 @@ const ProductCard: FC<ProductCardProps> = ({
                   {
                     borderTopLeftRadius: 12,
                     borderTopRightRadius: 12,
+                    opacity: isAdding ? 0.5 : 1,
                   },
                 ]}
                 start={{ x: 0, y: 0.5 }}
                 end={{ x: 1, y: 0 }}
               >
-                <TextView style={styles.txtAdd}>Add</TextView>
+                {isAdding ? (
+                  <TextView style={styles.txtAdd}>Adding...</TextView>
+                ) : (
+                  <TextView style={styles.txtAdd}>Add</TextView>
+                )}
               </LinearGradient>
               <View style={styles.optionView}>
                 <TextView style={styles.txtOption}>{item.options}</TextView>
@@ -234,14 +242,25 @@ const ProductCard: FC<ProductCardProps> = ({
           )}
           {type !== 'OFFER' && (
             <View>
-              <LinearGradient
-                colors={['#5A875C', '#015304']}
-                style={styles.addProductButon}
-                start={{ x: 0, y: 0.5 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <TextView style={styles.txtAdd}>Add</TextView>
-              </LinearGradient>
+              <Pressable onPress={() => onAddAction && onAddAction(item)} disabled={isAdding}>
+                <LinearGradient
+                  colors={['#5A875C', '#015304']}
+                  style={[
+                    styles.addProductButon,
+                    {
+                      opacity: isAdding ? 0.5 : 1,
+                    },
+                  ]}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  {isAdding ? (
+                    <TextView style={styles.txtAdd}>Adding...</TextView>
+                  ) : (
+                    <TextView style={styles.txtAdd}>Add</TextView>
+                  )}
+                </LinearGradient>
+              </Pressable>
             </View>
           )}
         </View>

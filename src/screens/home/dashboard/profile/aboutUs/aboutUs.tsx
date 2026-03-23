@@ -12,12 +12,14 @@ import {
   Modal,
   Alert,
   Text,
+  ActivityIndicator,
 } from 'react-native';
 import styles from './aboutUs.styles';
 import { HomeStackProps } from '../../../../../@types';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Header, TextView } from '../../../../../components';
+import { useCmsContent } from '../../../../../hooks/useCmsContent';
 
 type AboutUsScreenNavigationType = NativeStackNavigationProp<
   HomeStackProps,
@@ -26,6 +28,47 @@ type AboutUsScreenNavigationType = NativeStackNavigationProp<
 
 const AboutUs: FC = () => {
   const navigation = useNavigation<AboutUsScreenNavigationType>();
+  const { content, loading, error, refetch } = useCmsContent('about-us');
+
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#015304" />
+          <TextView style={styles.loadingText}>Loading...</TextView>
+        </View>
+      );
+    }
+
+    if (error) {
+      return (
+        <View style={styles.errorContainer}>
+          <TextView style={styles.errorText}>{error}</TextView>
+          <TouchableOpacity style={styles.retryButton} onPress={refetch}>
+            <TextView style={styles.retryButtonText}>Retry</TextView>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    if (!content) {
+      return (
+        <View style={styles.errorContainer}>
+          <TextView style={styles.errorText}>No content available</TextView>
+          <TouchableOpacity style={styles.retryButton} onPress={refetch}>
+            <TextView style={styles.retryButtonText}>Retry</TextView>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <View>
+        <TextView style={styles.txtTitle}>{content.title}</TextView>
+        <TextView style={styles.txtContent}>{content.content}</TextView>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -39,33 +82,7 @@ const AboutUs: FC = () => {
         </View>
 
         <View>
-          <TextView style={styles.txtContent}>
-            Korem ipsum dolor sit amet, consectetur adipiscing elit. Nunc
-            vulputate libero et velit interdum, ac aliquet odio mattis. sit
-            amet, consectetur adipiscing elit. Nunc vulputate libero et velit
-            interdum
-          </TextView>
-          <TextView style={styles.txtContent}>
-            Korem ipsum dolor sit amet, consectetur adipiscing elit. Nunc
-            vulputate libero et velit interdum, ac aliquet odio mattis. sit
-            amet, consectetur adipiscing elit. Nunc vulputate libero et velit
-            interdumKorem ipsum dolor sit amet, consectetur adipiscing elit.
-            Nunc vulputate libero et velit interdum, ac aliquet odio mattis. sit
-            amet, consectetur adipiscing elit. Nunc vulputate libero et velit
-            interdumKorem ipsum dolor sit amet, consectetur adipiscing elit.
-            Nunc vulputate libero et velit interdum, ac aliquet odio mattis. sit
-            amet, consectetur adipiscing elit. Nunc vulputate libero et velit
-            interdumKorem ipsum dolor sit amet, consectetur adipiscing elit.
-            Nunc vulputate libero et velit interdum, ac aliquet odio mattis. sit
-            amet, consectetur adipiscing elit. Nunc vulputate libero et velit
-            interdumKorem ipsum dolor sit amet, consectetur adipiscing elit.
-            Nunc vulputate libero et velit interdum, ac aliquet odio mattis. sit
-            amet, consectetur adipiscing elit. Nunc vulputate libero et velit
-            interdumKorem ipsum dolor sit amet, consectetur adipiscing elit.
-            Nunc vulputate libero et velit interdum, ac aliquet odio mattis. sit
-            amet, consectetur adipiscing elit. Nunc vulputate libero et velit
-            interdum
-          </TextView>
+          {renderContent()}
         </View>
       </ScrollView>
     </SafeAreaView>
