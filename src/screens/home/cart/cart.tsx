@@ -146,11 +146,11 @@ const Cart = ({ navigation }: any) => {
 
   // Monitor address form changes
   useEffect(() => {
-    if (editingAddressId) {
+    if (editingAddressId && !pincodeLoading) {
       const originalAddress = addresses.find(addr => addr._id === editingAddressId);
       checkAddressChanges(addressForm, originalAddress);
     }
-  }, [addressForm, editingAddressId, addresses]);
+  }, [addressForm, editingAddressId, addresses, pincodeLoading]);
 
   // Hide bottom tab bar when Cart screen is focused
   useFocusEffect(
@@ -2018,13 +2018,6 @@ const Cart = ({ navigation }: any) => {
           <View style={{ flex: 1 }}>
             <View style={{ ...StyleSheet.absoluteFillObject, zIndex: 0 }}>
               <CustomBlurView />
-              <View
-                style={{
-                  ...StyleSheet.absoluteFillObject,
-                  backgroundColor: "rgba(0,0,0,0.35)",
-                }}
-                pointerEvents="none"
-              />
             </View>
             <View style={{ flex: 1, alignItems: "center", justifyContent: "center", zIndex: 2 }}>
               <TouchableWithoutFeedback>

@@ -26,6 +26,9 @@ export const usePincodeAutoFill = () => {
       try {
         const addressFields: AddressFields | null = await autoFillAddressFromPincode(onlyDigits);
         
+        // Ensure pincode is preserved after API call
+        setPincode(onlyDigits);
+        
         if (addressFields) {
           setCity(addressFields.city);
           if (setState) setState(addressFields.state);
@@ -54,6 +57,9 @@ export const usePincodeAutoFill = () => {
         }
       } catch (error) {
         console.error('Error auto-filling address:', error);
+        // Ensure pincode is preserved even on error
+        setPincode(onlyDigits);
+        
         // Show error toast for API failures
         Toast.show({
           type: 'error',

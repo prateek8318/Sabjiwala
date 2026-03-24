@@ -39,6 +39,8 @@ const ProductDetail = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [expandedSections, setExpandedSections] = useState({ highlights: true, info: true });
   const [updatingCart, setUpdatingCart] = useState(false);
+  // Track loading states for individual operations
+  const [operationLoading, setOperationLoading] = useState<{[key: string]: 'add' | 'remove' | null}>({});
   const carouselRef = useRef<FlatList<string> | null>(null);
 
   useEffect(() => {
@@ -351,6 +353,11 @@ const ProductDetail = () => {
         undefined;
 
       const finalVariantId = variantId?.toString();
+      const operationKey = finalVariantId ? `${productIdentifier}:${finalVariantId}` : productIdentifier;
+      const operationType = newQty > cartQty ? 'add' : 'remove';
+      
+      // Set operation-specific loading state
+      setOperationLoading(prev => ({ ...prev, [operationKey]: operationType }));
 
       if (!productIdentifier) return;
       
@@ -373,6 +380,23 @@ const ProductDetail = () => {
       await loadCartQuantity(selectedQty);
     } finally {
       setUpdatingCart(false);
+      // Clear operation-specific loading state
+      const productIdentifier = (
+        product?._id ||
+        product?.id ||
+        productId
+      )?.toString();
+      const variantId =
+        selectedVariant.variantId ||
+        product?.variants?.[selectedQty]?._id ||
+        product?.variants?.[0]?._id ||
+        product?.ProductVarient?.[selectedQty]?._id ||
+        product?.ProductVarient?.[0]?._id ||
+        product?.variantId ||
+        undefined;
+      const finalVariantId = variantId?.toString();
+      const operationKey = finalVariantId ? `${productIdentifier}:${finalVariantId}` : productIdentifier;
+      setOperationLoading(prev => ({ ...prev, [operationKey]: null }));
     }
   };
 
@@ -496,7 +520,7 @@ const handleShare = async () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp(12) }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp(8) }}>
         {/* Product Image Carousel */}
         <View style={styles.imgContainer}>
           <FlatList
@@ -558,7 +582,7 @@ const handleShare = async () => {
 
           {/* Share Button */}
           <Pressable onPress={handleShare} style={styles.shareBtn}>
-            <Icon name="share-2" family="Feather" size={24} color="#000" />
+            <Icon name="share-2" family="Feather" size={20} color="#000" />
           </Pressable>
         </View>
 
@@ -582,7 +606,7 @@ const handleShare = async () => {
           keyExtractor={(i) => i.id.toString()}
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: wp(4), marginTop: hp(2) }}
+          contentContainerStyle={{ paddingHorizontal: wp(4), marginTop: hp(1) }}
         />
 
         {/* Product Detail Accordion Cards */}
@@ -653,23 +677,48 @@ const handleShare = async () => {
       <View style={styles.bottomCartBar}>
         <LinearGradient colors={['#FFFFFF', '#FFFFFF']} style={styles.cartGradient}>
           {cartQty === 0 ? (
-            <Pressable 
-              onPress={handleAddToCart} 
-              disabled={updatingCart}
-              style={{ flex: 1 }}
-            >
-              <LinearGradient
-                colors={['#5A875C', '#015304']}
-                start={{ x: 0, y: 0.5 }}
-                end={{ x: 1, y: 0 }}
-                style={[styles.addToCartBtn, { flex: 1, opacity: updatingCart ? 0.5 : 1 }]}
-              >
-                <Text style={[styles.addToCartText, { color: '#fff' }]}>
-                  {updatingCart ? 'Adding...' : 'Add to Cart'}
-                </Text>
-                <Icon name="chevron-right" family="Entypo" size={26} color="#fff" />
-              </LinearGradient>
-            </Pressable>
+            (() => {
+              const productIdentifier = (
+                product?._id ||
+                product?.id ||
+                productId
+              )?.toString();
+              const variantId =
+                selectedVariant.variantId ||
+                product?.variants?.[selectedQty]?._id ||
+                product?.variants?.[0]?._id ||
+                product?.ProductVarient?.[selectedQty]?._id ||
+                product?.ProductVarient?.[0]?._id ||
+                product?.variantId ||
+                undefined;
+              const finalVariantId = variantId?.toString();
+              const operationKey = finalVariantId ? `${productIdentifier}:${finalVariantId}` : productIdentifier;
+              const isLoading = updatingCart || operationLoading[operationKey] === 'add';
+              
+              return (
+                <Pressable 
+                  onPress={handleAddToCart} 
+                  disabled={isLoading}
+                  style={{ flex: 1 }}
+                >
+                  <LinearGradient
+                    colors={['#5A875C', '#015304']}
+                    start={{ x: 0, y: 0.5 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[styles.addToCartBtn, { flex: 1, opacity: isLoading ? 0.5 : 1 }]}
+                  >
+                    <Text style={[styles.addToCartText, { color: '#fff' }]}>
+                      {isLoading ? 'Adding...' : 'Add to Cart'}
+                    </Text>
+                    {isLoading ? (
+                      <ActivityIndicator size="small" color="#fff" style={{ marginLeft: 8 }} />
+                    ) : (
+                      <Icon name="chevron-right" family="Entypo" size={26} color="#fff" />
+                    )}
+                  </LinearGradient>
+                </Pressable>
+              );
+            })()
           ) : (
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1, padding: 10 }}>
               <Pressable
@@ -692,49 +741,95 @@ const handleShare = async () => {
               </Pressable>
 
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Pressable
-                  onPress={() => updateCart(cartQty - 1)}
-                  disabled={updatingCart}
-                  style={[
-                    {
-                      backgroundColor: '#fff',
-                      borderRadius: 4,
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderWidth: 1,
-                      borderColor: '#ccc',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                    },
-                    updatingCart && { opacity: 0.5 }
-                  ]}
-                >
-                  <Text style={{ fontSize: 16, color: '#000', fontWeight: '600' }}>-</Text>
-                </Pressable>
+                {(() => {
+                  const productIdentifier = (
+                    product?._id ||
+                    product?.id ||
+                    productId
+                  )?.toString();
+                  const variantId =
+                    selectedVariant.variantId ||
+                    product?.variants?.[selectedQty]?._id ||
+                    product?.variants?.[0]?._id ||
+                    product?.ProductVarient?.[selectedQty]?._id ||
+                    product?.ProductVarient?.[0]?._id ||
+                    product?.variantId ||
+                    undefined;
+                  const finalVariantId = variantId?.toString();
+                  const operationKey = finalVariantId ? `${productIdentifier}:${finalVariantId}` : productIdentifier;
+                  const isLoading = updatingCart || operationLoading[operationKey] === 'remove';
+                  
+                  return (
+                    <Pressable
+                      onPress={() => updateCart(cartQty - 1)}
+                      disabled={isLoading}
+                      style={{
+                        backgroundColor: isLoading ? '#f5f5f5' : '#fff',
+                        borderRadius: 4,
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        borderWidth: 1,
+                        borderColor: isLoading ? '#ccc' : '#ccc',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        opacity: isLoading ? 0.5 : 1
+                      }}
+                    >
+                      {isLoading ? (
+                        <ActivityIndicator size="small" color="#000" />
+                      ) : (
+                        <Text style={{ fontSize: 16, color: '#000', fontWeight: '600' }}>-</Text>
+                      )}
+                    </Pressable>
+                  );
+                })()}
 
                 <Text style={{ marginHorizontal: 12, fontSize: 16, fontWeight: '600', color: '#000' }}>
                   {String(cartQty)}
                 </Text>
 
-                <Pressable
-                  onPress={() => updateCart(cartQty + 1)}
-                  disabled={updatingCart}
-                  style={[
-                    {
-                      backgroundColor: '#fff',
-                      borderRadius: 4,
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderWidth: 1,
-                      borderColor: '#ccc',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                    },
-                    updatingCart && { opacity: 0.5 }
-                  ]}
-                >
-                  <Text style={{ fontSize: 16, color: '#000', fontWeight: '600' }}>+</Text>
-                </Pressable>
+                {(() => {
+                  const productIdentifier = (
+                    product?._id ||
+                    product?.id ||
+                    productId
+                  )?.toString();
+                  const variantId =
+                    selectedVariant.variantId ||
+                    product?.variants?.[selectedQty]?._id ||
+                    product?.variants?.[0]?._id ||
+                    product?.ProductVarient?.[selectedQty]?._id ||
+                    product?.ProductVarient?.[0]?._id ||
+                    product?.variantId ||
+                    undefined;
+                  const finalVariantId = variantId?.toString();
+                  const operationKey = finalVariantId ? `${productIdentifier}:${finalVariantId}` : productIdentifier;
+                  const isLoading = updatingCart || operationLoading[operationKey] === 'add';
+                  
+                  return (
+                    <Pressable
+                      onPress={() => updateCart(cartQty + 1)}
+                      disabled={isLoading}
+                      style={{
+                        backgroundColor: isLoading ? '#f5f5f5' : '#fff',
+                        borderRadius: 4,
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        borderWidth: 1,
+                        borderColor: isLoading ? '#ccc' : '#ccc',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        opacity: isLoading ? 0.5 : 1
+                      }}
+                    >
+                      {isLoading ? (
+                        <ActivityIndicator size="small" color="#000" />
+                      ) : (
+                        <Text style={{ fontSize: 16, color: '#000', fontWeight: '600' }}>+</Text>
+                      )}
+                    </Pressable>
+                  );
+                })()}
               </View>
             </View>
           )}

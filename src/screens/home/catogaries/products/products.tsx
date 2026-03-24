@@ -303,7 +303,6 @@ const Products = () => {
         }
       />
 
-      {isBlur && <CustomBlurView />}
 
       <View style={{ flex: 1 }}>
         <View style={styles.viewContainer}>
@@ -710,8 +709,7 @@ export default Products;
 //         }}
 //       />
 //
-//       {isBlur && <CustomBlurView />}
-//
+// //
 //       <View style={{ flex: 1 }}>
 //         <View style={styles.viewContainer}>
 //           <View>

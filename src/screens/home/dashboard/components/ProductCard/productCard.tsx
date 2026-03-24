@@ -71,6 +71,8 @@ const ProductCard: FC<ProductCardProps> = ({
   const [cartVariantMap, setCartVariantMap] = useState<{ [key: string]: { variantId?: string; variantData?: any; quantity: number } }>({});
   // Store all cart items to properly track multiple variants of same product
   const [cartItems, setCartItems] = useState<any[]>([]);
+  // Store quantities by product+variant combination: "productId:variantId" -> quantity
+  const [variantQuantities, setVariantQuantities] = useState<{ [key: string]: number }>({});
   // Wishlist is the single source of truth for favorites
 
   const buildImageUrl = (path?: string) => {
@@ -117,11 +119,16 @@ const ProductCard: FC<ProductCardProps> = ({
             variantData: variantData,
             quantity: i.quantity || 0,
           };
+          
+          // Store quantity by product+variant combination for accurate tracking
+          const key = variantId ? `${pid}:${variantId}` : pid;
+          variantQuantities[key] = i.quantity || 0;
         }
       });
 
       setCartMap(map);
       setCartVariantMap(variantMap);
+      setVariantQuantities({ ...variantQuantities });
     } catch (e) {
       console.log('loadCart error:', e);
     }
@@ -286,8 +293,10 @@ const ProductCard: FC<ProductCardProps> = ({
     }
   };
 
-  // Track loading states for each product
+  // Track loading states for each product and variant combination
   const [loadingStates, setLoadingStates] = useState<{[key: string]: boolean}>({});
+  // Track loading states for individual operations (add/remove)
+  const [operationLoading, setOperationLoading] = useState<{[key: string]: 'add' | 'remove' | null}>({});
 
   // Update cart qty with proper loading states and error handling
   const updateCartQty = async (
@@ -307,59 +316,80 @@ const ProductCard: FC<ProductCardProps> = ({
 
     const vid = variantId ? variantId.toString() : undefined;
     
+    // Create unique key for this specific operation
+    const operationKey = vid ? `${pid}:${vid}` : pid;
+    const operationType = qty > (variantQuantities[operationKey] || 0) ? 'add' : 'remove';
+    
     try {
-      // Set loading state
+      // Set loading state for this specific operation
       setLoadingStates(prev => ({ ...prev, [pid]: true }));
+      setOperationLoading(prev => ({ ...prev, [operationKey]: operationType }));
 
       // Make API call first
-      if (qty > 0) {
-        // For adding/updating quantity
-        await ApiService.addToCart(pid, vid, qty.toString());
+      if (qty >= 0) {
+        // For adding/updating quantity (including 0)
+        if (qty > 0) {
+          await ApiService.addToCart(pid, vid, qty.toString());
+        } else {
+          // When quantity becomes 0, remove the item from cart
+          await ApiService.removeCartItem(pid, vid);
+        }
         
         // Only update UI after successful API call
-        setCartMap(prev => ({ ...prev, [pid]: qty }));
+        if (qty > 0) {
+          setCartMap(prev => ({ ...prev, [pid]: qty }));
+          
+          // Update variant-specific quantity
+          const variantKey = vid ? `${pid}:${vid}` : pid;
+          setVariantQuantities(prev => ({ ...prev, [variantKey]: qty }));
 
-        if (vid && productItem) {
-          const variantData = [...(productItem?.ProductVarient || []), ...(productItem?.variants || [])].find(
-            (v: any) => v._id === vid
-          );
-          if (variantData) {
+          if (vid && productItem) {
+            const variantData = [...(productItem?.ProductVarient || []), ...(productItem?.variants || [])].find(
+              (v: any) => v._id === vid
+            );
+            if (variantData) {
+              setCartVariantMap(prev => ({
+                ...prev,
+                [pid]: { variantId: vid, variantData, quantity: qty },
+              }));
+            }
+          } else if (!vid && productItem) {
             setCartVariantMap(prev => ({
               ...prev,
-              [pid]: { variantId: vid, variantData, quantity: qty },
+              [pid]: { variantId: undefined, variantData: undefined, quantity: qty },
             }));
           }
-        } else if (!vid && productItem) {
-          setCartVariantMap(prev => ({
-            ...prev,
-            [pid]: { variantId: undefined, variantData: undefined, quantity: qty },
-          }));
-        }
 
-        // Notify parent only when adding first item (qty === 1)
-        if (onProductAdded && productItem && qty === 1) {
-          onProductAdded(productItem);
-        }
-      } else {
-        // For removing item
-        await ApiService.removeCartItem(pid, vid);
-        
-        // Only update UI after successful API call
-        setCartMap(prev => {
-          const next = { ...prev };
-          delete next[pid];
-          return next;
-        });
-        
-        setCartVariantMap(prev => {
-          const next = { ...prev };
-          delete next[pid];
-          return next;
-        });
+          // Notify parent only when adding first item (qty === 1)
+          if (onProductAdded && productItem && qty === 1) {
+            onProductAdded(productItem);
+          }
+        } else {
+          // When quantity is 0, remove from UI
+          setCartMap(prev => {
+            const next = { ...prev };
+            delete next[pid];
+            return next;
+          });
+          
+          // Remove variant-specific quantity
+          const variantKey = vid ? `${pid}:${vid}` : pid;
+          setVariantQuantities(prev => {
+            const next = { ...prev };
+            delete next[variantKey];
+            return next;
+          });
+          
+          setCartVariantMap(prev => {
+            const next = { ...prev };
+            delete next[pid];
+            return next;
+          });
 
-        // Notify parent that product was removed
-        if (onProductAdded && productItem) {
-          onProductAdded({ ...productItem, removed: true });
+          // Notify parent that product was removed
+          if (onProductAdded && productItem) {
+            onProductAdded({ ...productItem, removed: true });
+          }
         }
       }
       
@@ -372,6 +402,7 @@ const ProductCard: FC<ProductCardProps> = ({
     } finally {
       // Clear loading state
       setLoadingStates(prev => ({ ...prev, [pid]: false }));
+      setOperationLoading(prev => ({ ...prev, [operationKey]: null }));
     }
   };
 
@@ -389,10 +420,7 @@ const ProductCard: FC<ProductCardProps> = ({
   const renderProductItem = ({ item }: { item: any }) => {
     const productId = getProductId(item);
     const isFavorite = productId ? wishlist.has(productId) : false;
-    const cartQty = productId ? cartMap[productId] || 0 : 0;
-    // Get cart variant info if product is in cart
-    const cartVariantInfo = productId ? cartVariantMap[productId] : undefined;
-
+    
     // 👉 Variant logic: agar 0 variants hai to simple ADD button,
     // warna option button (modal open karega)
     const hasVariants =
@@ -400,6 +428,7 @@ const ProductCard: FC<ProductCardProps> = ({
       (item?.ProductVarient && item.ProductVarient.length > 0);
 
     // Get selected variant from cart, or use first variant, or undefined
+    const cartVariantInfo = productId ? cartVariantMap[productId] : undefined;
     const selectedVariant = cartVariantInfo?.variantId
       ? [...(item?.ProductVarient || []), ...(item?.variants || [])].find(
         (v: any) => v._id === cartVariantInfo.variantId
@@ -414,6 +443,13 @@ const ProductCard: FC<ProductCardProps> = ({
         item?.variants?.[0]?._id ||
         undefined)
       : undefined;
+
+    // Get quantity for this specific variant
+    const variantKey = firstVariantId ? `${productId}:${firstVariantId}` : productId;
+    const variantQty = productId ? (variantQuantities[variantKey] || 0) : 0;
+    
+    // Use variant-specific quantity if available, otherwise fall back to general cart quantity
+    const cartQty = variantQty || (productId ? cartMap[productId] || 0 : 0);
 
     // Use selected variant data if in cart, otherwise use default
     const displayVariant = selectedVariant || item?.ProductVarient?.[0] || item?.variants?.[0] || {};
@@ -595,41 +631,54 @@ const ProductCard: FC<ProductCardProps> = ({
                   }}
                 >
                   {/* --- Minus Button --- */}
-                  <Pressable
-                    onPress={e => {
-                      e.stopPropagation();
-                      const pid = getProductId(item);
-                      if (!pid) return;
-                      updateCartQty(
-                        pid,
-                        firstVariantId,
-                        cartQty - 1,
-                        item,
-                      );
-                    }}
-                    style={{
-                      height: hp(3),
-                      width: hp(3),
-                      borderRadius: hp(3),
-                      borderWidth: 1,
-                      borderColor: '#000',
-                      backgroundColor: '#fff',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      marginLeft: wp(2),
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: hp(2),
-                        color: '#000',
-                        fontWeight: '600',
-                        marginBottom: 2,
-                      }}
-                    >
-                      -
-                    </Text>
-                  </Pressable>
+                  {(() => {
+                    const pid = getProductId(item);
+                    const variantKey = firstVariantId ? `${pid}:${firstVariantId}` : pid;
+                    const isLoading = loadingStates[pid] || operationLoading[variantKey];
+                    
+                    return (
+                      <Pressable
+                        onPress={e => {
+                          e.stopPropagation();
+                          if (!pid) return;
+                          if (isLoading) return;
+                          updateCartQty(
+                            pid,
+                            firstVariantId,
+                            cartQty - 1,
+                            item,
+                          );
+                        }}
+                        disabled={!!isLoading}
+                        style={{
+                          height: hp(3),
+                          width: hp(3),
+                          borderRadius: hp(3),
+                          borderWidth: 1,
+                          borderColor: isLoading ? '#ccc' : '#000',
+                          backgroundColor: isLoading ? '#f5f5f5' : '#fff',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginLeft: wp(2),
+                        }}
+                      >
+                        {isLoading ? (
+                          <ActivityIndicator size="small" color="#000" />
+                        ) : (
+                          <Text
+                            style={{
+                              fontSize: hp(2),
+                              color: '#000',
+                              fontWeight: '600',
+                              marginBottom: 2,
+                            }}
+                          >
+                            -
+                          </Text>
+                        )}
+                      </Pressable>
+                    );
+                  })()}
 
                   {/* Quantity Text */}
                   <Text
@@ -645,41 +694,54 @@ const ProductCard: FC<ProductCardProps> = ({
                   </Text>
 
                   {/* --- Plus Button --- */}
-                  <Pressable
-                    onPress={e => {
-                      e.stopPropagation();
-                      const pid = getProductId(item);
-                      if (!pid) return;
-                      updateCartQty(
-                        pid,
-                        firstVariantId,
-                        cartQty + 1,
-                        item,
-                      );
-                    }}
-                    style={{
-                      height: hp(3),
-                      width: hp(3),
-                      marginRight: hp(1),
-                      borderRadius: hp(3),
-                      borderWidth: 1,
-                      borderColor: '#000',
-                      backgroundColor: '#fff',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: hp(2),
-                        color: '#000',
-                        fontWeight: '600',
-                        marginBottom: 1,
-                      }}
-                    >
-                      +
-                    </Text>
-                  </Pressable>
+                  {(() => {
+                    const pid = getProductId(item);
+                    const variantKey = firstVariantId ? `${pid}:${firstVariantId}` : pid;
+                    const isLoading = loadingStates[pid] || operationLoading[variantKey];
+                    
+                    return (
+                      <Pressable
+                        onPress={e => {
+                          e.stopPropagation();
+                          if (!pid) return;
+                          if (isLoading) return;
+                          updateCartQty(
+                            pid,
+                            firstVariantId,
+                            cartQty + 1,
+                            item,
+                          );
+                        }}
+                        disabled={!!isLoading}
+                        style={{
+                          height: hp(3),
+                          width: hp(3),
+                          marginRight: hp(1),
+                          borderRadius: hp(3),
+                          borderWidth: 1,
+                          borderColor: isLoading ? '#ccc' : '#000',
+                          backgroundColor: isLoading ? '#f5f5f5' : '#fff',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                        }}
+                      >
+                        {isLoading ? (
+                          <ActivityIndicator size="small" color="#000" />
+                        ) : (
+                          <Text
+                            style={{
+                              fontSize: hp(2),
+                              color: '#000',
+                              fontWeight: '600',
+                              marginBottom: 1,
+                            }}
+                          >
+                            +
+                          </Text>
+                        )}
+                      </Pressable>
+                    );
+                  })()}
                 </View>
               </View>
             ) : hasVariants ? (
@@ -800,41 +862,54 @@ const ProductCard: FC<ProductCardProps> = ({
                   </Text>
 
                   {/* --- Plus Button --- */}
-                  <Pressable
-                    onPress={e => {
-                      e.stopPropagation();
-                      const pid = getProductId(item);
-                      if (!pid) return;
-                      updateCartQty(
-                        pid,
-                        firstVariantId,
-                        cartQty + 1,
-                        item,
-                      );
-                    }}
-                    style={{
-                      height: hp(3),
-                      width: hp(3),
-                      marginRight: hp(1),
-                      borderRadius: hp(3),
-                      borderWidth: 1,
-                      borderColor: '#000',
-                      backgroundColor: '#fff',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: hp(2),
-                        color: '#000',
-                        fontWeight: '600',
-                        marginBottom: 1,
-                      }}
-                    >
-                      +
-                    </Text>
-                  </Pressable>
+                  {(() => {
+                    const pid = getProductId(item);
+                    const variantKey = firstVariantId ? `${pid}:${firstVariantId}` : pid;
+                    const isLoading = loadingStates[pid] || operationLoading[variantKey];
+                    
+                    return (
+                      <Pressable
+                        onPress={e => {
+                          e.stopPropagation();
+                          if (!pid) return;
+                          if (isLoading) return;
+                          updateCartQty(
+                            pid,
+                            firstVariantId,
+                            cartQty + 1,
+                            item,
+                          );
+                        }}
+                        disabled={!!isLoading}
+                        style={{
+                          height: hp(3),
+                          width: hp(3),
+                          marginRight: hp(1),
+                          borderRadius: hp(3),
+                          borderWidth: 1,
+                          borderColor: isLoading ? '#ccc' : '#000',
+                          backgroundColor: isLoading ? '#f5f5f5' : '#fff',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                        }}
+                      >
+                        {isLoading ? (
+                          <ActivityIndicator size="small" color="#000" />
+                        ) : (
+                          <Text
+                            style={{
+                              fontSize: hp(2),
+                              color: '#000',
+                              fontWeight: '600',
+                              marginBottom: 1,
+                            }}
+                          >
+                            +
+                          </Text>
+                        )}
+                      </Pressable>
+                    );
+                  })()}
                 </View>
               ) : (
                 hasVariants ? (
@@ -1068,14 +1143,9 @@ const ProductCard: FC<ProductCardProps> = ({
                     const pid = getProductId(selectedProduct);
                     const vid = v?._id;
                     
-                    // Calculate current quantity by checking both cartMap and cartVariantMap
-                    // This ensures we get the most up-to-date quantity
-                    const totalProductQty = pid ? (cartMap[pid] || 0) : 0;
-                    const variantInfo = pid ? cartVariantMap[pid] : undefined;
-                    
-                    // If this specific variant is selected, use its quantity
-                    // Otherwise, this variant is not in cart yet
-                    const quantity = (variantInfo?.variantId === vid) ? (variantInfo?.quantity || 0) : 0;
+                    // Calculate current quantity by checking variantQuantities map
+                    const variantKey = vid ? `${pid}:${vid}` : pid;
+                    const quantity = pid ? (variantQuantities[variantKey] || 0) : 0;
 
                     if (quantity > 0) {
                       return (
@@ -1096,20 +1166,26 @@ const ProductCard: FC<ProductCardProps> = ({
                           <Pressable
                             onPress={() => {
                               if (!pid) return;
+                              if (loadingStates[pid] || operationLoading[variantKey]) return;
                               updateCartQty(pid, vid, quantity - 1, selectedProduct);
                             }}
+                            disabled={!!(loadingStates[pid] || operationLoading[variantKey])}
                             style={{
                               width: 24,
                               height: 24,
                               borderRadius: 12,
-                              backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                              backgroundColor: (loadingStates[pid] || operationLoading[variantKey]) ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)',
                               justifyContent: 'center',
                               alignItems: 'center',
                               borderWidth: 1,
-                              borderColor: 'rgba(255, 255, 255, 0.5)',
+                              borderColor: (loadingStates[pid] || operationLoading[variantKey]) ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.5)',
                             }}
                           >
-                            <Text style={{ fontSize: 16, color: '#fff', fontWeight: 'bold' }}>-</Text>
+                            {(loadingStates[pid] || operationLoading[variantKey]) ? (
+                              <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                              <Text style={{ fontSize: 16, color: '#fff', fontWeight: 'bold' }}>-</Text>
+                            )}
                           </Pressable>
 
                           <Text style={{ minWidth: 20, textAlign: 'center', fontWeight: '700', color: '#fff', fontSize: 14 }}>
@@ -1119,20 +1195,26 @@ const ProductCard: FC<ProductCardProps> = ({
                           <Pressable
                             onPress={() => {
                               if (!pid) return;
+                              if (loadingStates[pid] || operationLoading[variantKey]) return;
                               updateCartQty(pid, vid, quantity + 1, selectedProduct);
                             }}
+                            disabled={!!(loadingStates[pid] || operationLoading[variantKey])}
                             style={{
                               width: 24,
                               height: 24,
                               borderRadius: 12,
-                              backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                              backgroundColor: (loadingStates[pid] || operationLoading[variantKey]) ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)',
                               justifyContent: 'center',
                               alignItems: 'center',
                               borderWidth: 1,
-                              borderColor: 'rgba(255, 255, 255, 0.5)',
+                              borderColor: (loadingStates[pid] || operationLoading[variantKey]) ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.5)',
                             }}
                           >
-                            <Text style={{ fontSize: 16, color: '#fff', fontWeight: 'bold' }}>+</Text>
+                            {(loadingStates[pid] || operationLoading[variantKey]) ? (
+                              <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                              <Text style={{ fontSize: 16, color: '#fff', fontWeight: 'bold' }}>+</Text>
+                            )}
                           </Pressable>
                         </LinearGradient>
                       );
@@ -1142,7 +1224,14 @@ const ProductCard: FC<ProductCardProps> = ({
                       <Pressable
                         onPress={async () => {
                           if (!pid) return;
-                          // Optimistically update variant map
+                          const currentVariantKey = vid ? `${pid}:${vid}` : pid;
+                          if (loadingStates[pid] || operationLoading[currentVariantKey]) return;
+                          // Optimistically update variant quantities map
+                          setVariantQuantities(prev => ({
+                            ...prev,
+                            [currentVariantKey]: 1,
+                          }));
+                          
                           setCartVariantMap(prev => ({
                             ...prev,
                             [pid]: {
@@ -1151,8 +1240,10 @@ const ProductCard: FC<ProductCardProps> = ({
                               quantity: 1,
                             },
                           }));
+                          
                           await updateCartQty(pid, vid, 1, selectedProduct);
                         }}
+                        disabled={!!(loadingStates[pid] || operationLoading[vid ? `${pid}:${vid}` : pid])}
                       >
                         <LinearGradient
                           colors={['#5A875C', '#015304']}
