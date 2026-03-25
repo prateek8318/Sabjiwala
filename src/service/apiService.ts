@@ -23,6 +23,61 @@ const api = axios.create({
   timeout: 30000,
 });
 
+const inflightGetRequests = new Map<string, Promise<AxiosResponse>>();
+const recentGetResponses = new Map<
+  string,
+  { expiresAt: number; response: AxiosResponse }
+>();
+
+const buildRequestKey = (endpoint: string, params?: any) => {
+  if (!params) {
+    return endpoint;
+  }
+
+  try {
+    return `${endpoint}?${JSON.stringify(params)}`;
+  } catch {
+    return endpoint;
+  }
+};
+
+const coalescedGet = (
+  endpoint: string,
+  params?: any,
+  ttlMs = 0,
+): Promise<AxiosResponse> => {
+  const key = buildRequestKey(endpoint, params);
+  const nowTs = Date.now();
+  const cached = recentGetResponses.get(key);
+
+  if (cached && cached.expiresAt > nowTs) {
+    return Promise.resolve(cached.response);
+  }
+
+  const inflight = inflightGetRequests.get(key);
+  if (inflight) {
+    return inflight;
+  }
+
+  const request = api
+    .get(endpoint, params ? { params } : undefined)
+    .then(response => {
+      if (ttlMs > 0) {
+        recentGetResponses.set(key, {
+          expiresAt: Date.now() + ttlMs,
+          response,
+        });
+      }
+      return response;
+    })
+    .finally(() => {
+      inflightGetRequests.delete(key);
+    });
+
+  inflightGetRequests.set(key, request);
+  return request;
+};
+
 // -------------------------------------------------
 // 3. Pretty-print & time helpers (dev only)
 const pretty = (obj: any) => {
@@ -103,7 +158,7 @@ export const ApiService = {
   // ---- CRUD ----
 
   getImage: (image: string) => `${IMAGE_BASE_URL}${image}`,
-  get: (endpoint: string, params?: any) => api.get(endpoint, { params }),
+  get: (endpoint: string, params?: any) => coalescedGet(endpoint, params),
   post: (endpoint: string, data: any) => api.post(endpoint, data),
   put: (endpoint: string, data: any) => api.put(endpoint, data),
   patch: (endpoint: string, data: any) => api.patch(endpoint, data),
@@ -151,7 +206,7 @@ export const ApiService = {
   },
 
   getUserProfile: async () => {
-    const response = await api.get('user/profile');
+    const response = await coalescedGet('user/profile', undefined, 1500);
     return response;
   },
   // ---- Login (example) ----
@@ -180,7 +235,7 @@ export const ApiService = {
   // ADDRESS API FUNCTIONS
   // ─────────────────────────────────────────────
   getAddresses: async () => {
-    return await api.get('user/address/');
+    return await coalescedGet('user/address/', undefined, 1000);
   },
   addAddress: async (addressData: any) => {
     return await api.post('user/address/', addressData);
@@ -202,17 +257,17 @@ export const ApiService = {
     return response; // full axios response (status + data)
   },
   getHomeCategory: async () => {
-    const response = await api.get('user/getSubCategries');
+    const response = await coalescedGet('user/getSubCategries', undefined, 1000);
     return response; // full axios response (status + data)
   },
 
   getHomeStaticData: async () => {
-    const response = await api.get('user/homeStaticContent');
+    const response = await coalescedGet('user/homeStaticContent', undefined, 1000);
     return response; // full axios response (status + data)
   },
 
   getHomeContent: async () => {
-    return await api.get('user/homeProductContent');
+    return await coalescedGet('user/homeProductContent', undefined, 1000);
   },
   getTypeBasedProduct: async (type: string) => {
     const endpoint = `user/home/typeBasedProduct/${type}`;
@@ -251,12 +306,12 @@ getHomeProductContent: async () => {
   },
 
   getCart: async () => {
-    const response = await api.get('user/cart');
+    const response = await coalescedGet('user/cart', undefined, 500);
     return response;
   },
 
   getCoupons: async () => {
-    return await api.get('user/coupon');
+    return await coalescedGet('user/coupon', undefined, 500);
   },
 
   removeCartItem: async (productId: string, variantId?: string) => {
@@ -287,7 +342,7 @@ getHomeProductContent: async () => {
     return response;
   },
   getWishlist: async () => {
-    const response = await api.get('user/wishlist');
+    const response = await coalescedGet('user/wishlist', undefined, 500);
     return response;
   },
 
@@ -372,7 +427,7 @@ getHomeProductContent: async () => {
   
   // Notifications
   getNotifications() {
-    return api.get('user/get-notification');
+    return coalescedGet('user/get-notification', undefined, 500);
   },
   
   deleteNotification(notificationId: string) {

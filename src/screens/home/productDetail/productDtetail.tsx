@@ -3,7 +3,6 @@ import {
   View,
   Image,
   ScrollView,
-  SafeAreaView,
   Pressable,
   Text,
   FlatList,
@@ -20,6 +19,7 @@ import { useRoute } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { HomeStackProps } from '../../../@types';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -29,6 +29,7 @@ const ProductDetail = () => {
   const route = useRoute();
   const { productId } = route.params as { productId: string };
   const navigation = useNavigation<NavProp>();
+  const insets = useSafeAreaInsets();
 
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -88,46 +89,6 @@ const ProductDetail = () => {
         setLoading(false);
       }
     })();
-  }, [productId]);
-
-  // Initial favorite status: check wishlist so heart is red if product already in favorites
-  useEffect(() => {
-    const loadFavoriteStatus = async () => {
-      try {
-        const res = await ApiService.getWishlist();
-
-        // Handle different response structures similar to other screens
-        let items: any[] = [];
-        if (res?.data?.wishlist?.items && Array.isArray(res.data.wishlist.items)) {
-          items = res.data.wishlist.items;
-        } else if (res?.data?.wishlist && Array.isArray(res.data.wishlist)) {
-          items = res.data.wishlist;
-        } else if (res?.data?.items && Array.isArray(res.data.items)) {
-          items = res.data.items;
-        } else if (res?.data?.data?.items && Array.isArray(res.data.data.items)) {
-          items = res.data.data.items;
-        }
-
-        const ids = items
-          .map((i: any) =>
-            (
-              i?.productId?._id ||
-              i?.productId ||
-              i?.product?.id ||
-              i?.product?._id ||
-              i?._id ||
-              i?.id
-            )?.toString(),
-          )
-          .filter(Boolean);
-
-        setIsFavorite(ids.includes(productId.toString()));
-      } catch (e) {
-        console.log('loadFavoriteStatus error', e);
-      }
-    };
-
-    loadFavoriteStatus();
   }, [productId]);
 
   const loadCartQuantity = React.useCallback(
@@ -520,7 +481,10 @@ const handleShare = async () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp(8) }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: hp(14) + insets.bottom }}
+      >
         {/* Product Image Carousel */}
         <View style={styles.imgContainer}>
           <FlatList
@@ -674,7 +638,15 @@ const handleShare = async () => {
       </ScrollView>
 
       {/* Bottom Add to Cart Bar */}
-      <View style={styles.bottomCartBar}>
+      <View
+        style={[
+          styles.bottomCartBar,
+          {
+            minHeight: hp(8) + insets.bottom,
+            paddingBottom: Math.max(insets.bottom, hp(1.2)),
+          },
+        ]}
+      >
         <LinearGradient colors={['#FFFFFF', '#FFFFFF']} style={styles.cartGradient}>
           {cartQty === 0 ? (
             (() => {
@@ -720,27 +692,18 @@ const handleShare = async () => {
               );
             })()
           ) : (
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1, padding: 10 }}>
+            <View style={styles.cartContentRow}>
               <Pressable
                 onPress={() => (navigation as any).navigate('BottomStackNavigator', { screen: 'Cart' })}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  backgroundColor: '#fff',
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: '#ccc',
-                }}
+                style={styles.viewCartButton}
               >
                 <Icon name="shopping-cart" family="Feather" size={26} color="#000" />
-                <Text style={{ marginLeft: 8, fontSize: 16, fontWeight: '600', color: '#000' }}>
+                <Text style={styles.viewCartText} numberOfLines={1}>
                   View Cart
                 </Text>
               </Pressable>
 
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={styles.quantityControls}>
                 {(() => {
                   const productIdentifier = (
                     product?._id ||
@@ -763,17 +726,10 @@ const handleShare = async () => {
                     <Pressable
                       onPress={() => updateCart(cartQty - 1)}
                       disabled={isLoading}
-                      style={{
-                        backgroundColor: isLoading ? '#f5f5f5' : '#fff',
-                        borderRadius: 4,
-                        paddingHorizontal: 12,
-                        paddingVertical: 6,
-                        borderWidth: 1,
-                        borderColor: isLoading ? '#ccc' : '#ccc',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        opacity: isLoading ? 0.5 : 1
-                      }}
+                      style={[
+                        styles.quantityButton,
+                        { backgroundColor: isLoading ? '#f5f5f5' : '#fff', opacity: isLoading ? 0.5 : 1 },
+                      ]}
                     >
                       {isLoading ? (
                         <ActivityIndicator size="small" color="#000" />
@@ -784,7 +740,7 @@ const handleShare = async () => {
                   );
                 })()}
 
-                <Text style={{ marginHorizontal: 12, fontSize: 16, fontWeight: '600', color: '#000' }}>
+                <Text style={styles.quantityValue}>
                   {String(cartQty)}
                 </Text>
 
@@ -810,17 +766,10 @@ const handleShare = async () => {
                     <Pressable
                       onPress={() => updateCart(cartQty + 1)}
                       disabled={isLoading}
-                      style={{
-                        backgroundColor: isLoading ? '#f5f5f5' : '#fff',
-                        borderRadius: 4,
-                        paddingHorizontal: 12,
-                        paddingVertical: 6,
-                        borderWidth: 1,
-                        borderColor: isLoading ? '#ccc' : '#ccc',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        opacity: isLoading ? 0.5 : 1
-                      }}
+                      style={[
+                        styles.quantityButton,
+                        { backgroundColor: isLoading ? '#f5f5f5' : '#fff', opacity: isLoading ? 0.5 : 1 },
+                      ]}
                     >
                       {isLoading ? (
                         <ActivityIndicator size="small" color="#000" />

@@ -209,10 +209,13 @@ export interface OrderTrackingData {
   orderId: string;
   status: string;
   driver: Driver;
+  driverLocation?: DriverLocation;
   pickupLocation: Location;
   dropLocation: Location;
   timeline: TimelineEvent[];
   estimatedDelivery: string;
+  distance?: number;
+  eta?: string;
 }
 
 export interface OrderTrackingResponse {

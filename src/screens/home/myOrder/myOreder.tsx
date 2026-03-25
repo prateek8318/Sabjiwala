@@ -415,10 +415,21 @@ const MyOrder = () => {
 
           {/* Track Button */}
           <TouchableOpacity
-            style={styles.actionBtn}
+            style={[
+              styles.actionBtn,
+              isDelivered ? styles.actionBtnDisabled : null,
+            ]}
+            disabled={isDelivered}
             onPress={() => navigation.navigate('OrderTracking' as any, { orderId: item._id, order: item })}
           >
-            <TextView style={styles.actionText}>Track</TextView>
+            <TextView
+              style={[
+                styles.actionText,
+                isDelivered ? styles.actionTextDisabled : null,
+              ]}
+            >
+              Track
+            </TextView>
           </TouchableOpacity>
 
           {/* Vertical Separator */}

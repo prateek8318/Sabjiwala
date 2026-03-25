@@ -41,6 +41,10 @@ const EditProfile: FC = () => {
   const [profileImage, setProfileImage] = useState(userData?.profileImage || '');
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [selectedUploadFile, setSelectedUploadFile] = useState<{ uri: string; name?: string; type?: string } | null>(null);
+  const [nameError, setNameError] = useState('');
+  const [nameTouched, setNameTouched] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [emailTouched, setEmailTouched] = useState(false);
   const initialNameRef = useRef(userData?.name || '');
   const initialEmailRef = useRef(userData?.email || '');
   const initialImageRef = useRef(userData?.profileImage || '');
@@ -50,6 +54,65 @@ const EditProfile: FC = () => {
       ? profileImage
       : `${IMAGE_BASE_URL}${profileImage}`
     : 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ4YreOWfDX3kK-QLAbAL4ufCPc84ol2MA8Xg&s';
+
+  const validateName = (text: string) => {
+    // Only allow letters and spaces
+    const nameRegex = /^[a-zA-Z\s]*$/;
+    if (!nameRegex.test(text)) {
+      setNameError('Name can only contain letters and spaces');
+      return false;
+    }
+    setNameError('');
+    return true;
+  };
+
+  const handleNameChange = (text: string) => {
+    setNameTouched(true);
+    // Filter out invalid characters but allow the input to continue
+    const filteredText = text.replace(/[^a-zA-Z\s]/g, '');
+    if (filteredText !== text) {
+      setNameError('Name can only contain letters and spaces');
+    } else {
+      setNameError('');
+    }
+    setName(filteredText);
+  };
+
+  const handleNameBlur = () => {
+    setNameTouched(true);
+    validateName(name);
+  };
+
+  const validateEmail = (text: string) => {
+    // Email is optional, but if provided, it should be valid
+    if (!text.trim()) {
+      setEmailError('');
+      return true;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(text)) {
+      setEmailError('Please enter a valid email address');
+      return false;
+    }
+    setEmailError('');
+    return true;
+  };
+
+  const handleEmailChange = (text: string) => {
+    setEmailTouched(true);
+    setEmail(text);
+    if (text.trim()) {
+      validateEmail(text);
+    } else {
+      setEmailError('');
+    }
+  };
+
+  const handleEmailBlur = () => {
+    setEmailTouched(true);
+    validateEmail(email);
+  };
 
   const showImagePicker = () => {
     SheetManager.show('image-picker-sheet');
@@ -106,6 +169,12 @@ const EditProfile: FC = () => {
   const handleSubmit = async () => {
     if (!name.trim()) {
       Toast.show({ type: 'error', text1: 'Please enter your name' });
+      return;
+    }
+
+    // Validate email if provided
+    if (email.trim() && !validateEmail(email)) {
+      Toast.show({ type: 'error', text1: 'Please enter a valid email address' });
       return;
     }
 
@@ -223,12 +292,15 @@ const EditProfile: FC = () => {
            
             <InputText
               value={name}
-              onChangeText={setName}
+              onChangeText={handleNameChange}
+              onBlur={handleNameBlur}
               placeholder="Name"
               borderColor="#015304"
               placeHolderTextStyle="#015304"
               inputContainer={styles.inputContainer}
               inputStyle={[styles.inputView, { color: '#015304' }]}
+              error={nameError}
+              touched={nameTouched}
             />
 
             
@@ -241,12 +313,15 @@ const EditProfile: FC = () => {
 
             <InputText
               value={email}
-              onChangeText={setEmail}
+              onChangeText={handleEmailChange}
+              onBlur={handleEmailBlur}
               placeholder="Email address (optional)"
               placeHolderTextStyle="#015304"
               keyboardType="email-address"
               inputContainer={styles.inputContainer}
               inputStyle={[styles.inputView, { color: '#000' }]}
+              error={emailError}
+              touched={emailTouched}
             />
           </View>
 

@@ -22,6 +22,7 @@ interface TextInputProps {
   autofocus?: boolean;
   inputLabel?: string;
   onFocus?: any;
+  onBlur?: any;
   multiline?: boolean;
   editable?: boolean;
   returnKeyType?: ReturnKeyTypeOptions;
@@ -47,6 +48,7 @@ const InputText: FC<TextInputProps> = ({
   inputStyle,
   editable,
   onFocus,
+  onBlur,
   inputContainer,
   showIcon,
   multiline,
@@ -80,6 +82,7 @@ const InputText: FC<TextInputProps> = ({
         placeholderTextColor={placeHolderTextStyle}
         onSubmitEditing={textOnSubmit}
         onChangeText={onChangeText}
+        onBlur={onBlur}
         style={inputStyle && inputStyle}
         editable={editable}
         multiline={multiline}

@@ -4,8 +4,13 @@ import { logger } from '../utils/logger';
 export const useWebSocket = (url: string, onMessage?: (data: any) => void) => {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const shouldReconnectRef = useRef(true);
 
   const connect = () => {
+    if (!shouldReconnectRef.current) {
+      return;
+    }
+
     try {
       wsRef.current = new WebSocket(url);
 
@@ -28,6 +33,10 @@ export const useWebSocket = (url: string, onMessage?: (data: any) => void) => {
 
       wsRef.current.onclose = () => {
         logger.log('WebSocket disconnected');
+        if (!shouldReconnectRef.current) {
+          return;
+        }
+
         // Auto-reconnect after 3 seconds
         reconnectTimeoutRef.current = setTimeout(connect, 3000);
       };
@@ -37,6 +46,8 @@ export const useWebSocket = (url: string, onMessage?: (data: any) => void) => {
   };
 
   const disconnect = () => {
+    shouldReconnectRef.current = false;
+
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
@@ -49,6 +60,7 @@ export const useWebSocket = (url: string, onMessage?: (data: any) => void) => {
   };
 
   useEffect(() => {
+    shouldReconnectRef.current = true;
     connect();
     return disconnect;
   }, [url]);

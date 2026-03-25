@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { View, Image, FlatList, StyleSheet, Dimensions } from 'react-native';
+import { View, Image, FlatList, StyleSheet } from 'react-native';
 import { widthPercentageToDP as wp } from '../../constant/dimentions';
 
 interface BannerCarouselProps {
@@ -8,8 +8,6 @@ interface BannerCarouselProps {
   autoScrollInterval?: number;
 }
 
-const { width } = Dimensions.get('window');
-
 const BannerCarousel: React.FC<BannerCarouselProps> = ({
   banners,
   height = 200,
@@ -17,6 +15,7 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({
 }) => {
   const flatListRef = useRef<FlatList>(null);
   const currentIndex = useRef(0);
+  const carouselWidth = wp(95);
 
   useEffect(() => {
     if (banners.length <= 1) return;
@@ -31,7 +30,7 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({
       } catch (error) {
         // Fallback to scrollToOffset if scrollToIndex fails
         flatListRef.current?.scrollToOffset({
-          offset: currentIndex.current * width,
+          offset: currentIndex.current * carouselWidth,
           animated: true,
         });
       }
@@ -60,8 +59,8 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({
       <View style={[styles.container, { height }]}>
         <Image
           source={{ uri: banners[0] }}
-          style={[styles.bannerImage, { height }]}
-          resizeMode="contain"
+          style={[styles.bannerImage, { width: carouselWidth, height }]}
+          resizeMode="cover"
           onError={(error) => {
             console.log('Banner image load error:', error.nativeEvent.error);
             console.log('Failed URL:', banners[0]);
@@ -84,8 +83,8 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({
         renderItem={({ item }) => (
           <Image
             source={{ uri: item }}
-            style={[styles.bannerImage, { width, height }]}
-            resizeMode="contain"
+            style={[styles.bannerImage, { width: carouselWidth, height }]}
+            resizeMode="cover"
             onError={(error) => {
               console.log('Banner carousel image load error:', error.nativeEvent.error);
               console.log('Failed URL:', item);
@@ -95,8 +94,8 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
         getItemLayout={(data, index) => ({
-          length: width,
-          offset: width * index,
+          length: carouselWidth,
+          offset: carouselWidth * index,
           index,
         })}
       />
@@ -108,6 +107,8 @@ const styles = StyleSheet.create({
   container: {
     width: wp(95),
     alignSelf: 'center',
+    overflow: 'hidden',
+    borderRadius: 16,
   },
   bannerImage: {
     width: wp(95),

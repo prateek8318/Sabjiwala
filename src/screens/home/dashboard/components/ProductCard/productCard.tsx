@@ -88,8 +88,11 @@ const ProductCard: FC<ProductCardProps> = ({
   const loadCart = useCallback(async () => {
     try {
       const res = await ApiService.getCart();
-      const map: any = {};
-      const variantMap: any = {};
+      const map: { [key: string]: number } = {};
+      const variantMap: {
+        [key: string]: { variantId?: string; variantData?: any; quantity: number };
+      } = {};
+      const nextVariantQuantities: { [key: string]: number } = {};
 
       const fetchedCartItems =
         res?.data?.cart?.products ||
@@ -108,27 +111,29 @@ const ProductCard: FC<ProductCardProps> = ({
           i?.id ||
           '';
         if (pid) {
-          map[pid.toString()] = i.quantity || 0;
+          const productKey = pid.toString();
+          const itemQty = Number(i.quantity) || 0;
+          map[productKey] = (map[productKey] || 0) + itemQty;
           // Store variant info - variantId can be object with _id or just string
           const variantIdObj = i?.variantId;
           const variantId = variantIdObj?._id || variantIdObj || undefined;
           // variantData should be the full variant object if available
           const variantData = variantIdObj && typeof variantIdObj === 'object' ? variantIdObj : undefined;
-          variantMap[pid.toString()] = {
+          variantMap[productKey] = {
             variantId: variantId,
             variantData: variantData,
-            quantity: i.quantity || 0,
+            quantity: itemQty,
           };
           
           // Store quantity by product+variant combination for accurate tracking
-          const key = variantId ? `${pid}:${variantId}` : pid;
-          variantQuantities[key] = i.quantity || 0;
+          const key = variantId ? `${productKey}:${variantId}` : productKey;
+          nextVariantQuantities[key] = itemQty;
         }
       });
 
       setCartMap(map);
       setCartVariantMap(variantMap);
-      setVariantQuantities({ ...variantQuantities });
+      setVariantQuantities(nextVariantQuantities);
     } catch (e) {
       console.log('loadCart error:', e);
     }

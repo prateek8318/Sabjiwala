@@ -56,12 +56,13 @@ import ApiService, { IMAGE_BASE_URL } from '../../../service/apiService';
 import { Product, ProductCardItem, SubCategory } from '../../../@types';
 import { LocalStorage } from '../../../helpers/localstorage';
 import { reverseGeocode } from '../../../helpers/geocoding';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type DashboardScreenNavigationType = NativeStackNavigationProp<any, 'Dashboard'>;
 
 const Dashboard: FC = () => {
   const navigation = useNavigation<DashboardScreenNavigationType>();
+  const insets = useSafeAreaInsets();
 
   const [categories, setCategories] = useState<SubCategory[]>([]);
   const [selectedCat, setSelectedCat] = useState<string>('all');
@@ -93,6 +94,7 @@ const Dashboard: FC = () => {
   const [recentlyAddedProducts, setRecentlyAddedProducts] = useState<any[]>([]);
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const bounceValue = useRef(new Animated.Value(0)).current;
+  const recentlyAddedClearTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isTabHidden, setIsTabHidden] = useState(false);
   const lastScrollY = useRef(0);
   const [searchPlaceholderIndex, setSearchPlaceholderIndex] = useState(0);
@@ -599,8 +601,15 @@ const Dashboard: FC = () => {
     if (newCartItems.length === 0) {
       setRecentlyAddedProducts([]);
     } else if (recentlyAddedProducts.length > 0) {
+      if (recentlyAddedClearTimeoutRef.current) {
+        clearTimeout(recentlyAddedClearTimeoutRef.current);
+      }
+
       // Reduced delay for better responsiveness
-      setTimeout(() => setRecentlyAddedProducts([]), 600); // Reduced from 1200ms
+      recentlyAddedClearTimeoutRef.current = setTimeout(() => {
+        setRecentlyAddedProducts([]);
+        recentlyAddedClearTimeoutRef.current = null;
+      }, 600);
     }
   } catch (err) {
     console.log('Cart load error:', err);
@@ -609,20 +618,20 @@ const Dashboard: FC = () => {
   }
 }, [recentlyAddedProducts.length]);
 
-  // Refresh cart when screen comes into focus
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      loadCart();
-    });
-    return unsubscribe;
-  }, [navigation, loadCart]);
-
   // Also load cart on initial mount
   useFocusEffect(
     useCallback(() => {
       loadCart();
     }, [loadCart])
   );
+
+  useEffect(() => {
+    return () => {
+      if (recentlyAddedClearTimeoutRef.current) {
+        clearTimeout(recentlyAddedClearTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!lastAddedId) return;
@@ -942,6 +951,12 @@ const Dashboard: FC = () => {
     ],
   };
 
+  const floatingCartBottom = isTabHidden
+    ? Math.max(insets.bottom + hp(2), hp(3))
+    : TAB_BAR_BASE_STYLE.height + Math.max(insets.bottom, hp(1.5));
+
+  const floatingCartContentPadding = floatingCartBottom + hp(10);
+
   const handleScroll = useCallback(
     (event: any) => {
       const currentOffset = event?.nativeEvent?.contentOffset?.y ?? 0;
@@ -972,7 +987,7 @@ const Dashboard: FC = () => {
       <View style={styles.container}>
         <Animated.ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: hp(6) }}
+          contentContainerStyle={{ paddingBottom: floatingCartContentPadding }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
@@ -1430,7 +1445,7 @@ const Dashboard: FC = () => {
             onPress={() =>
               navigation.navigate('BottomStackNavigator', { screen: 'Cart' })
             }
-            style={styles.floatingCartButton}
+            style={[styles.floatingCartButton, { bottom: floatingCartBottom }]}
           >
             <LinearGradient
               colors={['#5A875C', '#015304']}

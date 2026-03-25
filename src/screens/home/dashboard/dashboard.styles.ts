@@ -321,16 +321,17 @@ const styles = StyleSheet.create({
   },
   floatingCartButton: {
     position: 'absolute',
-    bottom: hp(10),
     alignSelf: 'center',
     zIndex: 1000,
     elevation: 20,
+    width: 'auto',
+    maxWidth: wp(92),
   },
   cartGradient: {
     borderRadius: 28,
     paddingLeft: wp(7), // extra space for overlapping image
     paddingRight: wp(3.4),
-    paddingVertical: hp(0.9),
+    paddingVertical: hp(1),
     minWidth: wp(42),
     maxWidth: wp(90),
     shadowColor: '#000',
@@ -344,6 +345,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: wp(2),
+    flexShrink: 1,
   },
   stackedImagesContainer: {
     flexDirection: 'row',
@@ -384,6 +386,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'center',
     marginHorizontal: wp(2),
+    flexShrink: 1,
   },
   cartButtonSubText: {
     color: '#E8F5E9',
@@ -396,6 +399,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: wp(1),
+    flexShrink: 0,
   },
   // Notification styles
   notificationContainer: {
